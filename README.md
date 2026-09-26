@@ -19,4 +19,23 @@ Scaffold técnico do frontend web da Urbizzi.
 npm install
 ```
 
-O código da aplicação, incluindo a pasta `src` e o arquivo `index.html`, ainda não foi criado intencionalmente.
+## Rodando
+
+```bash
+npm run dev    # http://localhost:5173
+npm test       # testes com Vitest
+```
+
+Acesso de demonstração: `admin@urbizzi.com.br` / `urbizzi123`.
+
+## Telas
+
+- **Login** — validação, "manter conectado", recuperação de senha.
+- **Dashboard** — indicadores calculados, reservas com contagem regressiva, aprovação/recusa de propostas, busca global.
+- **Imóveis** — listagem com filtros e paginação; cadastro/edição com busca de CEP (ViaCEP), marcação no mapa, upload de fotos, rascunhos e validação.
+
+## Dados
+
+Enquanto não há backend, os dados ficam no `localStorage` (`src/data/db.ts`), gerados por `src/data/seed.ts`.
+Toda leitura/escrita assíncrona passa por `src/services/api.ts`: é ali que entram as chamadas HTTP quando a API existir.
+O menu da conta (canto inferior da barra lateral) tem a opção de restaurar os dados de demonstração.
