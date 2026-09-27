@@ -1,4 +1,4 @@
-export type Situacao = 'disponivel' | 'reservado' | 'vendido' | 'indisponivel'
+export type Situacao = 'disponivel' | 'reservado' | 'vendido' | 'bloqueado'
 export type StatusPublicacao = 'publicado' | 'rascunho'
 
 export interface Endereco {
@@ -27,6 +27,10 @@ export interface Imovel {
   publicacao: { catalogo: boolean; reservasOnline: boolean; destaque: boolean }
   /** Data URLs já redimensionadas; a primeira é a capa. */
   fotos: string[]
+  /** Observação interna (ex.: "Esquina", "Faixa de serviço"). */
+  observacao?: string
+  /** Preenchido enquanto o imóvel está bloqueado. */
+  bloqueio?: { motivo: string; justificativa: string; previsao?: string; em: string }
   status: StatusPublicacao
   criadoEm: string
   atualizadoEm: string
@@ -41,6 +45,8 @@ export type StatusReserva = 'ativa' | 'convertida' | 'cancelada'
 
 export interface Reserva {
   id: string
+  /** Código de exibição, ex.: RES-2026-0184 */
+  codigo: string
   imovelId: string
   clienteId: string
   corretorId: string
@@ -53,6 +59,8 @@ export type StatusProposta = 'pendente' | 'aprovada' | 'recusada'
 
 export interface Proposta {
   id: string
+  /** Código de exibição, ex.: PROP-2026-0311 */
+  codigo: string
   imovelId: string
   clienteId: string
   corretorId: string
@@ -67,11 +75,91 @@ export interface Proposta {
 
 export interface Venda {
   id: string
+  /** Código de exibição, ex.: VD-2026-0092 */
+  codigo: string
   imovelId: string
   clienteId: string
   propostaId?: string
   valor: number
   data: string
+  status: 'ativa' | 'cancelada'
+  cancelamento?: { motivo: string; dataDistrato: string; devolucao: number; em: string }
+}
+
+export type SituacaoLoteamento = 'em_aprovacao' | 'em_registro' | 'em_comercializacao' | 'esgotado'
+
+export interface Loteamento {
+  id: string
+  nome: string
+  /** Prefixo do identificador dos lotes, ex.: UNI-I */
+  codigo: string
+  situacao: SituacaoLoteamento
+  dataAprovacao: string
+  cep: string
+  endereco: string
+  bairro: string
+  cidade: string
+  uf: string
+  matriculaMae: string
+  areaTotal: number | null
+  areaLoteavel: number | null
+  centro: { lat: number; lng: number } | null
+  cartorio: string
+  numeroRegistro: string
+  licencaAmbiental: string
+  validadeLicenca: string
+}
+
+export interface Quadra {
+  id: string
+  /** Nome do loteamento (mesma chave usada em Imovel.loteamento). */
+  loteamento: string
+  identificacao: string
+  area: number | null
+  testadaPara: string
+  criadaEm: string
+}
+
+export interface Interesse {
+  id: string
+  codigo: string
+  imovelId: string
+  nome: string
+  email: string
+  telefone: string
+  mensagem: string
+  criadoEm: string
+}
+
+export type VarianteBadge = 'normal' | 'atencao' | 'critico' | 'neutro' | 'escuro' | 'laranja' | 'rascunho'
+
+export interface EventoHistorico {
+  id: string
+  imovelId: string
+  data: string
+  tipo: string
+  descricao: string
+  autor: string
+  referencia?: string
+  situacao: { rotulo: string; variante: VarianteBadge }
+}
+
+export interface Documento {
+  id: string
+  imovelId: string
+  tipo: string
+  arquivo: string
+  /** bytes */
+  tamanho: number
+  versao: number
+  enviadoPor: string
+  data: string
+  validade?: string
+  visivelCatalogo: boolean
+  aguardandoAssinatura?: boolean
+  substituido: boolean
+  /** Conteúdo em data URL, guardado só para arquivos pequenos (demonstração). */
+  conteudo?: string
 }
 
 export interface Usuario {
@@ -93,4 +181,9 @@ export interface Db {
   propostas: Proposta[]
   vendas: Venda[]
   usuarios: Usuario[]
+  loteamentos: Loteamento[]
+  quadras: Quadra[]
+  interesses: Interesse[]
+  historico: EventoHistorico[]
+  documentos: Documento[]
 }

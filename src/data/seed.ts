@@ -1,7 +1,19 @@
-import { LOTEAMENTOS, type Loteamento } from './catalogos'
-import type { Db, Imovel, Pessoa, Proposta, Reserva, Venda } from './types'
+import { LOTEAMENTOS, type LoteamentoInicial } from './catalogos'
+import type {
+  Db,
+  Documento,
+  EventoHistorico,
+  Imovel,
+  Interesse,
+  Loteamento,
+  Pessoa,
+  Proposta,
+  Quadra,
+  Reserva,
+  Venda,
+} from './types'
 
-export const VERSAO_DB = 1
+export const VERSAO_DB = 2
 
 const HORA = 3_600_000
 const DIA = 24 * HORA
@@ -38,6 +50,7 @@ function mulberry32(semente: number) {
 }
 
 const pad = (n: number) => String(n).padStart(2, '0')
+const pad4 = (n: number) => String(n).padStart(4, '0')
 const arredondar = (v: number, passo = 500) => Math.round(v / passo) * passo
 
 export function criarSeed(agora: Date): Db {
@@ -51,7 +64,8 @@ export function criarSeed(agora: Date): Db {
   const cliente = (nome: string) => clientes.find((c) => c.nome === nome)!.id
   const corretor = (nome: string) => corretores.find((c) => c.nome === nome)!.id
 
-  const planos: { lot: Loteamento; quadras: number; lotes: number }[] = [
+  const ano = agora.getFullYear()
+  const planos: { lot: LoteamentoInicial; quadras: number; lotes: number }[] = [
     { lot: LOTEAMENTOS[0], quadras: 6, lotes: 12 },
     { lot: LOTEAMENTOS[1], quadras: 9, lotes: 8 },
     { lot: LOTEAMENTOS[2], quadras: 0, lotes: 44 },
@@ -131,6 +145,7 @@ export function criarSeed(agora: Date): Db {
     imovel.situacao = 'reservado'
     reservas.push({
       id: `res-${reservas.length + 1}`,
+      codigo: `RES-${ano}-${pad4(184 - reservas.length)}`,
       imovelId: imovel.id,
       clienteId: cli,
       corretorId: cor,
@@ -161,6 +176,7 @@ export function criarSeed(agora: Date): Db {
   const novaProposta = (imovel: Imovel, cli: string, cor: string, valor: number, condicao?: string) => {
     propostas.push({
       id: `pro-${propostas.length + 1}`,
+      codigo: `PROP-${ano}-${pad4(311 - propostas.length)}`,
       imovelId: imovel.id,
       clienteId: cli,
       corretorId: cor,
@@ -195,6 +211,8 @@ export function criarSeed(agora: Date): Db {
     }
     vendas.push({
       id: `ven-${i + 1}`,
+      codigo: `VD-${ano}-${pad4(92 - i)}`,
+      status: 'ativa',
       imovelId: imovel.id,
       clienteId: escolher(clientes).id,
       valor: arredondar(imovel.valores.tabela! * (0.95 + rand() * 0.05)),
@@ -202,13 +220,150 @@ export function criarSeed(agora: Date): Db {
     })
   }
 
-  for (let i = 0; i < 8; i++) retirar(livres[0]).situacao = 'indisponivel'
+  for (let i = 0; i < 8; i++) {
+    const imovel = retirar(livres[0])
+    imovel.situacao = 'bloqueado'
+    imovel.publicacao.catalogo = false
+    imovel.bloqueio = {
+      motivo: i % 3 === 0 ? 'Faixa de serviço / área técnica' : 'Pendência de averbação',
+      justificativa: i % 3 === 0 ? 'Área reservada para passagem de rede.' : 'A averbação da unidade ainda não saiu no cartório.',
+      em: new Date(agoraMs - (20 + i * 9) * DIA).toISOString(),
+    }
+  }
+  for (const i of imoveis) if (i.situacao === 'vendido') i.publicacao.catalogo = false
 
   // Alguns cadastros recentes para o indicador "este mês".
   for (let i = 0; i < 6; i++) {
     const em = new Date(inicioMes + rand() * Math.max(agoraMs - inicioMes, HORA)).toISOString()
     livres[i].criadoEm = em
     livres[i].atualizadoEm = em
+  }
+
+  // ===== Loteamentos e quadras =====
+  const loteamentos: Loteamento[] = LOTEAMENTOS.map((l, i) => ({
+    id: `lot-${i + 1}`,
+    nome: l.nome,
+    codigo: l.codigo,
+    situacao: 'em_comercializacao',
+    dataAprovacao: `${ano - 2}-0${i + 3}-12`,
+    cep: l.cep,
+    endereco: l.endereco,
+    bairro: l.bairro,
+    cidade: l.cidade,
+    uf: l.uf,
+    matriculaMae: String(38771 + i * 1311),
+    areaTotal: [182400, 96500, 118000, 54300][i],
+    areaLoteavel: [121900, 61200, 72300, 35100][i],
+    centro: l.centro,
+    cartorio: '1º Ofício de Toledo',
+    numeroRegistro: `R-${4 + i}/${38771 + i * 1311}`,
+    licencaAmbiental: `IAT-${ano - 2}-0${871 + i}`,
+    validadeLicenca: `${ano + 1}-06-30`,
+  }))
+  const quadras: Quadra[] = []
+  for (const i of imoveis) {
+    if (!quadras.some((q) => q.loteamento === i.loteamento && q.identificacao === i.endereco.quadra)) {
+      quadras.push({
+        id: `qua-${quadras.length + 1}`,
+        loteamento: i.loteamento,
+        identificacao: i.endereco.quadra,
+        area: null,
+        testadaPara: i.endereco.logradouro,
+        criadaEm: i.criadoEm,
+      })
+    }
+  }
+
+  // ===== Interesses vindos do catálogo público =====
+  const NOMES_INTERESSE = ['Marina Ferreira Duarte', 'Carlos Menezes', 'Fernanda Lopes', 'João Ribeiro', 'Priscila Nogueira', 'Henrique Dalla']
+  const interesses: Interesse[] = []
+  const novoInteresse = (imovel: Imovel, nome: string, diasAtras: number) => {
+    interesses.push({
+      id: `int-${interesses.length + 1}`,
+      codigo: `INT-${pad4(4471 - interesses.length)}`,
+      imovelId: imovel.id,
+      nome,
+      email: `${nome.split(' ')[0].toLowerCase()}@email.com`,
+      telefone: '(45) 99812-4477',
+      mensagem: 'Gostaria de saber as condições de parcelamento e a documentação do lote.',
+      criadoEm: new Date(agoraMs - diasAtras * DIA).toISOString(),
+    })
+  }
+  const lote12 = destaque[0].imovel
+  novoInteresse(lote12, 'Marina Ferreira Duarte', 49)
+  for (const n of NOMES_INTERESSE.slice(1, 4)) novoInteresse(lote12, n, 10 + interesses.length * 3)
+  for (const imovel of imoveis) {
+    if (imovel === lote12 || imovel.situacao === 'bloqueado' || rand() > 0.35) continue
+    const qtd = 1 + Math.floor(rand() * 6)
+    for (let k = 0; k < qtd; k++) novoInteresse(imovel, escolher(NOMES_INTERESSE), 1 + Math.floor(rand() * 90))
+  }
+
+  // ===== Histórico (somente leitura) =====
+  const historico: EventoHistorico[] = []
+  const evento = (e: Omit<EventoHistorico, 'id'>) => historico.push({ id: `his-${historico.length + 1}`, ...e })
+  const nomeCliente = (id: string) => clientes.find((c) => c.id === id)?.nome ?? 'cliente'
+  const nomeCorretor = (id: string) => corretores.find((c) => c.id === id)?.nome ?? 'Sistema'
+  const autores = ['Arthur Pacheco', 'Matheus Oening', 'Gustavo Marques', 'Gabriela Krüger']
+  for (const imovel of imoveis) {
+    const lot = loteamentos.find((l) => l.nome === imovel.loteamento)!
+    evento({
+      imovelId: imovel.id,
+      data: imovel.criadoEm,
+      tipo: 'Cadastro',
+      descricao: imovel.endereco.quadra ? `Lote criado na geração da Qd. ${imovel.endereco.quadra}` : 'Lote cadastrado',
+      autor: escolher(autores),
+      referencia: lot.codigo,
+      situacao: { rotulo: 'Disponível', variante: 'normal' },
+    })
+    if (imovel.bloqueio) {
+      evento({
+        imovelId: imovel.id,
+        data: imovel.bloqueio.em,
+        tipo: 'Bloqueio',
+        descricao: `Bloqueado: ${imovel.bloqueio.motivo.toLowerCase()}`,
+        autor: 'Matheus Oening',
+        situacao: { rotulo: 'Bloqueado', variante: 'escuro' },
+      })
+    }
+  }
+  // Linha do tempo detalhada do Lote 12 — Qd. 04 (reproduz o protótipo).
+  const diasAtras = (d: number) => new Date(agoraMs - d * DIA).toISOString()
+  const valorLote12 = lote12.valores.tabela!.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
+  lote12.criadoEm = diasAtras(620)
+  historico.find((e) => e.imovelId === lote12.id && e.tipo === 'Cadastro')!.data = lote12.criadoEm
+  evento({ imovelId: lote12.id, data: diasAtras(600), tipo: 'Alteração', descricao: `Valor de tabela ajustado para ${valorLote12}`, autor: 'Matheus Oening', situacao: { rotulo: 'Disponível', variante: 'normal' } })
+  evento({ imovelId: lote12.id, data: diasAtras(560), tipo: 'Bloqueio', descricao: 'Bloqueado por pendência de averbação', autor: 'Matheus Oening', situacao: { rotulo: 'Bloqueado', variante: 'escuro' } })
+  evento({ imovelId: lote12.id, data: diasAtras(490), tipo: 'Reabilitação', descricao: 'Averbação concluída; imóvel liberado para venda', autor: 'Matheus Oening', referencia: `R-6/${lote12.matricula}`, situacao: { rotulo: 'Disponível', variante: 'normal' } })
+  for (const it of interesses) {
+    evento({ imovelId: it.imovelId, data: it.criadoEm, tipo: 'Interesse', descricao: 'Formulário recebido pelo catálogo público', autor: 'Sistema', referencia: it.codigo, situacao: { rotulo: 'Novo', variante: 'laranja' } })
+  }
+  for (const r of reservas) {
+    evento({ imovelId: r.imovelId, data: r.criadaEm, tipo: 'Reserva', descricao: `Reserva criada para ${nomeCliente(r.clienteId)}`, autor: nomeCorretor(r.corretorId), referencia: r.codigo, situacao: { rotulo: 'Reservado', variante: 'atencao' } })
+  }
+  for (const p of propostas) {
+    evento({ imovelId: p.imovelId, data: p.criadaEm, tipo: 'Proposta', descricao: 'Proposta enviada para aprovação', autor: nomeCorretor(p.corretorId), referencia: p.codigo, situacao: { rotulo: 'Em análise', variante: 'escuro' } })
+  }
+  for (const v of vendas) {
+    evento({ imovelId: v.imovelId, data: v.data, tipo: 'Venda', descricao: `Venda registrada para ${nomeCliente(v.clienteId)}`, autor: escolher(autores), referencia: v.codigo, situacao: { rotulo: 'Vendido', variante: 'laranja' } })
+  }
+  evento({ imovelId: lote12.id, data: new Date(agoraMs - 2 * HORA).toISOString(), tipo: 'Sistema', descricao: 'Aviso de vencimento da reserva enviado ao responsável', autor: 'Sistema', situacao: { rotulo: 'Atenção', variante: 'atencao' } })
+
+  // ===== Documentos =====
+  const documentos: Documento[] = []
+  const doc = (d: Omit<Documento, 'id' | 'imovelId'>, imovel = lote12) =>
+    documentos.push({ id: `doc-${documentos.length + 1}`, imovelId: imovel.id, ...d })
+  const emDias = (d: number) => new Date(agoraMs + d * DIA).toISOString().slice(0, 10)
+  const m = lote12.matricula
+  doc({ tipo: 'Matrícula', arquivo: `matricula-${m}-v1.pdf`, tamanho: 1_200_000, versao: 1, enviadoPor: 'Arthur Pacheco', data: diasAtras(560), visivelCatalogo: false, substituido: true })
+  doc({ tipo: 'Planta do lote', arquivo: 'planta-uni-i-qd04-l12.dwg', tamanho: 5_400_000, versao: 1, enviadoPor: 'Gabriela Krüger', data: diasAtras(560), visivelCatalogo: true, substituido: false })
+  doc({ tipo: 'Licença ambiental', arquivo: `iat-${ano - 2}-0871.pdf`, tamanho: 800_000, versao: 1, enviadoPor: 'Matheus Oening', data: diasAtras(559), validade: emDias(300), visivelCatalogo: false, substituido: false })
+  doc({ tipo: 'Matrícula atualizada', arquivo: `matricula-${m}-v2.pdf`, tamanho: 1_400_000, versao: 2, enviadoPor: 'Arthur Pacheco', data: diasAtras(490), validade: emDias(640), visivelCatalogo: false, substituido: false })
+  doc({ tipo: 'Fotos do lote', arquivo: 'fotos-l12.zip', tamanho: 8_900_000, versao: 3, enviadoPor: 'Gustavo Marques', data: diasAtras(49), visivelCatalogo: true, substituido: false })
+  doc({ tipo: 'Contrato de reserva', arquivo: `${reservas[0].codigo.toLowerCase()}.pdf`, tamanho: 300_000, versao: 1, enviadoPor: 'Gustavo Marques', data: diasAtras(46), visivelCatalogo: false, substituido: false })
+  doc({ tipo: 'Proposta assinada', arquivo: `${propostas[0].codigo.toLowerCase()}-v3.pdf`, tamanho: 200_000, versao: 1, enviadoPor: 'Gustavo Marques', data: diasAtras(36), visivelCatalogo: false, aguardandoAssinatura: true, substituido: false })
+  for (const imovel of imoveis) {
+    if (imovel === lote12) continue
+    doc({ tipo: 'Matrícula', arquivo: `matricula-${imovel.matricula}.pdf`, tamanho: 900_000, versao: 1, enviadoPor: escolher(autores), data: imovel.criadoEm, visivelCatalogo: false, substituido: false }, imovel)
   }
 
   return {
@@ -228,5 +383,10 @@ export function criarSeed(agora: Date): Db {
         papel: 'Administrador',
       },
     ],
+    loteamentos,
+    quadras,
+    interesses,
+    historico,
+    documentos,
   }
 }

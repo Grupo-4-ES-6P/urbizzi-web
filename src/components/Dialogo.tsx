@@ -9,6 +9,9 @@ interface DialogoProps {
   textoCancelar?: string
   perigoso?: boolean
   carregando?: boolean
+  confirmarDesabilitado?: boolean
+  largo?: boolean
+  semCancelar?: boolean
   onConfirmar: () => void
   onCancelar: () => void
 }
@@ -23,6 +26,9 @@ export function Dialogo({
   textoCancelar = 'Cancelar',
   perigoso,
   carregando,
+  confirmarDesabilitado,
+  largo,
+  semCancelar,
   onConfirmar,
   onCancelar,
 }: DialogoProps) {
@@ -44,7 +50,7 @@ export function Dialogo({
   return (
     <dialog
       ref={ref}
-      className="dialogo"
+      className={`dialogo ${largo ? 'dialogo--largo' : ''}`}
       aria-labelledby="dialogo-titulo"
       onCancel={(e) => {
         e.preventDefault()
@@ -69,10 +75,12 @@ export function Dialogo({
           {descricao && <div className="dialogo__descricao">{descricao}</div>}
           {children}
           <div className="dialogo__acoes">
-            <button type="button" className="btn btn--secundario" onClick={onCancelar} disabled={carregando}>
-              {textoCancelar}
-            </button>
-            <button type="submit" className={`btn ${perigoso ? 'btn--perigo' : 'btn--primario'}`} disabled={carregando}>
+            {!semCancelar && (
+              <button type="button" className="btn btn--secundario" onClick={onCancelar} disabled={carregando}>
+                {textoCancelar}
+              </button>
+            )}
+            <button type="submit" className={`btn ${perigoso ? 'btn--perigo' : 'btn--primario'}`} disabled={carregando || confirmarDesabilitado}>
               {textoConfirmar}
             </button>
           </div>

@@ -2,15 +2,15 @@ import { Crosshair, MapPin } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
+import { AbasImovel } from '../components/AbasImovel'
 import { Dialogo } from '../components/Dialogo'
 import { FotosImovel } from '../components/FotosImovel'
 import { InputNumerico } from '../components/InputNumerico'
 import { MapaLote } from '../components/MapaLote'
 import { Campo, Spinner, Toggle } from '../components/ui'
+import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 import {
-  buscarLoteamento,
-  LOTEAMENTOS,
   PRAZOS_RESERVA,
   SITUACOES,
   TIPOS_IMOVEL,
@@ -62,6 +62,9 @@ type StatusCep = 'ocioso' | 'buscando' | 'nao-encontrado' | 'falhou'
 function FormularioImovel({ imovel }: { imovel?: Imovel }) {
   const navigate = useNavigate()
   const notificar = useToast()
+  const { usuario } = useAuth()
+  const { loteamentos } = useDb()
+  const buscarLoteamento = (nome: string) => loteamentos.find((l) => l.nome === nome)
   const [form, setForm] = useState<FormImovel>(() =>
     imovel ? formDeImovel(imovel) : formVazio(proximoCodigo(lerDb())),
   )
@@ -184,7 +187,7 @@ function FormularioImovel({ imovel }: { imovel?: Imovel }) {
 
     setSalvando(status === 'rascunho' ? 'rascunho' : 'publicar')
     try {
-      const salvo = await salvarImovel({ ...imovelDeForm(form, status), id: imovel?.id })
+      const salvo = await salvarImovel({ ...imovelDeForm(form, status), id: imovel?.id }, usuario?.nome)
       setSujo(false)
       if (status === 'publicado') {
         notificar(publicado ? 'Alterações salvas.' : 'Imóvel publicado com sucesso.')
@@ -240,6 +243,7 @@ function FormularioImovel({ imovel }: { imovel?: Imovel }) {
           </button>
         </div>
       </header>
+      {imovel && <AbasImovel imovelId={imovel.id} />}
 
       <form
         className="conteudo form-imovel"
@@ -280,7 +284,7 @@ function FormularioImovel({ imovel }: { imovel?: Imovel }) {
                 {(p) => (
                   <select {...p} className="input select" value={form.loteamento} onChange={(e) => alterarLoteamento(e.target.value)}>
                     <option value="">Selecione</option>
-                    {LOTEAMENTOS.map((l) => (
+                    {loteamentos.map((l) => (
                       <option key={l.nome}>{l.nome}</option>
                     ))}
                   </select>

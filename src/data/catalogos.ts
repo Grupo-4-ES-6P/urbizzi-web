@@ -1,6 +1,6 @@
 import type { Situacao } from './types'
 
-export interface Loteamento {
+export interface LoteamentoInicial {
   nome: string
   bairro: string
   cidade: string
@@ -8,11 +8,15 @@ export interface Loteamento {
   cep: string
   centro: { lat: number; lng: number }
   precoM2: number
+  codigo: string
+  endereco: string
 }
 
-export const LOTEAMENTOS: Loteamento[] = [
+export const LOTEAMENTOS: LoteamentoInicial[] = [
   {
     nome: 'Lot. Universitário',
+    codigo: 'UNI-I',
+    endereco: 'Rod. PR-317, km 12',
     bairro: 'Jardim Universitário',
     cidade: 'Toledo',
     uf: 'PR',
@@ -22,6 +26,8 @@ export const LOTEAMENTOS: Loteamento[] = [
   },
   {
     nome: 'Jd. Europa',
+    codigo: 'EUR',
+    endereco: 'Av. Europa, 1500',
     bairro: 'Jardim Europa',
     cidade: 'Toledo',
     uf: 'PR',
@@ -31,6 +37,8 @@ export const LOTEAMENTOS: Loteamento[] = [
   },
   {
     nome: 'Biopark Toledo',
+    codigo: 'BIO',
+    endereco: 'Av. Max Planck, 3796',
     bairro: 'Vila Becker',
     cidade: 'Toledo',
     uf: 'PR',
@@ -40,6 +48,8 @@ export const LOTEAMENTOS: Loteamento[] = [
   },
   {
     nome: 'Jd. Porto Alegre',
+    codigo: 'POA',
+    endereco: 'Rua Guaíba, 800',
     bairro: 'Jardim Porto Alegre',
     cidade: 'Toledo',
     uf: 'PR',
@@ -55,7 +65,7 @@ export const SITUACOES: { valor: Situacao; rotulo: string }[] = [
   { valor: 'disponivel', rotulo: 'Disponível' },
   { valor: 'reservado', rotulo: 'Reservado' },
   { valor: 'vendido', rotulo: 'Vendido' },
-  { valor: 'indisponivel', rotulo: 'Indisponível' },
+  { valor: 'bloqueado', rotulo: 'Bloqueado' },
 ]
 
 export const TOPOGRAFIAS = ['Plano', 'Aclive', 'Declive', 'Irregular']
@@ -76,6 +86,37 @@ export function rotuloSituacao(s: Situacao) {
   return SITUACOES.find((x) => x.valor === s)?.rotulo ?? s
 }
 
-export function buscarLoteamento(nome: string) {
-  return LOTEAMENTOS.find((l) => l.nome === nome)
-}
+export const SITUACOES_LOTEAMENTO = [
+  { valor: 'em_aprovacao', rotulo: 'Em aprovação' },
+  { valor: 'em_registro', rotulo: 'Em registro' },
+  { valor: 'em_comercializacao', rotulo: 'Em comercialização' },
+  { valor: 'esgotado', rotulo: 'Esgotado' },
+] as const
+
+export const MOTIVOS_BLOQUEIO = [
+  'Pendência de averbação',
+  'Pendência documental',
+  'Faixa de serviço / área técnica',
+  'Decisão judicial',
+  'Reserva da incorporadora',
+  'Venda cancelada',
+  'Outro',
+]
+
+export const MOTIVOS_CANCELAMENTO = [
+  'Distrato por inadimplência',
+  'Distrato a pedido do cliente',
+  'Erro no registro da venda',
+  'Outro',
+]
+
+export const TIPOS_DOCUMENTO = [
+  'Matrícula atualizada',
+  'Matrícula',
+  'Planta do lote',
+  'Licença ambiental',
+  'Fotos do lote',
+  'Contrato de reserva',
+  'Proposta assinada',
+  'Outro',
+]

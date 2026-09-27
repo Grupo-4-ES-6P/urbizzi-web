@@ -7,6 +7,7 @@ interface InputNumericoProps {
   prefixo?: string
   sufixo?: string
   placeholder?: string
+  'aria-label'?: string
   'aria-invalid'?: boolean
   'aria-describedby'?: string
 }

@@ -1485,3 +1485,685 @@ textarea {
     right: 16px;
   }
 }
+
+/* ============ Badges extras ============ */
+.badge--escuro {
+  background: #4a4a50;
+  color: #fff;
+}
+.badge--laranja {
+  background: var(--laranja);
+  color: #fff;
+}
+
+/* ============ Abas ============ */
+.abas {
+  display: flex;
+  gap: 4px;
+  padding: 0 24px;
+  background: var(--superficie);
+  border-bottom: 1px solid var(--borda);
+  overflow-x: auto;
+}
+.abas__item {
+  padding: 10px 12px;
+  border-bottom: 2px solid transparent;
+  color: var(--texto-2);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.abas__item:hover {
+  color: var(--texto);
+}
+.abas__item.active {
+  border-bottom-color: var(--laranja);
+  color: var(--laranja-forte);
+}
+.dialogo--largo {
+  width: min(640px, calc(100vw - 32px));
+}
+.texto-fraco {
+  color: var(--texto-3);
+  font-style: normal;
+}
+.nota-regra {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--texto-3);
+}
+.importar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.importar__resultado {
+  padding: 10px 12px;
+  border-radius: var(--raio-sm);
+  background: var(--superficie-2);
+  font-size: 13px;
+}
+.importar__erros {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  color: var(--vermelho);
+  font-size: 12px;
+}
+
+/* ============ Páginas do lote ============ */
+.pilha {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.pilha > .nota-regra {
+  margin-top: -6px;
+}
+.ficha {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px 16px;
+  margin: 0;
+}
+.ficha--6 {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+.ficha div {
+  min-width: 0;
+}
+.ficha dt {
+  font-size: 11px;
+  color: var(--texto-3);
+}
+.ficha dd {
+  margin: 2px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.tabela--quebra td {
+  white-space: normal;
+  min-width: 90px;
+}
+@media (max-width: 900px) {
+  .ficha,
+  .ficha--6 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media print {
+  .sidebar,
+  .abas,
+  .cabecalho__acoes,
+  .botao-menu,
+  .nao-imprimir,
+  .toasts {
+    display: none !important;
+  }
+  .app,
+  body {
+    background: #fff;
+  }
+  .card {
+    box-shadow: none;
+    break-inside: avoid;
+  }
+}
+.aviso-situacao {
+  font-size: 13px;
+  color: var(--texto-2);
+}
+.acao {
+  transition: border-color 0.15s, opacity 0.15s;
+}
+.acao--ativa {
+  border-color: var(--laranja);
+  box-shadow: 0 0 0 3px rgb(240 100 30 / 12%);
+}
+.acao--desabilitada {
+  opacity: 0.6;
+}
+.acao__cabecalho {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 14px;
+  cursor: pointer;
+}
+.acao__cabecalho > span {
+  display: flex;
+  flex-direction: column;
+}
+.acao__cabecalho input {
+  margin-top: 3px;
+  accent-color: var(--laranja);
+}
+.acao--desabilitada .acao__cabecalho {
+  cursor: not-allowed;
+}
+.acao__campos {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.input--arquivo {
+  text-align: left;
+  color: var(--texto-2);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.linha--antiga td {
+  color: var(--texto-3);
+}
+.c-1 {
+  grid-column: span 1;
+}
+.acoes-linha {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+.tabela--edicao td {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+.tabela--edicao .input,
+.input--compacto {
+  height: 30px;
+  font-size: 12px;
+  min-width: 110px;
+}
+
+/* ============ Mapa do loteamento ============ */
+.legenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--texto-2);
+}
+.legenda li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.legenda span {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+.planta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.planta__linha {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.planta__quadra {
+  flex: none;
+  width: 48px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--texto-3);
+}
+.planta__lotes {
+  display: flex;
+  gap: 6px;
+}
+.planta__lote {
+  flex: none;
+  width: 44px;
+  height: 34px;
+  border: 2px solid transparent;
+  border-radius: 5px;
+  color: rgb(255 255 255 / 90%);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+.planta__lote:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgb(0 0 0 / 18%);
+}
+.planta__lote--ativo {
+  border-color: var(--preto);
+  box-shadow: 0 0 0 2px #fff inset;
+}
+.secao__cabecalho--linha {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* ============ Site público ============ */
+.site {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--superficie);
+}
+.site__topo {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  height: 56px;
+  padding: 0 24px;
+  background: var(--preto);
+}
+.site__nav {
+  display: flex;
+  gap: 22px;
+  margin: 0 auto;
+}
+.site__link {
+  color: #d4d4d8;
+  font-size: 13px;
+  font-weight: 500;
+}
+.site__link:hover {
+  color: #fff;
+}
+.site__link.active {
+  color: var(--laranja);
+  font-weight: 700;
+}
+.site__acesso {
+  color: #9a9aa1;
+  font-size: 12px;
+}
+.site__acesso:hover {
+  color: #fff;
+}
+.site__menu-botao {
+  display: none;
+  margin-left: auto;
+  padding: 6px;
+  border: 0;
+  background: none;
+  color: #fff;
+  cursor: pointer;
+}
+.site__conteudo {
+  flex: 1;
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 20px 24px 40px;
+}
+.site__rodape {
+  padding: 18px 24px;
+  border-top: 1px solid var(--borda);
+  font-size: 11px;
+  color: var(--texto-3);
+  text-align: center;
+}
+
+.catalogo__filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--fundo);
+  border-bottom: 1px solid var(--borda);
+}
+.catalogo__filtros .select {
+  width: auto;
+  min-width: 150px;
+  height: 36px;
+}
+.catalogo__busca {
+  flex: 1;
+  min-width: 220px;
+  width: auto;
+}
+.catalogo__busca .busca__input {
+  height: 36px;
+  background: var(--superficie);
+}
+.catalogo {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+}
+.catalogo__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 24px 32px;
+}
+.catalogo__cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.catalogo__titulo {
+  font-size: 19px;
+  font-weight: 800;
+}
+.catalogo__cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.terreno {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr) auto;
+  gap: 14px;
+  overflow: hidden;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.terreno--destacado {
+  border-color: var(--laranja-borda);
+  box-shadow: 0 4px 14px rgb(16 16 20 / 8%);
+}
+.terreno__foto {
+  display: grid;
+  place-items: center;
+  min-height: 92px;
+  background: #cfcfcc;
+  color: #8a8a8f;
+}
+.terreno__foto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.terreno__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 0;
+  min-width: 0;
+}
+.terreno__linha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.terreno__nome {
+  font-family: var(--fonte-titulo);
+  font-size: 15px;
+  font-weight: 800;
+}
+.terreno__nome:hover {
+  color: var(--laranja-forte);
+}
+.terreno__detalhe {
+  font-size: 12px;
+  color: var(--texto-2);
+}
+.terreno__preco {
+  font-family: var(--fonte-titulo);
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--laranja);
+}
+.terreno__acoes {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 14px 12px 0;
+}
+.link--cinza {
+  color: var(--texto-3);
+  font-weight: 500;
+}
+.catalogo__mapa {
+  position: sticky;
+  top: 56px;
+  height: calc(100vh - 56px);
+  overflow: hidden;
+  background: #f8f2ee;
+}
+.catalogo__mapa svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.pino {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: var(--laranja);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 30%);
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.pino:hover,
+.pino--ativo {
+  z-index: 2;
+  background: var(--preto);
+  transform: translate(-50%, -50%) scale(1.5);
+}
+.catalogo__balao {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 150px;
+  padding: 8px 10px;
+  border-radius: var(--raio);
+  background: var(--superficie);
+  box-shadow: var(--sombra-alta);
+  font-size: 12px;
+  transform: translate(-50%, calc(-100% - 14px));
+}
+.catalogo__mapa-vazio {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--texto-3);
+  font-size: 13px;
+}
+
+.detalhe {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 20px;
+  align-items: start;
+}
+.detalhe__principal {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+.detalhe__titulo {
+  font-size: 22px;
+  font-weight: 800;
+}
+.galeria {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 110px;
+  gap: 8px;
+  height: 300px;
+}
+.galeria__principal,
+.galeria__miniaturas button,
+.galeria__slot {
+  overflow: hidden;
+  border-radius: var(--raio);
+  background: #cfcfcc;
+}
+.galeria__principal img,
+.galeria__miniaturas img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.galeria__vazia {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 100%;
+  color: #7a7a80;
+  font-size: 13px;
+}
+.galeria__miniaturas {
+  display: grid;
+  grid-template-rows: repeat(3, 1fr);
+  gap: 8px;
+}
+.galeria__miniaturas button {
+  padding: 0;
+  border: 0;
+  cursor: pointer;
+}
+.galeria__slot:last-child {
+  background: #ececea;
+}
+.detalhe__docs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+.detalhe__docs li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.detalhe__lateral {
+  position: sticky;
+  top: 76px;
+}
+.preco-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+.preco-card__valor {
+  font-family: var(--fonte-titulo);
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--laranja);
+}
+.preco-card__detalhe {
+  margin-top: -6px;
+  font-size: 12px;
+  color: var(--texto-2);
+}
+.preco-card__codigo {
+  font-size: 11px;
+}
+.interesse-ok {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  font-size: 14px;
+}
+.interesse-ok svg {
+  color: var(--verde);
+}
+.c-12 {
+  grid-column: span 12;
+}
+@media (max-width: 900px) {
+  .catalogo,
+  .detalhe {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .catalogo__mapa {
+    position: relative;
+    top: 0;
+    height: 300px;
+    order: -1;
+  }
+  .detalhe__lateral {
+    position: static;
+  }
+  .site__menu-botao {
+    display: flex;
+  }
+  .site__nav {
+    display: none;
+  }
+  .site__nav--aberta {
+    position: absolute;
+    top: 56px;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 8px 24px 16px;
+    background: var(--preto);
+  }
+  .site__nav--aberta .site__link {
+    padding: 10px 0;
+  }
+  .site__acesso {
+    display: none;
+  }
+  .c-12 {
+    grid-column: span 6;
+  }
+}
+@media (max-width: 560px) {
+  .terreno {
+    grid-template-columns: 90px minmax(0, 1fr);
+  }
+  .terreno__acoes {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 0 12px 12px;
+  }
+  .galeria {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  .galeria__principal {
+    height: 220px;
+  }
+  .galeria__miniaturas {
+    grid-template-rows: none;
+    grid-template-columns: repeat(3, 1fr);
+    height: 70px;
+  }
+}
