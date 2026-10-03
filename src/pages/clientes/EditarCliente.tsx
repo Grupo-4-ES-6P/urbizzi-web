@@ -4,7 +4,7 @@ import { Layout } from '../../components/layout/Layout';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { ClienteForm, type ClienteFormValues } from '../../components/clientes/ClienteForm';
-import { atualizarCliente, buscarClientePorId } from '../../api/clientes';
+import { atualizarCliente, buscarClientePorId } from '../../api/clientes/clientes';
 
 const FORM_ID = 'editar-cliente-form';
 

@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { Layout } from '../../components/layout/Layout';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { ClienteForm, type ClienteFormValues } from '../../components/clientes/ClienteForm';
-import { criarCliente } from '../../api/clientes';
+import { criarCliente } from '../../api/clientes/clientes';
 
 const FORM_ID = 'novo-cliente-form';
 

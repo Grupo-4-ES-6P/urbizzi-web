@@ -1,4 +1,4 @@
-import type { Cliente, Endereco, NovoClienteInput } from '../types/Cliente';
+import type { Cliente, Endereco, NovoClienteInput } from '../../types/Cliente';
 
 const STORAGE_KEY = 'urbizzi:clientes';
 

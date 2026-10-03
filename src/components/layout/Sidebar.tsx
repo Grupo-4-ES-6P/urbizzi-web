@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Users, type LucideIcon } from 'lucide-react';
+import { CalendarClock, Users, type LucideIcon } from 'lucide-react';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import styles from './Sidebar.module.css';
 
@@ -9,7 +9,10 @@ interface NavItem {
   icon: LucideIcon;
 }
 
-const NAV_ITEMS: NavItem[] = [{ to: '/clientes', label: 'Clientes', icon: Users }];
+const NAV_ITEMS: NavItem[] = [
+  { to: '/clientes', label: 'Clientes', icon: Users },
+  { to: '/reservas', label: 'Reservas', icon: CalendarClock },
+];
 
 export function Sidebar() {
   return (

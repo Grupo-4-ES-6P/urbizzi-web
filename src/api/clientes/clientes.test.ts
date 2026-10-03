@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { atualizarStatusClientes, criarCliente, excluirClientes, listarClientes } from './clientes'
-import type { NovoClienteInput } from '../types/Cliente'
+import type { NovoClienteInput } from '../../types/Cliente'
 
 function buildInput(overrides: Partial<NovoClienteInput> = {}): NovoClienteInput {
   return {

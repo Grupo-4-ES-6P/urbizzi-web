@@ -5,7 +5,7 @@ import { Layout } from '../../components/layout/Layout';
 import { PageHeader } from '../../components/layout/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
-import { atualizarStatusClientes, excluirClientes, listarClientes } from '../../api/clientes';
+import { atualizarStatusClientes, excluirClientes, listarClientes } from '../../api/clientes/clientes';
 import type { Cliente } from '../../types/Cliente';
 import styles from './ListaClientes.module.css';
 
