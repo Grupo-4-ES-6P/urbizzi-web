@@ -2,8 +2,18 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Urbizzi</title>
+    <title>Urbizzi — Painel</title>
+    <script>
+      // Aplica o tema salvo antes do primeiro render para não piscar (ver TemaContext).
+      try {
+        var tema = localStorage.getItem('urbizzi:tema')
+        if (tema === 'claro' || tema === 'escuro') {
+          document.documentElement.setAttribute('data-theme', tema === 'escuro' ? 'dark' : 'light')
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

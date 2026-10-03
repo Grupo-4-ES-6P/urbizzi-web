@@ -1,20 +1,22 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
-import App from './App'
-import { ThemeProvider } from './context/ThemeContext'
-import './index.css'
-import '@fontsource/manrope/400.css'
-import '@fontsource/manrope/500.css'
+
+import '@fontsource/dm-sans/400.css'
+import '@fontsource/dm-sans/500.css'
+import '@fontsource/dm-sans/600.css'
+import '@fontsource/dm-sans/700.css'
 import '@fontsource/manrope/600.css'
 import '@fontsource/manrope/700.css'
+import '@fontsource/manrope/800.css'
+import './styles/global.css'
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <ThemeProvider>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </ThemeProvider>
-  </React.StrictMode>,
+import { App } from './App'
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  </StrictMode>,
 )
