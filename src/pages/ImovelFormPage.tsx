@@ -57,9 +57,23 @@ export function ImovelFormPage() {
   return <FormularioImovel key={id ?? 'novo'} imovel={imovel} />
 }
 
+const textoRevisao = (total: number) =>
+  total === 1 ? 'Revise o campo destacado antes de publicar.' : `Revise os ${total} campos destacados antes de publicar.`
+
+function rotuloDoLote(lote: string, quadra: string) {
+  if (!lote) return 'Lote'
+  const sufixo = quadra ? ` · Qd. ${quadra}` : ''
+  return `Lote ${lote}${sufixo}`
+}
+
+function etapaAtual(imovel: Imovel | undefined) {
+  if (!imovel) return 'Novo cadastro'
+  return imovel.status === 'publicado' ? 'Editar' : 'Rascunho'
+}
+
 type StatusCep = 'ocioso' | 'buscando' | 'nao-encontrado' | 'falhou'
 
-function FormularioImovel({ imovel }: { imovel?: Imovel }) {
+function FormularioImovel({ imovel }: Readonly<{ imovel?: Imovel }>) {
   const navigate = useNavigate()
   const notificar = useToast()
   const { usuario } = useAuth()
@@ -147,8 +161,8 @@ function FormularioImovel({ imovel }: { imovel?: Imovel }) {
       if (endereco.cidade) parcial.cidade = endereco.cidade
       if (endereco.uf) parcial.uf = endereco.uf
       alterar(parcial)
-    } catch (erro) {
-      if ((erro as Error).name !== 'AbortError') setStatusCep('falhou')
+    } catch (error_) {
+      if ((error_ as Error).name !== 'AbortError') setStatusCep('falhou')
     }
   }
 
@@ -165,44 +179,58 @@ function FormularioImovel({ imovel }: { imovel?: Imovel }) {
     )
   }
 
-  const salvar = async (status: 'rascunho' | 'publicado') => {
-    if (status === 'publicado') {
-      const encontrados = validarPublicacao(form)
-      setErros(encontrados)
-      const total = Object.keys(encontrados).length
-      if (total) {
-        notificar(`Revise ${total === 1 ? 'o campo destacado' : `os ${total} campos destacados`} antes de publicar.`, 'erro')
-        requestAnimationFrame(() => {
-          const alvo = document.querySelector<HTMLElement>('[aria-invalid="true"], .fotos__zona--erro')
-          alvo?.focus()
-          alvo?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
-        })
-        return
-      }
-    } else if (!podeSalvarRascunho(form)) {
+  /** Confere as regras antes de salvar; devolve false e mostra os erros se faltar algo. */
+  const validarAntes = (status: 'rascunho' | 'publicado') => {
+    if (status === 'rascunho') {
+      if (podeSalvarRascunho(form)) return true
       setErros({ titulo: 'Dê ao menos um título para salvar o rascunho.' })
       notificar('Preencha o título para salvar o rascunho.', 'erro')
+      return false
+    }
+    const encontrados = validarPublicacao(form)
+    setErros(encontrados)
+    const total = Object.keys(encontrados).length
+    if (total === 0) return true
+    notificar(textoRevisao(total), 'erro')
+    requestAnimationFrame(() => {
+      const alvo = document.querySelector<HTMLElement>('[aria-invalid="true"], .fotos__zona--erro')
+      alvo?.focus()
+      alvo?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+    })
+    return false
+  }
+
+  const concluir = (status: 'rascunho' | 'publicado', salvo: Imovel) => {
+    setSujo(false)
+    if (status === 'publicado') {
+      notificar(publicado ? 'Alterações salvas.' : 'Imóvel publicado com sucesso.')
+      navigate('/imoveis')
       return
     }
+    notificar('Rascunho salvo.')
+    if (!imovel) navigate(`/imoveis/${salvo.id}`, { replace: true })
+    setSalvando(null)
+  }
 
+  const salvarAsync = async (status: 'rascunho' | 'publicado') => {
+    if (!validarAntes(status)) return
     setSalvando(status === 'rascunho' ? 'rascunho' : 'publicar')
     try {
-      const salvo = await salvarImovel({ ...imovelDeForm(form, status), id: imovel?.id }, usuario?.nome)
-      setSujo(false)
-      if (status === 'publicado') {
-        notificar(publicado ? 'Alterações salvas.' : 'Imóvel publicado com sucesso.')
-        navigate('/imoveis')
-      } else {
-        notificar('Rascunho salvo.')
-        if (!imovel) navigate(`/imoveis/${salvo.id}`, { replace: true })
-        setSalvando(null)
-      }
-    } catch (erro) {
-      const mensagem = erro instanceof Error ? erro.message : 'Não foi possível salvar.'
+      concluir(status, await salvarImovel({ ...imovelDeForm(form, status), id: imovel?.id }, usuario?.nome))
+    } catch (error_) {
+      const mensagem = error_ instanceof Error ? error_.message : 'Não foi possível salvar.'
       if (mensagem.includes('código interno')) setErros((e) => ({ ...e, codigo: 'Código já utilizado.' }))
       notificar(mensagem, 'erro')
       setSalvando(null)
     }
+  }
+
+  // salvarAsync já trata os erros esperados; o catch cobre falhas inesperadas.
+  const salvar = (status: 'rascunho' | 'publicado') => {
+    salvarAsync(status).catch(() => {
+      setSalvando(null)
+      notificar('Não foi possível salvar.', 'erro')
+    })
   }
 
   const cancelar = () => (sujo ? setDialogo('descartar') : navigate('/imoveis'))
@@ -210,7 +238,7 @@ function FormularioImovel({ imovel }: { imovel?: Imovel }) {
   const lat = lerCoordenada(form.lat)
   const lng = lerCoordenada(form.lng)
   const centroMapa = buscarLoteamento(form.loteamento)?.centro ?? TOLEDO
-  const rotuloMapa = form.lote ? `Lote ${form.lote}${form.quadra ? ` · Qd. ${form.quadra}` : ''}` : 'Lote'
+  const rotuloMapa = rotuloDoLote(form.lote, form.quadra)
   const ocupado = salvando !== null
 
   return (
@@ -220,7 +248,7 @@ function FormularioImovel({ imovel }: { imovel?: Imovel }) {
           <nav className="migalhas" aria-label="Você está em">
             <Link to="/imoveis">Imóveis</Link>
             <span aria-hidden>›</span>
-            <span>{imovel ? (publicado ? 'Editar' : 'Rascunho') : 'Novo cadastro'}</span>
+            <span>{etapaAtual(imovel)}</span>
           </nav>
           <h1 className="cabecalho__titulo">{imovel ? form.titulo || 'Editar imóvel' : 'Cadastrar imóvel'}</h1>
         </div>
@@ -506,9 +534,9 @@ function FormularioImovel({ imovel }: { imovel?: Imovel }) {
             setSujo(false)
             notificar('Imóvel excluído.', 'info')
             navigate('/imoveis', { replace: true })
-          } catch (erro) {
+          } catch (error_) {
             setDialogo(null)
-            notificar(erro instanceof Error ? erro.message : 'Não foi possível excluir.', 'erro')
+            notificar(error_ instanceof Error ? error_.message : 'Não foi possível excluir.', 'erro')
           }
         }}
       />
@@ -516,7 +544,7 @@ function FormularioImovel({ imovel }: { imovel?: Imovel }) {
   )
 }
 
-function Secao({ titulo, subtitulo, children }: { titulo: string; subtitulo?: string; children: ReactNode }) {
+function Secao({ titulo, subtitulo, children }: Readonly<{ titulo: string; subtitulo?: string; children: ReactNode }>) {
   return (
     <section className="card secao">
       <div className="secao__cabecalho">

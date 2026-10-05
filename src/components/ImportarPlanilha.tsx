@@ -98,6 +98,12 @@ function validar(texto: string, db: Db): Resultado {
   return { validos, erros }
 }
 
+function textoImportar(importando: boolean, qtd: number) {
+  if (importando) return 'Importando…'
+  if (!qtd) return 'Importar'
+  return qtd === 1 ? 'Importar 1 lote' : `Importar ${qtd} lotes`
+}
+
 function baixarModelo() {
   const conteudo = `${BOM}${COLUNAS.join(';')}\n${EXEMPLO.join(';')}\n`
   const url = URL.createObjectURL(new Blob([conteudo], { type: 'text/csv;charset=utf-8' }))
@@ -108,7 +114,7 @@ function baixarModelo() {
   URL.revokeObjectURL(url)
 }
 
-export function ImportarPlanilha({ aberto, onFechar }: { aberto: boolean; onFechar: () => void }) {
+export function ImportarPlanilha({ aberto, onFechar }: Readonly<{ aberto: boolean; onFechar: () => void }>) {
   const db = useDb()
   const { usuario } = useAuth()
   const notificar = useToast()
@@ -139,8 +145,8 @@ export function ImportarPlanilha({ aberto, onFechar }: { aberto: boolean; onFech
       const n = await importarImoveis(resultado.validos, usuario?.nome ?? 'Administrador')
       notificar(`${n} ${n === 1 ? 'lote importado' : 'lotes importados'}. Eles entram fora do catálogo até receberem fotos.`)
       fechar()
-    } catch (e) {
-      notificar(e instanceof Error ? e.message : 'Não foi possível importar.', 'erro')
+    } catch (error_) {
+      notificar(error_ instanceof Error ? error_.message : 'Não foi possível importar.', 'erro')
     } finally {
       setImportando(false)
     }
@@ -153,7 +159,7 @@ export function ImportarPlanilha({ aberto, onFechar }: { aberto: boolean; onFech
       largo
       titulo="Importar planilha de lotes"
       descricao="Cadastre vários lotes de uma vez a partir de um arquivo CSV. Lotes com erro são ignorados."
-      textoConfirmar={importando ? 'Importando…' : qtd ? `Importar ${qtd} ${qtd === 1 ? 'lote' : 'lotes'}` : 'Importar'}
+      textoConfirmar={textoImportar(importando, qtd)}
       confirmarDesabilitado={!qtd}
       carregando={importando}
       onCancelar={fechar}
@@ -173,7 +179,7 @@ export function ImportarPlanilha({ aberto, onFechar }: { aberto: boolean; onFech
           aria-label="Selecionar planilha"
           onChange={(e) => {
             const f = e.target.files?.[0]
-            if (f) ler(f)
+            if (f) ler(f).catch(() => setResultado({ validos: [], erros: ['Não foi possível ler o arquivo.'] }))
             e.target.value = ''
           }}
         />
@@ -181,8 +187,8 @@ export function ImportarPlanilha({ aberto, onFechar }: { aberto: boolean; onFech
           <Download size={13} /> Baixar planilha modelo
         </button>
         {resultado && (
-          <div className="importar__resultado" role="status">
-            <p>
+          <div className="importar__resultado">
+            <output>
               <strong>{qtd}</strong> {qtd === 1 ? 'lote pronto' : 'lotes prontos'} para importar
               {resultado.erros.length > 0 && (
                 <>
@@ -190,7 +196,7 @@ export function ImportarPlanilha({ aberto, onFechar }: { aberto: boolean; onFech
                   <strong>{resultado.erros.length}</strong> com erro
                 </>
               )}
-            </p>
+            </output>
             {resultado.erros.length > 0 && (
               <ul className="importar__erros">
                 {resultado.erros.slice(0, 8).map((e) => (

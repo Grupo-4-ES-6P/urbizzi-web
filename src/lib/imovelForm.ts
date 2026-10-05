@@ -124,41 +124,62 @@ export function imovelDeForm(f: FormImovel, status: StatusPublicacao): Omit<Imov
 
 const obrigatorio = 'Campo obrigatório.'
 
+type Regra = (f: FormImovel) => string | undefined
+
+const preenchido = (campo: 'logradouro' | 'bairro' | 'cidade' | 'uf' | 'lote' | 'matricula'): Regra => (f) =>
+  f[campo].trim() ? undefined : obrigatorio
+
+function regraTitulo(f: FormImovel) {
+  const titulo = f.titulo.trim()
+  if (!titulo) return obrigatorio
+  return titulo.length < 5 ? 'Use pelo menos 5 caracteres.' : undefined
+}
+
+function regraCodigo(f: FormImovel) {
+  const codigo = f.codigo.trim()
+  if (!codigo) return obrigatorio
+  return /^\d+$/.test(codigo) ? undefined : 'Use apenas números.'
+}
+
+function regraCoordenada(texto: string, limite: number, nome: string) {
+  const valor = lerCoordenada(texto)
+  if (valor === null) return texto.trim() ? `${nome} inválida.` : 'Informe ou marque no mapa.'
+  return Math.abs(valor) > limite ? `Entre -${limite} e ${limite}.` : undefined
+}
+
+/** Uma regra por campo; a primeira mensagem encontrada vira o erro do campo. */
+const REGRAS: Partial<Record<keyof FormImovel, Regra>> = {
+  titulo: regraTitulo,
+  matricula: preenchido('matricula'),
+  codigo: regraCodigo,
+  tipo: (f) => (f.tipo ? undefined : obrigatorio),
+  loteamento: (f) => (f.tipo === 'Terreno em loteamento' && !f.loteamento ? 'Selecione o loteamento.' : undefined),
+  cep: (f) => (f.cep.replace(/\D/g, '').length === 8 ? undefined : 'CEP deve ter 8 dígitos.'),
+  logradouro: preenchido('logradouro'),
+  numero: (f) => (f.numero.trim() ? undefined : 'Informe o número ou "s/n".'),
+  bairro: preenchido('bairro'),
+  cidade: preenchido('cidade'),
+  uf: preenchido('uf'),
+  lote: preenchido('lote'),
+  lat: (f) => regraCoordenada(f.lat, 90, 'Latitude'),
+  lng: (f) => regraCoordenada(f.lng, 180, 'Longitude'),
+  areaTotal: (f) => (f.areaTotal ? undefined : 'Informe a área.'),
+  valorTabela: (f) => (f.valorTabela ? undefined : 'Informe o valor.'),
+  valorMinimo: (f) =>
+    f.valorMinimo && f.valorTabela && f.valorMinimo > f.valorTabela
+      ? 'Não pode ser maior que o valor de tabela.'
+      : undefined,
+  fotos: (f) => (f.catalogo && f.fotos.length === 0 ? 'Adicione ao menos uma foto para exibir no catálogo.' : undefined),
+}
+
 /** Regras para publicar. Rascunhos só exigem algo que os identifique. */
 export function validarPublicacao(f: FormImovel): ErrosForm {
-  const e: ErrosForm = {}
-  if (!f.titulo.trim()) e.titulo = obrigatorio
-  else if (f.titulo.trim().length < 5) e.titulo = 'Use pelo menos 5 caracteres.'
-  if (!f.matricula.trim()) e.matricula = obrigatorio
-  if (!f.codigo.trim()) e.codigo = obrigatorio
-  else if (!/^\d+$/.test(f.codigo.trim())) e.codigo = 'Use apenas números.'
-  if (!f.tipo) e.tipo = obrigatorio
-  if (f.tipo === 'Terreno em loteamento' && !f.loteamento) e.loteamento = 'Selecione o loteamento.'
-
-  if (f.cep.replace(/\D/g, '').length !== 8) e.cep = 'CEP deve ter 8 dígitos.'
-  if (!f.logradouro.trim()) e.logradouro = obrigatorio
-  if (!f.numero.trim()) e.numero = 'Informe o número ou "s/n".'
-  if (!f.bairro.trim()) e.bairro = obrigatorio
-  if (!f.cidade.trim()) e.cidade = obrigatorio
-  if (!f.uf) e.uf = obrigatorio
-  if (!f.lote.trim()) e.lote = obrigatorio
-
-  const lat = lerCoordenada(f.lat)
-  const lng = lerCoordenada(f.lng)
-  if (lat === null) e.lat = f.lat.trim() ? 'Latitude inválida.' : 'Informe ou marque no mapa.'
-  else if (lat < -90 || lat > 90) e.lat = 'Entre -90 e 90.'
-  if (lng === null) e.lng = f.lng.trim() ? 'Longitude inválida.' : 'Informe ou marque no mapa.'
-  else if (lng < -180 || lng > 180) e.lng = 'Entre -180 e 180.'
-
-  if (!f.areaTotal) e.areaTotal = 'Informe a área.'
-  if (!f.valorTabela) e.valorTabela = 'Informe o valor.'
-  if (f.valorMinimo && f.valorTabela && f.valorMinimo > f.valorTabela) {
-    e.valorMinimo = 'Não pode ser maior que o valor de tabela.'
+  const erros: ErrosForm = {}
+  for (const [campo, regra] of Object.entries(REGRAS) as [keyof FormImovel, Regra][]) {
+    const mensagem = regra(f)
+    if (mensagem) erros[campo] = mensagem
   }
-  if (f.catalogo && f.fotos.length === 0) {
-    e.fotos = 'Adicione ao menos uma foto para exibir no catálogo.'
-  }
-  return e
+  return erros
 }
 
 export function podeSalvarRascunho(f: FormImovel) {

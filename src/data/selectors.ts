@@ -8,6 +8,12 @@ export function rotuloImovel(imovel: Imovel, comLoteamento = true) {
   return quadra ? `${base} · ${imovel.loteamento}` : `${base} — ${imovel.loteamento}`
 }
 
+/** "Lote 12 — Qd. 04" (o separador muda conforme o contexto). */
+export function nomeLote(lote: string, quadra: string, separador = ' — ') {
+  const base = `Lote ${lote}`
+  return quadra ? base + separador + `Qd. ${quadra}` : base
+}
+
 export function indexar<T extends { id: string }>(lista: T[]) {
   return new Map(lista.map((x) => [x.id, x]))
 }
@@ -97,6 +103,12 @@ export interface ResumoQuadra {
   situacao: { rotulo: string; variante: VarianteBadge }
 }
 
+function situacaoQuadra(lotes: Imovel[], vendidos: number): { rotulo: string; variante: VarianteBadge } {
+  if (lotes.length > 0 && vendidos === lotes.length) return { rotulo: 'Esgotada', variante: 'escuro' }
+  if (lotes.some((i) => !i.matricula)) return { rotulo: 'Em registro', variante: 'atencao' }
+  return { rotulo: 'Ativa', variante: 'normal' }
+}
+
 /** Números de cada quadra de um loteamento, calculados a partir dos lotes. */
 export function resumoQuadras(db: Db, loteamento: string): ResumoQuadra[] {
   return db.quadras
@@ -107,12 +119,7 @@ export function resumoQuadras(db: Db, loteamento: string): ResumoQuadra[] {
       const areas = lotes.map((i) => i.dimensoes.areaTotal).filter((a): a is number => !!a)
       const precos = lotes.map((i) => i.valores.tabela).filter((v): v is number => !!v)
       const vendidos = conta('vendido')
-      const situacao =
-        lotes.length > 0 && vendidos === lotes.length
-          ? { rotulo: 'Esgotada', variante: 'escuro' as VarianteBadge }
-          : lotes.some((i) => !i.matricula)
-            ? { rotulo: 'Em registro', variante: 'atencao' as VarianteBadge }
-            : { rotulo: 'Ativa', variante: 'normal' as VarianteBadge }
+      const situacao = situacaoQuadra(lotes, vendidos)
       return {
         id: q.id,
         identificacao: q.identificacao,

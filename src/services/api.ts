@@ -7,6 +7,7 @@ import type {
   Loteamento,
   Quadra,
   Situacao,
+  Usuario,
   UsuarioPublico,
 } from '../data/types'
 import { formatarMoedaInteira } from '../lib/format'
@@ -18,8 +19,13 @@ import { formatarMoedaInteira } from '../lib/format'
 const LATENCIA = import.meta.env.MODE === 'test' ? 0 : 450
 const esperar = (ms = LATENCIA) => new Promise((r) => setTimeout(r, ms))
 
-const novoId = (prefixo: string) =>
-  `${prefixo}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
+// IDs aleatórios com o gerador criptográfico do navegador (não previsíveis).
+const novoId = (prefixo: string) => `${prefixo}-${crypto.randomUUID()}`
+
+/** Dados do usuário sem a senha, para guardar na sessão. */
+export function paraUsuarioPublico({ id, nome, email, papel }: Usuario): UsuarioPublico {
+  return { id, nome, email, papel }
+}
 
 const ROTULO_SITUACAO: Record<Situacao, EventoHistorico['situacao']> = {
   disponivel: { rotulo: 'Disponível', variante: 'normal' },
@@ -53,12 +59,10 @@ function proximoCodigo(prefixo: string, existentes: string[]) {
 export async function autenticar(email: string, senha: string): Promise<UsuarioPublico> {
   await esperar()
   const usuario = lerDb().usuarios.find((u) => u.email.toLowerCase() === email.trim().toLowerCase())
-  if (!usuario || usuario.senha !== senha) {
+  if (usuario?.senha !== senha) {
     throw new Error('E-mail ou senha incorretos.')
   }
-  const { senha: _omitida, ...publico } = usuario
-  void _omitida
-  return publico
+  return paraUsuarioPublico(usuario)
 }
 
 /** Sempre responde com sucesso para não revelar quais e-mails existem. */
@@ -72,7 +76,7 @@ export async function aprovarProposta(propostaId: string, autor = 'Administrador
   const agora = new Date().toISOString()
   atualizarDb((db) => {
     const proposta = db.propostas.find((p) => p.id === propostaId)
-    if (!proposta || proposta.status !== 'pendente') {
+    if (proposta?.status !== 'pendente') {
       throw new Error('Esta proposta já foi analisada.')
     }
     const { imovelId } = proposta
@@ -128,7 +132,7 @@ export async function recusarProposta(propostaId: string, motivo: string, autor 
   await esperar()
   atualizarDb((db) => {
     const proposta = db.propostas.find((p) => p.id === propostaId)
-    if (!proposta || proposta.status !== 'pendente') {
+    if (proposta?.status !== 'pendente') {
       throw new Error('Esta proposta já foi analisada.')
     }
     const atualizado: Db = {
@@ -142,12 +146,20 @@ export async function recusarProposta(propostaId: string, motivo: string, autor 
     return comEvento(atualizado, {
       imovelId: proposta.imovelId,
       tipo: 'Proposta',
-      descricao: `Proposta recusada${motivo.trim() ? `: ${motivo.trim()}` : ''}`,
+      descricao: motivo.trim() ? `Proposta recusada: ${motivo.trim()}` : 'Proposta recusada',
       autor,
       referencia: proposta.codigo,
       situacao: { rotulo: 'Recusada', variante: 'critico' },
     })
   })
+}
+
+function descreverAlteracao(existente: Imovel | undefined, salvo: Imovel) {
+  if (existente?.status !== 'publicado') return 'Imóvel publicado'
+  if (existente.valores.tabela === salvo.valores.tabela) return 'Dados do imóvel atualizados'
+  const de = formatarMoedaInteira(existente.valores.tabela ?? 0)
+  const para = formatarMoedaInteira(salvo.valores.tabela ?? 0)
+  return `Valor de tabela ajustado de ${de} para ${para}`
 }
 
 export async function salvarImovel(
@@ -176,15 +188,10 @@ export async function salvarImovel(
         : [...db.imoveis, salvo],
     }
     if (salvo.status === 'rascunho' && existente?.status !== 'publicado') return atualizado
-    const mudouValor = existente && existente.valores.tabela !== salvo.valores.tabela
     return comEvento(atualizado, {
       imovelId: salvo.id,
       tipo: existente?.status === 'publicado' ? 'Alteração' : 'Cadastro',
-      descricao: mudouValor
-        ? `Valor de tabela ajustado de ${formatarMoedaInteira(existente.valores.tabela ?? 0)} para ${formatarMoedaInteira(salvo.valores.tabela ?? 0)}`
-        : existente?.status === 'publicado'
-          ? 'Dados do imóvel atualizados'
-          : 'Imóvel publicado',
+      descricao: descreverAlteracao(existente, salvo),
       autor,
       situacao: ROTULO_SITUACAO[salvo.situacao],
     })

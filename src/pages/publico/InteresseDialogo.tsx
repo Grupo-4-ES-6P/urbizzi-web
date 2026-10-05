@@ -5,9 +5,11 @@ import { Dialogo } from '../../components/Dialogo'
 import { Campo } from '../../components/ui'
 import type { Imovel } from '../../data/types'
 import { formatarMoedaInteira } from '../../lib/format'
+import { rotuloImovel } from '../../data/selectors'
 import { registrarInteresse } from '../../services/api'
 
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+// Partes separadas por pontos sem sobreposição: evita retrocesso exponencial na regex.
+const EMAIL = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/
 
 function mascaraTelefone(v: string) {
   const d = v.replace(/\D/g, '').slice(0, 11)
@@ -24,7 +26,7 @@ interface Props {
 }
 
 /** Formulário "Tenho interesse": registra o contato sem criar conta (RF). */
-export function InteresseDialogo({ imovel, mensagemInicial = '', onFechar }: Props) {
+export function InteresseDialogo({ imovel, mensagemInicial = '', onFechar }: Readonly<Props>) {
   const [dados, setDados] = useState({ nome: '', email: '', telefone: '', mensagem: mensagemInicial })
   const [erros, setErros] = useState<Record<string, string>>({})
   const [enviando, setEnviando] = useState(false)
@@ -53,15 +55,15 @@ export function InteresseDialogo({ imovel, mensagemInicial = '', onFechar }: Pro
     setErroEnvio('')
     try {
       setProtocolo(await registrarInteresse(imovel.id, { ...dados, nome: dados.nome.trim(), email: dados.email.trim() }))
-    } catch (err) {
-      setErroEnvio(err instanceof Error ? err.message : 'Não foi possível enviar agora.')
+    } catch (error_) {
+      setErroEnvio(error_ instanceof Error ? error_.message : 'Não foi possível enviar agora.')
     } finally {
       setEnviando(false)
     }
   }
 
   const resumo = [
-    `Lote ${imovel.endereco.lote}${imovel.endereco.quadra ? ` — Qd. ${imovel.endereco.quadra}` : ''}`,
+    rotuloImovel(imovel, false),
     imovel.loteamento,
     imovel.dimensoes.areaTotal ? `${imovel.dimensoes.areaTotal.toLocaleString('pt-BR')} m²` : null,
     imovel.valores.tabela ? formatarMoedaInteira(imovel.valores.tabela) : null,
@@ -72,12 +74,12 @@ export function InteresseDialogo({ imovel, mensagemInicial = '', onFechar }: Pro
   if (protocolo) {
     return (
       <Dialogo aberto titulo="Interesse enviado!" textoConfirmar="Fechar" semCancelar onCancelar={onFechar} onConfirmar={onFechar}>
-        <div className="interesse-ok" role="status">
+        <div className="interesse-ok">
           <CheckCircle2 size={36} aria-hidden />
-          <p>
+          <output>
             Obrigado, {dados.nome.trim().split(' ')[0]}! Um corretor da Urbizzi vai entrar em contato pelo telefone ou e-mail
             informado.
-          </p>
+          </output>
           <p className="texto-fraco">Protocolo: {protocolo}</p>
         </div>
       </Dialogo>

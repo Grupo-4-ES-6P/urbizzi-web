@@ -215,7 +215,7 @@ interface MapaProps {
 }
 
 /** Mapa esquemático: posiciona os pinos pelas coordenadas reais dos lotes. */
-function MapaCatalogo({ imoveis, destacado, onEscolher, onAbrir }: MapaProps) {
+function MapaCatalogo({ imoveis, destacado, onEscolher, onAbrir }: Readonly<MapaProps>) {
   const pontos = imoveis.filter((i) => i.geo.lat !== null && i.geo.lng !== null)
   const lats = pontos.map((i) => i.geo.lat!)
   const lngs = pontos.map((i) => i.geo.lng!)

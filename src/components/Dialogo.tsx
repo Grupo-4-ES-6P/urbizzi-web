@@ -31,7 +31,7 @@ export function Dialogo({
   semCancelar,
   onConfirmar,
   onCancelar,
-}: DialogoProps) {
+}: Readonly<DialogoProps>) {
   const ref = useRef<HTMLDialogElement>(null)
 
   useEffect(() => {
@@ -55,9 +55,6 @@ export function Dialogo({
       onCancel={(e) => {
         e.preventDefault()
         if (!carregando) onCancelar()
-      }}
-      onClick={(e) => {
-        if (e.target === ref.current && !carregando) onCancelar()
       }}
     >
       {aberto && (

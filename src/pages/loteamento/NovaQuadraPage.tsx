@@ -88,8 +88,8 @@ export function NovaQuadraPage() {
       const n = await gerarQuadra({ loteamento, identificacao: qd, area, testadaPara: testadaPara.trim() }, previa, usuario?.nome ?? 'Administrador')
       notificar(`Qd. ${qd} criada com ${n} lotes. Eles já aparecem na listagem de imóveis.`)
       navigate(`/imoveis?loteamento=${encodeURIComponent(loteamento)}&quadra=${qd}`)
-    } catch (err) {
-      notificar(err instanceof Error ? err.message : 'Não foi possível gerar os lotes.', 'erro')
+    } catch (error_) {
+      notificar(error_ instanceof Error ? error_.message : 'Não foi possível gerar os lotes.', 'erro')
       setGerando(false)
     }
   }

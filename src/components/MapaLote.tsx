@@ -23,7 +23,7 @@ const arred = (v: number) => Math.round(v * 1e6) / 1e6
  * Mapa esquemático do loteamento. O recorte é fixo em "células" de coordenada,
  * então clicar converte a posição em latitude/longitude reais dentro dele.
  */
-export function MapaLote({ lat, lng, centroPadrao, rotulo, marcando, onMarcar }: MapaLoteProps) {
+export function MapaLote({ lat, lng, centroPadrao, rotulo, marcando, onMarcar }: Readonly<MapaLoteProps>) {
   const temPonto = lat !== null && lng !== null
   const base = temPonto ? { lat, lng } : centroPadrao
   const centro = {
@@ -42,6 +42,22 @@ export function MapaLote({ lat, lng, centroPadrao, rotulo, marcando, onMarcar }:
     const px = ((e.clientX - r.left) / r.width) * LARGURA
     const py = ((e.clientY - r.top) / r.height) * ALTURA
     onMarcar(arred(norte - (py / ALTURA) * SPAN_LAT), arred(oeste + (px / LARGURA) * SPAN_LNG))
+  }
+
+  let legenda = <span>Informe as coordenadas ou use “Marcar no mapa”.</span>
+  if (marcando) {
+    legenda = <span>Clique no mapa para posicionar o lote.</span>
+  } else if (temPonto) {
+    legenda = (
+      <a
+        className="link"
+        href={`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`}
+        target="_blank"
+        rel="noreferrer"
+      >
+        Conferir no Google Maps <ExternalLink size={12} />
+      </a>
+    )
   }
 
   return (
@@ -77,20 +93,7 @@ export function MapaLote({ lat, lng, centroPadrao, rotulo, marcando, onMarcar }:
         )}
       </svg>
       <div className="mapa__legenda">
-        {marcando ? (
-          <span>Clique no mapa para posicionar o lote.</span>
-        ) : temPonto ? (
-          <a
-            className="link"
-            href={`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Conferir no Google Maps <ExternalLink size={12} />
-          </a>
-        ) : (
-          <span>Informe as coordenadas ou use “Marcar no mapa”.</span>
-        )}
+        {legenda}
       </div>
     </div>
   )

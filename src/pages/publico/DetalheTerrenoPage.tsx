@@ -5,7 +5,8 @@ import { Link, useParams } from 'react-router-dom'
 import { MapaLote } from '../../components/MapaLote'
 import { Badge } from '../../components/ui'
 import { useDb } from '../../data/db'
-import { visivelNoCatalogo } from '../../data/selectors'
+import { nomeLote, visivelNoCatalogo } from '../../data/selectors'
+import type { Imovel } from '../../data/types'
 import { formatarDecimal, formatarMoedaInteira } from '../../lib/format'
 import { InteresseDialogo } from './InteresseDialogo'
 
@@ -28,15 +29,14 @@ export function DetalheTerrenoPage() {
     )
   }
 
-  const { endereco: e, dimensoes: d, valores: v } = imovel
+  const { endereco: e, dimensoes: d } = imovel
   const loteamento = db.loteamentos.find((l) => l.nome === imovel.loteamento)
-  const reservado = imovel.situacao === 'reservado'
-  const precoM2 = v.tabela && d.areaTotal ? Math.round(v.tabela / d.areaTotal) : null
   const documentos = db.documentos.filter((doc) => doc.imovelId === imovel.id && doc.visivelCatalogo && !doc.substituido)
   const fotos = imovel.fotos
   const principal = fotos[fotoAtiva] ?? fotos[0]
   const miniaturas = fotos.map((f, idx) => ({ f, idx })).filter((x) => x.idx !== fotoAtiva).slice(0, 3)
-  const titulo = `Terreno ${d.areaTotal?.toLocaleString('pt-BR') ?? ''} m² — ${imovel.loteamento}${e.quadra ? `, Qd. ${e.quadra}` : ''} / Lote ${e.lote}`
+  const quadraTexto = e.quadra ? `, Qd. ${e.quadra}` : ''
+  const titulo = `Terreno ${d.areaTotal?.toLocaleString('pt-BR') ?? ''} m² — ${imovel.loteamento}${quadraTexto} / Lote ${e.lote}`
 
   return (
     <main className="site__conteudo detalhe">
@@ -94,7 +94,7 @@ export function DetalheTerrenoPage() {
             lat={imovel.geo.lat}
             lng={imovel.geo.lng}
             centroPadrao={loteamento?.centro ?? { lat: -24.7246, lng: -53.7412 }}
-            rotulo={`Lote ${e.lote}${e.quadra ? ` · Qd. ${e.quadra}` : ''}`}
+            rotulo={nomeLote(e.lote, e.quadra, ' · ')}
             marcando={false}
             onMarcar={() => undefined}
           />
@@ -120,29 +120,49 @@ export function DetalheTerrenoPage() {
       </div>
 
       <aside className="detalhe__lateral">
-        <div className="card secao preco-card">
-          <Badge variante={reservado ? 'atencao' : 'normal'}>{reservado ? 'Reservado' : 'Disponível'}</Badge>
-          <strong className="preco-card__valor">{v.tabela ? formatarMoedaInteira(v.tabela) : 'Sob consulta'}</strong>
-          <span className="preco-card__detalhe">
-            {precoM2 ? `${formatarMoedaInteira(precoM2)} / m²` : ''}
-            {imovel.publicacao.reservasOnline && !reservado ? ` · Reserva online por ${v.prazoReservaHoras >= 168 ? '7 dias' : `${v.prazoReservaHoras}h`}` : ''}
-          </span>
-          {reservado && <p className="nota-regra">Este lote está reservado. Deixe seu interesse para ser avisado se ele voltar à venda.</p>}
-          <button type="button" className="btn btn--primario btn--bloco" onClick={() => setInteresse({ mensagem: '' })}>
-            Tenho interesse
-          </button>
-          <button
-            type="button"
-            className="btn btn--secundario btn--bloco"
-            onClick={() => setInteresse({ mensagem: 'Gostaria de falar com um corretor sobre este lote.' })}
-          >
-            Falar com um corretor
-          </button>
-          <span className="texto-fraco preco-card__codigo">Código do anúncio: {imovel.codigo}</span>
-        </div>
+        <CardPreco imovel={imovel} onInteresse={(mensagem) => setInteresse({ mensagem })} />
       </aside>
 
       {interesse && <InteresseDialogo imovel={imovel} mensagemInicial={interesse.mensagem} onFechar={() => setInteresse(null)} />}
     </main>
+  )
+}
+
+function textoReserva(horas: number) {
+  return horas >= 168 ? '7 dias' : `${horas}h`
+}
+
+interface CardPrecoProps {
+  imovel: Imovel
+  onInteresse: (mensagem: string) => void
+}
+
+function CardPreco({ imovel, onInteresse }: Readonly<CardPrecoProps>) {
+  const { valores: v, dimensoes: d } = imovel
+  const reservado = imovel.situacao === 'reservado'
+  const precoM2 = v.tabela && d.areaTotal ? Math.round(v.tabela / d.areaTotal) : null
+  const detalhes = [
+    precoM2 ? `${formatarMoedaInteira(precoM2)} / m²` : null,
+    imovel.publicacao.reservasOnline && !reservado ? `Reserva online por ${textoReserva(v.prazoReservaHoras)}` : null,
+  ].filter(Boolean)
+
+  return (
+    <div className="card secao preco-card">
+      <Badge variante={reservado ? 'atencao' : 'normal'}>{reservado ? 'Reservado' : 'Disponível'}</Badge>
+      <strong className="preco-card__valor">{v.tabela ? formatarMoedaInteira(v.tabela) : 'Sob consulta'}</strong>
+      <span className="preco-card__detalhe">{detalhes.join(' · ')}</span>
+      {reservado && <p className="nota-regra">Este lote está reservado. Deixe seu interesse para ser avisado se ele voltar à venda.</p>}
+      <button type="button" className="btn btn--primario btn--bloco" onClick={() => onInteresse('')}>
+        Tenho interesse
+      </button>
+      <button
+        type="button"
+        className="btn btn--secundario btn--bloco"
+        onClick={() => onInteresse('Gostaria de falar com um corretor sobre este lote.')}
+      >
+        Falar com um corretor
+      </button>
+      <span className="texto-fraco preco-card__codigo">Código do anúncio: {imovel.codigo}</span>
+    </div>
   )
 }

@@ -61,7 +61,9 @@ export function mascaraCep(valor: string) {
 
 export function iniciais(nome: string) {
   const partes = nome.trim().split(/\s+/)
-  return ((partes[0]?.[0] ?? '') + (partes.length > 1 ? partes[partes.length - 1][0] : '')).toUpperCase()
+  const primeira = partes[0]?.[0] ?? ''
+  const ultima = partes.length > 1 ? (partes.at(-1)?.[0] ?? '') : ''
+  return (primeira + ultima).toUpperCase()
 }
 
 /** Remove acentos e caixa para comparar textos em buscas. */

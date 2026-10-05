@@ -8,7 +8,7 @@ const ABAS = [
 ]
 
 /** Navegação entre as páginas de um mesmo imóvel. */
-export function AbasImovel({ imovelId }: { imovelId: string }) {
+export function AbasImovel({ imovelId }: Readonly<{ imovelId: string }>) {
   return (
     <nav className="abas" aria-label="Seções do imóvel">
       {ABAS.map((a) => (

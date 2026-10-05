@@ -5,7 +5,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Badge } from '../../components/ui'
 import { useToast } from '../../contexts/ToastContext'
 import { useDb } from '../../data/db'
-import { indexar, reservaAtiva, SITUACAO_EXIBICAO } from '../../data/selectors'
+import { indexar, nomeLote, reservaAtiva, SITUACAO_EXIBICAO } from '../../data/selectors'
 import type { Imovel, Situacao } from '../../data/types'
 import { formatarMoedaInteira } from '../../lib/format'
 
@@ -27,7 +27,8 @@ async function exportarPng(nome: string, linhas: { quadra: string; lotes: Imovel
   const altura = topo + linhas.length * (T + G) + 50
   const blocos = linhas
     .map((linha, y) => {
-      const rotulo = `<text x="10" y="${topo + y * (T + G) + T / 2 + 4}" font-size="12" fill="#62626a">${linha.quadra ? `Qd. ${linha.quadra}` : 'Lotes'}</text>`
+      const nomeQuadra = linha.quadra ? `Qd. ${linha.quadra}` : 'Lotes'
+      const rotulo = `<text x="10" y="${topo + y * (T + G) + T / 2 + 4}" font-size="12" fill="#62626a">${nomeQuadra}</text>`
       const lotes = linha.lotes
         .map(
           (l, x) =>
@@ -74,7 +75,7 @@ export function MapaLoteamentoPage() {
   const linhas = useMemo(() => {
     if (!loteamento) return []
     const lotes = db.imoveis.filter((i) => i.loteamento === loteamento.nome && i.status === 'publicado')
-    const quadras = [...new Set(lotes.map((i) => i.endereco.quadra))].sort()
+    const quadras = [...new Set(lotes.map((i) => i.endereco.quadra))].sort((a, b) => a.localeCompare(b, 'pt-BR', { numeric: true }))
     return quadras.map((quadra) => ({
       quadra,
       lotes: lotes.filter((i) => i.endereco.quadra === quadra).sort((a, b) => a.endereco.lote.localeCompare(b.endereco.lote, 'pt-BR', { numeric: true })),
@@ -160,7 +161,7 @@ export function MapaLoteamentoPage() {
                         className={`planta__lote ${l.id === selecionadoId ? 'planta__lote--ativo' : ''}`}
                         style={{ background: CORES[l.situacao] }}
                         aria-pressed={l.id === selecionadoId}
-                        aria-label={`Lote ${l.endereco.lote}${linha.quadra ? `, Qd. ${linha.quadra}` : ''} — ${SITUACAO_EXIBICAO[l.situacao].rotulo}`}
+                        aria-label={`${nomeLote(l.endereco.lote, linha.quadra, ', ')} — ${SITUACAO_EXIBICAO[l.situacao].rotulo}`}
                         title={`Lote ${l.endereco.lote} · ${SITUACAO_EXIBICAO[l.situacao].rotulo}`}
                         onClick={() => setSelecionadoId(l.id)}
                       >
@@ -179,7 +180,7 @@ export function MapaLoteamentoPage() {
             <div>
               <h2 className="card__titulo">
                 {selecionado
-                  ? `Lote selecionado — Lote ${selecionado.endereco.lote}${selecionado.endereco.quadra ? `, Qd. ${selecionado.endereco.quadra}` : ''}`
+                  ? `Lote selecionado — ${nomeLote(selecionado.endereco.lote, selecionado.endereco.quadra, ', ')}`
                   : 'Nenhum lote selecionado'}
               </h2>
               <p className="card__subtitulo">{selecionado ? 'Dados do lote destacado na planta.' : 'Clique em um lote da planta.'}</p>

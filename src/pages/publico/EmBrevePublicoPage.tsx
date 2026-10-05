@@ -1,7 +1,7 @@
 import { Construction } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
-export function EmBrevePublicoPage({ titulo }: { titulo: string }) {
+export function EmBrevePublicoPage({ titulo }: Readonly<{ titulo: string }>) {
   return (
     <main className="site__conteudo">
       <section className="card vazio">

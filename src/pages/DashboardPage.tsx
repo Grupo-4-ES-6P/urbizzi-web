@@ -8,7 +8,7 @@ import { BadgeUrgencia, Campo, Spinner } from '../components/ui'
 import { useToast } from '../contexts/ToastContext'
 import { useDb } from '../data/db'
 import { descontoSobreTabela, exigeAprovacao, indexar, reservaAtiva, rotuloImovel } from '../data/selectors'
-import type { Proposta } from '../data/types'
+import type { Db, Imovel, Proposta } from '../data/types'
 import {
   formatarDataExtensa,
   formatarMoedaCompacta,
@@ -22,6 +22,60 @@ import { aprovarProposta, recusarProposta } from '../services/api'
 
 const HORA = 3_600_000
 
+const rotuloOuRemovido = (imovel: Imovel | undefined) => (imovel ? rotuloImovel(imovel) : 'Imóvel removido')
+
+const plural = (n: number, um: string, varios: string) => (n === 1 ? um : varios)
+
+/** "3 vencem em 48h" ou o texto de vazio quando n = 0. */
+function textoContagem(n: number, um: string, varios: string, resto: string, vazio: string) {
+  return n ? `${n} ${plural(n, um, varios)} ${resto}` : vazio
+}
+
+function textoVariacao(variacao: number | null, mesAnterior: string) {
+  if (variacao === null) return `Sem vendas em ${mesAnterior}`
+  const sinal = variacao >= 0 ? '+' : ''
+  return `${sinal}${variacao}% vs. ${mesAnterior}`
+}
+
+function calcularIndicadores(db: Db, agora: number, imoveisPorId: Map<string, Imovel>) {
+  const data = new Date(agora)
+  const inicioMes = new Date(data.getFullYear(), data.getMonth(), 1).getTime()
+  const inicioMesAnterior = new Date(data.getFullYear(), data.getMonth() - 1, 1).getTime()
+
+  const publicados = db.imoveis.filter((i) => i.status === 'publicado')
+  const disponiveis = publicados.filter((i) => i.situacao === 'disponivel')
+  const novosNoMes = disponiveis.filter((i) => new Date(i.criadoEm).getTime() >= inicioMes).length
+
+  const ativas = db.reservas.filter((r) => reservaAtiva(r, agora))
+  const vencem48h = ativas.filter((r) => new Date(r.expiraEm).getTime() - agora <= 48 * HORA).length
+
+  const pendentes = db.propostas.filter((p) => p.status === 'pendente')
+  const aguardandoAdmin = pendentes.filter((p) => exigeAprovacao(p, imoveisPorId.get(p.imovelId)))
+
+  const somaEntre = (de: number, ate: number) =>
+    db.vendas
+      .filter((v) => {
+        const t = new Date(v.data).getTime()
+        return t >= de && t < ate
+      })
+      .reduce((s, v) => s + v.valor, 0)
+  const vendasMes = somaEntre(inicioMes, Infinity)
+  const vendasMesAnterior = somaEntre(inicioMesAnterior, inicioMes)
+  const variacao = vendasMesAnterior ? Math.round(((vendasMes - vendasMesAnterior) / vendasMesAnterior) * 100) : null
+
+  return {
+    disponiveis: disponiveis.length,
+    novosNoMes,
+    reservasAtivas: ativas.length,
+    vencem48h,
+    pendentes: pendentes.length,
+    aguardandoAdmin,
+    vendasMes,
+    variacao,
+    mesAnterior: nomeMes(new Date(inicioMesAnterior)),
+  }
+}
+
 export function DashboardPage() {
   const db = useDb()
   const agora = useAgora()
@@ -30,44 +84,7 @@ export function DashboardPage() {
   const imoveisPorId = useMemo(() => indexar(db.imoveis), [db.imoveis])
   const pessoas = useMemo(() => indexar([...db.clientes, ...db.corretores]), [db.clientes, db.corretores])
 
-  const indicadores = useMemo(() => {
-    const data = new Date(agora)
-    const inicioMes = new Date(data.getFullYear(), data.getMonth(), 1).getTime()
-    const inicioMesAnterior = new Date(data.getFullYear(), data.getMonth() - 1, 1).getTime()
-
-    const publicados = db.imoveis.filter((i) => i.status === 'publicado')
-    const disponiveis = publicados.filter((i) => i.situacao === 'disponivel')
-    const novosNoMes = disponiveis.filter((i) => new Date(i.criadoEm).getTime() >= inicioMes).length
-
-    const ativas = db.reservas.filter((r) => reservaAtiva(r, agora))
-    const vencem48h = ativas.filter((r) => new Date(r.expiraEm).getTime() - agora <= 48 * HORA).length
-
-    const pendentes = db.propostas.filter((p) => p.status === 'pendente')
-    const aguardandoAdmin = pendentes.filter((p) => exigeAprovacao(p, imoveisPorId.get(p.imovelId)))
-
-    const somaEntre = (de: number, ate: number) =>
-      db.vendas
-        .filter((v) => {
-          const t = new Date(v.data).getTime()
-          return t >= de && t < ate
-        })
-        .reduce((s, v) => s + v.valor, 0)
-    const vendasMes = somaEntre(inicioMes, Infinity)
-    const vendasMesAnterior = somaEntre(inicioMesAnterior, inicioMes)
-    const variacao = vendasMesAnterior ? Math.round(((vendasMes - vendasMesAnterior) / vendasMesAnterior) * 100) : null
-
-    return {
-      disponiveis: disponiveis.length,
-      novosNoMes,
-      reservasAtivas: ativas.length,
-      vencem48h,
-      pendentes: pendentes.length,
-      aguardandoAdmin,
-      vendasMes,
-      variacao,
-      mesAnterior: nomeMes(new Date(inicioMesAnterior)),
-    }
-  }, [db, agora, imoveisPorId])
+  const indicadores = useMemo(() => calcularIndicadores(db, agora, imoveisPorId), [db, agora, imoveisPorId])
 
   const proximasReservas = useMemo(
     () =>
@@ -110,9 +127,7 @@ export function DashboardPage() {
             titulo="Reservas ativas"
             valor={indicadores.reservasAtivas}
             detalhe={
-              indicadores.vencem48h
-                ? `${indicadores.vencem48h} ${indicadores.vencem48h === 1 ? 'vence' : 'vencem'} em 48h`
-                : 'Nenhuma vence em 48h'
+              textoContagem(indicadores.vencem48h, 'vence', 'vencem', 'em 48h', 'Nenhuma vence em 48h')
             }
             tom={indicadores.vencem48h ? 'alerta' : 'neutro'}
             para="/reservas"
@@ -121,9 +136,7 @@ export function DashboardPage() {
             titulo="Propostas pendentes"
             valor={indicadores.pendentes}
             detalhe={
-              indicadores.aguardandoAdmin.length
-                ? `${indicadores.aguardandoAdmin.length} ${indicadores.aguardandoAdmin.length === 1 ? 'aguarda' : 'aguardam'} você`
-                : 'Nenhuma aguarda você'
+              textoContagem(indicadores.aguardandoAdmin.length, 'aguarda', 'aguardam', 'você', 'Nenhuma aguarda você')
             }
             tom="neutro"
             para="/propostas"
@@ -132,11 +145,9 @@ export function DashboardPage() {
             titulo="Vendas no mês"
             valor={formatarMoedaCompacta(indicadores.vendasMes)}
             detalhe={
-              indicadores.variacao === null
-                ? `Sem vendas em ${indicadores.mesAnterior}`
-                : `${indicadores.variacao >= 0 ? '+' : ''}${indicadores.variacao}% vs. ${indicadores.mesAnterior}`
+              textoVariacao(indicadores.variacao, indicadores.mesAnterior)
             }
-            tom={indicadores.variacao !== null && indicadores.variacao < 0 ? 'negativo' : 'positivo'}
+            tom={(indicadores.variacao ?? 0) < 0 ? 'negativo' : 'positivo'}
             para="/vendas"
           />
         </section>
@@ -203,9 +214,7 @@ export function DashboardPage() {
                   Propostas aguardando aprovação
                 </h2>
                 <p className="card__subtitulo">
-                  {indicadores.aguardandoAdmin.length === 0
-                    ? 'Nenhuma exige sua análise'
-                    : `${indicadores.aguardandoAdmin.length} ${indicadores.aguardandoAdmin.length === 1 ? 'exige' : 'exigem'} sua análise`}
+                  {textoContagem(indicadores.aguardandoAdmin.length, 'exige', 'exigem', 'sua análise', 'Nenhuma exige sua análise')}
                 </p>
               </div>
               <Link to="/propostas" className="link">
@@ -220,10 +229,7 @@ export function DashboardPage() {
                   <ItemProposta
                     key={p.id}
                     proposta={p}
-                    rotulo={(() => {
-                      const imovel = imoveisPorId.get(p.imovelId)
-                      return imovel ? rotuloImovel(imovel) : 'Imóvel removido'
-                    })()}
+                    rotulo={rotuloOuRemovido(imoveisPorId.get(p.imovelId))}
                     cliente={pessoas.get(p.clienteId)?.nome ?? 'Cliente'}
                     detalhe={
                       p.condicao ??
@@ -248,7 +254,7 @@ interface KpiProps {
   para: string
 }
 
-function Kpi({ titulo, valor, detalhe, tom, para }: KpiProps) {
+function Kpi({ titulo, valor, detalhe, tom, para }: Readonly<KpiProps>) {
   return (
     <Link to={para} className="card kpi">
       <span className="kpi__titulo">{titulo}</span>
@@ -265,7 +271,7 @@ interface ItemPropostaProps {
   detalhe: string
 }
 
-function ItemProposta({ proposta, rotulo, cliente, detalhe }: ItemPropostaProps) {
+function ItemProposta({ proposta, rotulo, cliente, detalhe }: Readonly<ItemPropostaProps>) {
   const notificar = useToast()
   const [acao, setAcao] = useState<'aprovar' | 'recusar' | null>(null)
   const [confirmarRecusa, setConfirmarRecusa] = useState(false)
@@ -281,8 +287,8 @@ function ItemProposta({ proposta, rotulo, cliente, detalhe }: ItemPropostaProps)
         await recusarProposta(proposta.id, motivo)
         notificar(`Proposta de ${cliente} recusada.`, 'info')
       }
-    } catch (erro) {
-      notificar(erro instanceof Error ? erro.message : 'Não foi possível concluir a ação.', 'erro')
+    } catch (error_) {
+      notificar(error_ instanceof Error ? error_.message : 'Não foi possível concluir a ação.', 'erro')
       setAcao(null)
     }
     setConfirmarRecusa(false)

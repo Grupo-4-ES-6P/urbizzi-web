@@ -20,6 +20,11 @@ function formatarTamanho(bytes: number) {
   return `${Math.max(1, Math.round(bytes / 1024))} KB`
 }
 
+function textoVencimento(meses: number) {
+  if (meses <= 0) return 'Vence este mês'
+  return meses === 1 ? 'Vence em 1 mês' : `Vence em ${meses} meses`
+}
+
 function situacaoDocumento(d: Documento, agora: number): { rotulo: string; variante: VarianteBadge } {
   if (d.substituido) return { rotulo: 'Substituído', variante: 'escuro' }
   if (d.aguardandoAssinatura) return { rotulo: 'Aguardando assinatura', variante: 'atencao' }
@@ -27,7 +32,7 @@ function situacaoDocumento(d: Documento, agora: number): { rotulo: string; varia
     const restante = new Date(`${d.validade}T23:59:59`).getTime() - agora
     if (restante < 0) return { rotulo: 'Vencido', variante: 'critico' }
     const meses = Math.floor(restante / MES)
-    if (meses < 12) return { rotulo: meses <= 0 ? 'Vence este mês' : `Vence em ${meses} ${meses === 1 ? 'mês' : 'meses'}`, variante: 'atencao' }
+    if (meses < 12) return { rotulo: textoVencimento(meses), variante: 'atencao' }
   }
   if (d.visivelCatalogo) return { rotulo: 'No catálogo', variante: 'escuro' }
   return { rotulo: 'Vigente', variante: 'normal' }
@@ -62,7 +67,7 @@ export function DocumentosPage() {
     [db.documentos, imovel?.id],
   )
 
-  if (!imovel) return naoEncontrado
+  if (!imovel) return <>{naoEncontrado}</>
   const agora = Date.now()
   const totalBytes = documentos.reduce((s, d) => s + d.tamanho, 0)
   const baixaveis = documentos.filter((d) => !d.substituido && d.conteudo)
@@ -88,8 +93,8 @@ export function DocumentosPage() {
       notificar(versao > 1 ? `${tipo} enviado como versão ${versao}. A anterior continua no histórico.` : `${tipo} enviado.`)
       setArquivo(null)
       setValidade('')
-    } catch (e) {
-      notificar(e instanceof Error ? e.message : 'Não foi possível enviar.', 'erro')
+    } catch (error_) {
+      notificar(error_ instanceof Error ? error_.message : 'Não foi possível enviar.', 'erro')
     } finally {
       setEnviando(false)
     }

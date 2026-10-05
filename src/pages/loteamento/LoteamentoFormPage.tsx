@@ -8,7 +8,7 @@ import { Badge, Campo, Spinner } from '../../components/ui'
 import { useToast } from '../../contexts/ToastContext'
 import { SITUACOES_LOTEAMENTO, UFS } from '../../data/catalogos'
 import { useDb } from '../../data/db'
-import { resumoQuadras } from '../../data/selectors'
+import { resumoQuadras, type ResumoQuadra } from '../../data/selectors'
 import type { Loteamento, SituacaoLoteamento } from '../../data/types'
 import { formatarMoedaCompacta, mascaraCep } from '../../lib/format'
 import { buscarCep, salvarLoteamento } from '../../services/api'
@@ -76,7 +76,7 @@ export function LoteamentoFormPage() {
   return <FormLoteamento key={id ?? 'novo'} loteamento={loteamento} />
 }
 
-function FormLoteamento({ loteamento }: { loteamento?: Loteamento }) {
+function FormLoteamento({ loteamento }: Readonly<{ loteamento?: Loteamento }>) {
   const db = useDb()
   const navigate = useNavigate()
   const notificar = useToast()
@@ -134,8 +134,8 @@ function FormLoteamento({ loteamento }: { loteamento?: Loteamento }) {
       setSujo(false)
       notificar(loteamento ? 'Loteamento atualizado.' : 'Loteamento cadastrado. Agora cadastre as quadras.')
       navigate(`/imoveis/loteamentos/${salvo.id}`, { replace: true })
-    } catch (err) {
-      notificar(err instanceof Error ? err.message : 'Não foi possível salvar.', 'erro')
+    } catch (error_) {
+      notificar(error_ instanceof Error ? error_.message : 'Não foi possível salvar.', 'erro')
     } finally {
       setSalvando(false)
     }
@@ -253,39 +253,7 @@ function FormLoteamento({ loteamento }: { loteamento?: Loteamento }) {
               </Link>
             )}
           </div>
-          {!loteamento ? (
-            <p className="card__vazio">Salve o loteamento para cadastrar as quadras.</p>
-          ) : quadras.length === 0 ? (
-            <p className="card__vazio">Nenhuma quadra ainda.</p>
-          ) : (
-            <div className="tabela-wrap">
-              <table className="tabela">
-                <thead>
-                  <tr>
-                    <th>Quadra</th><th>Lotes</th><th>Disponíveis</th><th>Reservados</th><th>Vendidos</th><th>Área média</th><th>Faixa de preço</th><th>Situação</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {quadras.map((q) => (
-                    <tr key={q.id}>
-                      <td className="tabela__destaque">
-                        <Link to={`/imoveis?loteamento=${encodeURIComponent(loteamento.nome)}&quadra=${q.identificacao}`}>
-                          {q.identificacao ? `Qd. ${q.identificacao}` : 'Sem quadra'}
-                        </Link>
-                      </td>
-                      <td>{q.lotes}</td>
-                      <td>{q.disponiveis}</td>
-                      <td>{q.reservados}</td>
-                      <td>{q.vendidos}</td>
-                      <td>{q.areaMedia ? `${q.areaMedia.toLocaleString('pt-BR')} m²` : '—'}</td>
-                      <td>{q.precoMin ? `${formatarMoedaCompacta(q.precoMin)} a ${formatarMoedaCompacta(q.precoMax!)}` : '—'}</td>
-                      <td><Badge variante={q.situacao.variante}>{q.situacao.rotulo}</Badge></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <TabelaQuadras loteamento={loteamento} quadras={quadras} />
         </section>
       </main>
       <Dialogo
@@ -299,5 +267,39 @@ function FormLoteamento({ loteamento }: { loteamento?: Loteamento }) {
         onConfirmar={() => navigate('/imoveis/loteamentos')}
       />
     </>
+  )
+}
+
+function TabelaQuadras({ loteamento, quadras }: Readonly<{ loteamento?: Loteamento; quadras: ResumoQuadra[] }>) {
+  if (!loteamento) return <p className="card__vazio">Salve o loteamento para cadastrar as quadras.</p>
+  if (quadras.length === 0) return <p className="card__vazio">Nenhuma quadra ainda.</p>
+  return (
+    <div className="tabela-wrap">
+      <table className="tabela">
+        <thead>
+          <tr>
+            <th>Quadra</th><th>Lotes</th><th>Disponíveis</th><th>Reservados</th><th>Vendidos</th><th>Área média</th><th>Faixa de preço</th><th>Situação</th>
+          </tr>
+        </thead>
+        <tbody>
+          {quadras.map((q) => (
+            <tr key={q.id}>
+              <td className="tabela__destaque">
+                <Link to={`/imoveis?loteamento=${encodeURIComponent(loteamento.nome)}&quadra=${q.identificacao}`}>
+                  {q.identificacao ? `Qd. ${q.identificacao}` : 'Sem quadra'}
+                </Link>
+              </td>
+              <td>{q.lotes}</td>
+              <td>{q.disponiveis}</td>
+              <td>{q.reservados}</td>
+              <td>{q.vendidos}</td>
+              <td>{q.areaMedia ? `${q.areaMedia.toLocaleString('pt-BR')} m²` : '—'}</td>
+              <td>{q.precoMin ? `${formatarMoedaCompacta(q.precoMin)} a ${formatarMoedaCompacta(q.precoMax!)}` : '—'}</td>
+              <td><Badge variante={q.situacao.variante}>{q.situacao.rotulo}</Badge></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   )
 }

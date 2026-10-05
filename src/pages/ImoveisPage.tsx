@@ -31,6 +31,11 @@ function dentroDaFaixa(valor: number | null, faixa: string) {
   return (min === null || valor >= min) && (max === null || valor < max)
 }
 
+function textoContatos(n: number) {
+  if (!n) return '—'
+  return n === 1 ? '1 contato' : `${n} contatos`
+}
+
 export function ImoveisPage() {
   const db = useDb()
   const navigate = useNavigate()
@@ -60,7 +65,7 @@ export function ImoveisPage() {
       db.quadras
         .filter((qd) => qd.loteamento === loteamento && qd.identificacao)
         .map((qd) => qd.identificacao)
-        .sort(),
+        .sort((a, b) => a.localeCompare(b, 'pt-BR', { numeric: true })),
     [db.quadras, loteamento],
   )
 
@@ -222,7 +227,7 @@ export function ImoveisPage() {
                         <td>
                           <Badge variante={s.variante}>{s.rotulo}</Badge>
                         </td>
-                        <td>{contatos ? `${contatos} ${contatos === 1 ? 'contato' : 'contatos'}` : '—'}</td>
+                        <td>{textoContatos(contatos)}</td>
                       </tr>
                     )
                   })}

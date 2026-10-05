@@ -28,7 +28,7 @@ export function HistoricoPage() {
     [db.historico, imovel?.id, de, ate],
   )
 
-  if (!imovel) return naoEncontrado
+  if (!imovel) return <>{naoEncontrado}</>
   const situacao = situacaoExibida(imovel, imoveisComPropostaPendente(db))
   const filtrando = Boolean(de || ate)
 

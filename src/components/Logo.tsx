@@ -3,7 +3,7 @@ interface LogoProps {
   tamanho?: 'sm' | 'lg'
 }
 
-export function Logo({ comSlogan = false, tamanho = 'sm' }: LogoProps) {
+export function Logo({ comSlogan = false, tamanho = 'sm' }: Readonly<LogoProps>) {
   return (
     <span className={`logo logo--${tamanho}`}>
       <svg className="logo__icone" viewBox="0 0 32 32" aria-hidden>

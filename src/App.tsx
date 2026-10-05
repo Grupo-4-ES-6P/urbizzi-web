@@ -21,19 +21,19 @@ import { DetalheTerrenoPage } from './pages/publico/DetalheTerrenoPage'
 import { EmBrevePublicoPage } from './pages/publico/EmBrevePublicoPage'
 import { SiteLayout } from './pages/publico/SiteLayout'
 
-function Protegida({ children }: { children: ReactNode }) {
+function Protegida({ children }: Readonly<{ children: ReactNode }>) {
   const { usuario } = useAuth()
   const location = useLocation()
   if (!usuario) return <Navigate to="/login" replace state={{ de: location.pathname + location.search }} />
-  return children
+  return <>{children}</>
 }
 
-function SomenteVisitante({ children }: { children: ReactNode }) {
+function SomenteVisitante({ children }: Readonly<{ children: ReactNode }>) {
   const { usuario } = useAuth()
   const location = useLocation()
   // Depois do login, volta para a página que exigiu autenticação.
   const destino = (location.state as { de?: string } | null)?.de ?? '/dashboard'
-  return usuario ? <Navigate to={destino} replace /> : children
+  return usuario ? <Navigate to={destino} replace /> : <>{children}</>
 }
 
 export function Rotas() {

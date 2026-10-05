@@ -12,7 +12,7 @@ interface Props {
   acoes?: ReactNode
 }
 
-export function CabecalhoLote({ imovel, secao, subtitulo, acoes }: Props) {
+export function CabecalhoLote({ imovel, secao, subtitulo, acoes }: Readonly<Props>) {
   const nome = nomeCurtoLote(imovel)
   return (
     <>
