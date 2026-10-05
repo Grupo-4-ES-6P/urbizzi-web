@@ -1889,7 +1889,7 @@ textarea {
   place-items: center;
   min-height: 92px;
   background: #cfcfcc;
-  color: #8a8a8f;
+  color: #4f4f55;
 }
 .terreno__foto img {
   width: 100%;
@@ -2035,7 +2035,7 @@ textarea {
   justify-content: center;
   gap: 8px;
   height: 100%;
-  color: #7a7a80;
+  color: #4f4f55;
   font-size: 13px;
 }
 .galeria__miniaturas {

@@ -238,7 +238,7 @@ function SecaoAcao({ id, titulo, subtitulo, ativa, habilitada, motivoDesabilitad
   return (
     <section className={`card secao acao ${ativa ? 'acao--ativa' : ''} ${habilitada ? '' : 'acao--desabilitada'}`}>
       <label className="acao__cabecalho">
-        <input type="radio" name="acao" value={id} checked={ativa} disabled={!habilitada} onChange={onEscolher} />
+        <input type="radio" name="acao" value={id} aria-label={titulo} checked={ativa} disabled={!habilitada} onChange={onEscolher} />
         <span>
           <span className="card__titulo">{titulo}</span>
           <span className="card__subtitulo">{habilitada ? subtitulo : motivoDesabilitada}</span>

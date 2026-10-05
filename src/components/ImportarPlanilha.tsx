@@ -11,7 +11,7 @@ import { Dialogo } from './Dialogo'
 const COLUNAS = ['loteamento', 'quadra', 'lote', 'matricula', 'area', 'frente', 'fundo', 'valor_tabela', 'situacao']
 const EXEMPLO = ['Lot. Universitário', '07', '01', '', '420', '14', '30', '178000', 'disponivel']
 // Marca de ordem de bytes: faz o Excel abrir o CSV como UTF-8.
-const BOM = String.fromCharCode(0xfeff)
+const BOM = String.fromCodePoint(0xfeff)
 const BOM_INICIAL = new RegExp(`^${BOM}`)
 
 type Novo = Omit<Imovel, 'id' | 'codigo' | 'criadoEm' | 'atualizadoEm'>
@@ -25,9 +25,9 @@ interface Resultado {
 function numero(texto: string) {
   const t = texto.trim()
   if (!t) return null
-  const normalizado = t.includes(',') ? t.replace(/\./g, '').replace(',', '.') : t
+  const normalizado = t.includes(',') ? t.replaceAll('.', '').replace(',', '.') : t
   const n = Number(normalizado.replace(/[^\d.-]/g, ''))
-  return Number.isFinite(n) ? n : NaN
+  return Number.isFinite(n) ? n : Number.NaN
 }
 
 function lerCsv(texto: string) {

@@ -281,7 +281,7 @@ export async function cancelarVenda(
   await esperar()
   atualizarDb((db) => {
     const venda = db.vendas.find((v) => v.id === vendaId)
-    if (!venda || venda.status !== 'ativa') throw new Error('Venda não encontrada ou já cancelada.')
+    if (venda?.status !== 'ativa') throw new Error('Venda não encontrada ou já cancelada.')
     const agora = new Date().toISOString()
     const atualizado: Db = {
       ...db,
@@ -319,7 +319,11 @@ const LIMITE_CONTEUDO = 1024 * 1024
 function lerComoDataUrl(arquivo: File) {
   return new Promise<string>((resolve, reject) => {
     const leitor = new FileReader()
-    leitor.onload = () => resolve(String(leitor.result))
+    leitor.onload = () => {
+      // readAsDataURL sempre produz texto; qualquer outra coisa é falha de leitura.
+      if (typeof leitor.result === 'string') resolve(leitor.result)
+      else reject(new Error(`Não foi possível ler ${arquivo.name}.`))
+    }
     leitor.onerror = () => reject(new Error(`Não foi possível ler ${arquivo.name}.`))
     leitor.readAsDataURL(arquivo)
   })
