@@ -15,7 +15,7 @@ const ToastContext = createContext<Notificar | null>(null)
 
 const ICONES = { sucesso: CheckCircle2, erro: XCircle, info: Info }
 
-export function ToastProvider({ children }: { children: ReactNode }) {
+export function ToastProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [toasts, setToasts] = useState<Toast[]>([])
   const proximoId = useRef(1)
 
@@ -37,20 +37,22 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={valor}>
       {children}
-      <div className="toasts" role="region" aria-label="Notificações">
+      <section className="toasts" aria-label="Notificações">
         {toasts.map((t) => {
           const Icone = ICONES[t.tipo]
+          // Erros usam role="alert" (lidos na hora); os demais, <output> (anúncio educado).
+          const Conteiner = t.tipo === 'erro' ? 'div' : 'output'
           return (
-            <div key={t.id} className={`toast toast--${t.tipo}`} role={t.tipo === 'erro' ? 'alert' : 'status'}>
+            <Conteiner key={t.id} className={`toast toast--${t.tipo}`} {...(t.tipo === 'erro' ? { role: 'alert' } : {})}>
               <Icone size={18} aria-hidden />
               <span>{t.mensagem}</span>
               <button type="button" className="toast__fechar" onClick={() => fechar(t.id)} aria-label="Fechar">
                 <X size={14} />
               </button>
-            </div>
+            </Conteiner>
           )
         })}
-      </div>
+      </section>
     </ToastContext.Provider>
   )
 }

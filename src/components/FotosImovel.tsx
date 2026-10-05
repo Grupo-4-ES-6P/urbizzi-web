@@ -39,7 +39,7 @@ async function prepararFoto(arquivo: File): Promise<string> {
   }
 }
 
-export function FotosImovel({ fotos, onChange, erro, onAviso }: FotosImovelProps) {
+export function FotosImovel({ fotos, onChange, erro, onAviso }: Readonly<FotosImovelProps>) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [arrastando, setArrastando] = useState(false)
   const [processando, setProcessando] = useState(0)
@@ -60,22 +60,28 @@ export function FotosImovel({ fotos, onChange, erro, onAviso }: FotosImovelProps
     if (!aceitos.length) return
 
     setProcessando(aceitos.length)
+    // Processa todas em paralelo; uma imagem com defeito não impede as outras.
+    const resultados = await Promise.allSettled(aceitos.map(prepararFoto))
     const prontas: string[] = []
-    for (const arquivo of aceitos) {
-      try {
-        prontas.push(await prepararFoto(arquivo))
-      } catch {
-        onAviso(`Não foi possível ler ${arquivo.name}.`)
-      }
-    }
+    resultados.forEach((r, i) => {
+      if (r.status === 'fulfilled') prontas.push(r.value)
+      else onAviso(`Não foi possível ler ${aceitos[i].name}.`)
+    })
     setProcessando(0)
     onChange([...fotos, ...prontas])
+  }
+
+  const receber = (lista: FileList | File[]) => {
+    adicionar(lista).catch(() => {
+      setProcessando(0)
+      onAviso('Não foi possível processar as imagens.')
+    })
   }
 
   const aoSoltar = (e: DragEvent) => {
     e.preventDefault()
     setArrastando(false)
-    if (e.dataTransfer.files.length) adicionar(e.dataTransfer.files)
+    if (e.dataTransfer.files.length) receber(e.dataTransfer.files)
   }
 
   const tornarCapa = (indice: number) => {
@@ -119,7 +125,7 @@ export function FotosImovel({ fotos, onChange, erro, onAviso }: FotosImovelProps
         hidden
         aria-label="Selecionar fotos do imóvel"
         onChange={(e) => {
-          if (e.target.files) adicionar(e.target.files)
+          if (e.target.files) receber(e.target.files)
           e.target.value = ''
         }}
       />

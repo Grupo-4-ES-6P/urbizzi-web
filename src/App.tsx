@@ -10,14 +10,14 @@ import { ImovelFormPage } from './pages/ImovelFormPage'
 import { ImoveisPage } from './pages/ImoveisPage'
 import { LoginPage } from './pages/LoginPage'
 
-function Protegida({ children }: { children: ReactNode }) {
+function Protegida({ children }: Readonly<{ children: ReactNode }>) {
   const { usuario } = useAuth()
   const location = useLocation()
   if (!usuario) return <Navigate to="/login" replace state={{ de: location.pathname + location.search }} />
   return children
 }
 
-function SomenteVisitante({ children }: { children: ReactNode }) {
+function SomenteVisitante({ children }: Readonly<{ children: ReactNode }>) {
   const { usuario } = useAuth()
   const location = useLocation()
   // Depois do login, volta para a página que exigiu autenticação.

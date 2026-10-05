@@ -1,5 +1,5 @@
 import { atualizarDb, lerDb } from '../data/db'
-import type { Imovel, UsuarioPublico } from '../data/types'
+import type { Imovel, Usuario, UsuarioPublico } from '../data/types'
 
 /**
  * Camada de serviço. Hoje grava no banco local (localStorage) com uma latência
@@ -8,18 +8,21 @@ import type { Imovel, UsuarioPublico } from '../data/types'
 const LATENCIA = import.meta.env.MODE === 'test' ? 0 : 450
 const esperar = (ms = LATENCIA) => new Promise((r) => setTimeout(r, ms))
 
-const novoId = (prefixo: string) =>
-  `${prefixo}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
+// IDs aleatórios com o gerador criptográfico do navegador (não previsíveis).
+const novoId = (prefixo: string) => `${prefixo}-${crypto.randomUUID()}`
+
+/** Dados do usuário sem a senha, para guardar na sessão. */
+export function paraUsuarioPublico({ id, nome, email, papel }: Usuario): UsuarioPublico {
+  return { id, nome, email, papel }
+}
 
 export async function autenticar(email: string, senha: string): Promise<UsuarioPublico> {
   await esperar()
   const usuario = lerDb().usuarios.find((u) => u.email.toLowerCase() === email.trim().toLowerCase())
-  if (!usuario || usuario.senha !== senha) {
+  if (usuario?.senha !== senha) {
     throw new Error('E-mail ou senha incorretos.')
   }
-  const { senha: _omitida, ...publico } = usuario
-  void _omitida
-  return publico
+  return paraUsuarioPublico(usuario)
 }
 
 /** Sempre responde com sucesso para não revelar quais e-mails existem. */
@@ -33,7 +36,7 @@ export async function aprovarProposta(propostaId: string) {
   const agora = new Date().toISOString()
   atualizarDb((db) => {
     const proposta = db.propostas.find((p) => p.id === propostaId)
-    if (!proposta || proposta.status !== 'pendente') {
+    if (proposta?.status !== 'pendente') {
       throw new Error('Esta proposta já foi analisada.')
     }
     const { imovelId } = proposta
@@ -72,7 +75,7 @@ export async function recusarProposta(propostaId: string, motivo: string) {
   await esperar()
   atualizarDb((db) => {
     const proposta = db.propostas.find((p) => p.id === propostaId)
-    if (!proposta || proposta.status !== 'pendente') {
+    if (proposta?.status !== 'pendente') {
       throw new Error('Esta proposta já foi analisada.')
     }
     return {

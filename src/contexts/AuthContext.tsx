@@ -35,7 +35,7 @@ function limparSessao() {
   }
 }
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [usuario, setUsuario] = useState<UsuarioPublico | null>(lerSessao)
 
   const entrar = useCallback(async (email: string, senha: string, manterConectado: boolean) => {

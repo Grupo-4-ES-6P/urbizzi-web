@@ -15,7 +15,7 @@ interface InputNumericoProps {
  * Campo numérico com máscara pt-BR de duas casas: os dígitos entram pela
  * direita (como em caixas eletrônicos), então "45500000" vira "455.000,00".
  */
-export function InputNumerico({ valor, onChange, prefixo, sufixo, placeholder = '0,00', ...resto }: InputNumericoProps) {
+export function InputNumerico({ valor, onChange, prefixo, sufixo, placeholder = '0,00', ...resto }: Readonly<InputNumericoProps>) {
   return (
     <div className="input-adorno">
       {prefixo && <span className="input-adorno__texto">{prefixo}</span>}

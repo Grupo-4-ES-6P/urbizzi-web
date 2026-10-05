@@ -1,7 +1,7 @@
 import { Construction } from 'lucide-react'
 import { Link } from 'react-router-dom'
 
-export function EmConstrucaoPage({ titulo }: { titulo: string }) {
+export function EmConstrucaoPage({ titulo }: Readonly<{ titulo: string }>) {
   return (
     <>
       <header className="cabecalho">

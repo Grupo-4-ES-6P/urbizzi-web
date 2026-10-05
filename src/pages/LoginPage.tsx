@@ -9,7 +9,8 @@ import { resumoGeral } from '../data/selectors'
 import { formatarMoedaCompacta } from '../lib/format'
 import { solicitarRecuperacaoSenha } from '../services/api'
 
-const EMAIL_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+// Partes separadas por pontos sem sobreposição: evita retrocesso exponencial na regex.
+const EMAIL_VALIDO = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/
 
 type Modo = 'entrar' | 'recuperar' | 'enviado'
 
@@ -60,13 +61,14 @@ export function LoginPage() {
             />
           )}
           {modo === 'enviado' && (
-            <div className="login__enviado" role="status">
+            <div className="login__enviado">
               <MailCheck size={32} aria-hidden />
               <h2 className="login__titulo">Verifique seu e-mail</h2>
-              <p className="login__subtitulo">
+              {/* <output> anuncia a confirmação para leitores de tela. */}
+              <output className="login__subtitulo">
                 Se <strong>{email}</strong> estiver cadastrado, você receberá um link para redefinir a senha em
                 alguns minutos.
-              </p>
+              </output>
               <button type="button" className="btn btn--primario btn--bloco" onClick={() => setModo('entrar')}>
                 Voltar para o login
               </button>
@@ -84,7 +86,7 @@ interface FormEntrarProps {
   onEsqueci: () => void
 }
 
-function FormEntrar({ email, setEmail, onEsqueci }: FormEntrarProps) {
+function FormEntrar({ email, setEmail, onEsqueci }: Readonly<FormEntrarProps>) {
   const { entrar } = useAuth()
   const [senha, setSenha] = useState('')
   const [manter, setManter] = useState(true)
@@ -107,8 +109,8 @@ function FormEntrar({ email, setEmail, onEsqueci }: FormEntrarProps) {
     try {
       await entrar(email, senha, manter)
       // O redirecionamento acontece em <SomenteVisitante> assim que houver usuário.
-    } catch (erro) {
-      setErroGeral(erro instanceof Error ? erro.message : 'Não foi possível entrar.')
+    } catch (error_) {
+      setErroGeral(error_ instanceof Error ? error_.message : 'Não foi possível entrar.')
       setEnviando(false)
     }
   }
@@ -132,7 +134,6 @@ function FormEntrar({ email, setEmail, onEsqueci }: FormEntrarProps) {
             className="input input--suave"
             placeholder="seunome@urbizzi.com.br"
             autoComplete="email"
-            autoFocus
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
@@ -166,7 +167,7 @@ function FormEntrar({ email, setEmail, onEsqueci }: FormEntrarProps) {
       <div className="login__linha">
         <label className="checkbox">
           <input type="checkbox" checked={manter} onChange={(e) => setManter(e.target.checked)} />
-          Manter conectado
+          <span>Manter conectado</span>
         </label>
         <button type="button" className="link" onClick={onEsqueci}>
           Esqueci minha senha
@@ -200,7 +201,7 @@ interface FormRecuperarProps {
   onEnviado: () => void
 }
 
-function FormRecuperar({ email, setEmail, onVoltar, onEnviado }: FormRecuperarProps) {
+function FormRecuperar({ email, setEmail, onVoltar, onEnviado }: Readonly<FormRecuperarProps>) {
   const [erro, setErro] = useState('')
   const [enviando, setEnviando] = useState(false)
 
@@ -231,7 +232,6 @@ function FormRecuperar({ email, setEmail, onVoltar, onEnviado }: FormRecuperarPr
             className="input input--suave"
             placeholder="seunome@urbizzi.com.br"
             autoComplete="email"
-            autoFocus
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />

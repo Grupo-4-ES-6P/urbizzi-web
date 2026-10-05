@@ -11,7 +11,7 @@ interface CampoProps {
 }
 
 /** Rótulo + controle + mensagem de erro, com os atributos de acessibilidade ligados. */
-export function Campo({ rotulo, erro, dica, className = '', children }: CampoProps) {
+export function Campo({ rotulo, erro, dica, className = '', children }: Readonly<CampoProps>) {
   const id = useId()
   const idMensagem = `${id}-msg`
   const mensagem = erro ?? dica
@@ -41,7 +41,7 @@ interface ToggleProps {
   desabilitado?: boolean
 }
 
-export function Toggle({ rotulo, ativo, onChange, desabilitado }: ToggleProps) {
+export function Toggle({ rotulo, ativo, onChange, desabilitado }: Readonly<ToggleProps>) {
   return (
     <label className={`toggle ${desabilitado ? 'toggle--desabilitado' : ''}`}>
       <span>{rotulo}</span>
@@ -66,14 +66,14 @@ const ROTULOS_URGENCIA: Record<Urgencia, string> = {
   normal: 'Normal',
 }
 
-export function BadgeUrgencia({ urgencia }: { urgencia: Urgencia }) {
+export function BadgeUrgencia({ urgencia }: Readonly<{ urgencia: Urgencia }>) {
   return <span className={`badge badge--${urgencia}`}>{ROTULOS_URGENCIA[urgencia]}</span>
 }
 
-export function Badge({ variante, children }: { variante: string; children: ReactNode }) {
+export function Badge({ variante, children }: Readonly<{ variante: string; children: ReactNode }>) {
   return <span className={`badge badge--${variante}`}>{children}</span>
 }
 
-export function Spinner({ tamanho = 16 }: { tamanho?: number }) {
+export function Spinner({ tamanho = 16 }: Readonly<{ tamanho?: number }>) {
   return <span className="spinner" style={{ width: tamanho, height: tamanho }} aria-hidden />
 }
