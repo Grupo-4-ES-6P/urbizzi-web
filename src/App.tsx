@@ -6,18 +6,7 @@ import { ToastProvider } from './contexts/ToastContext'
 import { AppLayout } from './layouts/AppLayout'
 import { DashboardPage } from './pages/DashboardPage'
 import { EmConstrucaoPage } from './pages/EmConstrucaoPage'
-import { ImovelFormPage } from './pages/ImovelFormPage'
-import { ImoveisPage } from './pages/ImoveisPage'
-import { AcoesPage } from './pages/imovel/AcoesPage'
-import { DocumentosPage } from './pages/imovel/DocumentosPage'
-import { HistoricoPage } from './pages/imovel/HistoricoPage'
 import { LoginPage } from './pages/LoginPage'
-import { LoteamentoFormPage } from './pages/loteamento/LoteamentoFormPage'
-import { LoteamentosPage } from './pages/loteamento/LoteamentosPage'
-import { MapaLoteamentoPage } from './pages/loteamento/MapaLoteamentoPage'
-import { NovaQuadraPage } from './pages/loteamento/NovaQuadraPage'
-import { CatalogoPage } from './pages/publico/CatalogoPage'
-import { DetalheTerrenoPage } from './pages/publico/DetalheTerrenoPage'
 import { EmBrevePublicoPage } from './pages/publico/EmBrevePublicoPage'
 import { SiteLayout } from './pages/publico/SiteLayout'
 
@@ -55,17 +44,17 @@ export function Rotas() {
         }
       >
         <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/imoveis" element={<ImoveisPage />} />
-        <Route path="/imoveis/novo" element={<ImovelFormPage />} />
-        <Route path="/imoveis/:id" element={<ImovelFormPage />} />
-        <Route path="/imoveis/:id/historico" element={<HistoricoPage />} />
-        <Route path="/imoveis/:id/acoes" element={<AcoesPage />} />
-        <Route path="/imoveis/:id/documentos" element={<DocumentosPage />} />
-        <Route path="/imoveis/loteamentos" element={<LoteamentosPage />} />
-        <Route path="/imoveis/loteamentos/novo" element={<LoteamentoFormPage />} />
-        <Route path="/imoveis/loteamentos/:id" element={<LoteamentoFormPage />} />
-        <Route path="/imoveis/loteamentos/:id/mapa" element={<MapaLoteamentoPage />} />
-        <Route path="/imoveis/loteamentos/:id/quadras/nova" element={<NovaQuadraPage />} />
+        <Route path="/imoveis" element={<EmConstrucaoPage titulo="Imóveis" />} />
+        <Route path="/imoveis/novo" element={<EmConstrucaoPage titulo="Imóveis" />} />
+        <Route path="/imoveis/:id" element={<EmConstrucaoPage titulo="Imóveis" />} />
+        <Route path="/imoveis/:id/historico" element={<EmConstrucaoPage titulo="Imóveis" />} />
+        <Route path="/imoveis/:id/acoes" element={<EmConstrucaoPage titulo="Imóveis" />} />
+        <Route path="/imoveis/:id/documentos" element={<EmConstrucaoPage titulo="Imóveis" />} />
+        <Route path="/imoveis/loteamentos" element={<EmConstrucaoPage titulo="Imóveis" />} />
+        <Route path="/imoveis/loteamentos/novo" element={<EmConstrucaoPage titulo="Imóveis" />} />
+        <Route path="/imoveis/loteamentos/:id" element={<EmConstrucaoPage titulo="Imóveis" />} />
+        <Route path="/imoveis/loteamentos/:id/mapa" element={<EmConstrucaoPage titulo="Imóveis" />} />
+        <Route path="/imoveis/loteamentos/:id/quadras/nova" element={<EmConstrucaoPage titulo="Imóveis" />} />
         <Route path="/clientes" element={<EmConstrucaoPage titulo="Clientes" />} />
         <Route path="/reservas" element={<EmConstrucaoPage titulo="Reservas" />} />
         <Route path="/propostas" element={<EmConstrucaoPage titulo="Propostas" />} />
@@ -75,12 +64,12 @@ export function Rotas() {
       </Route>
       {/* Site público: não exige login */}
       <Route element={<SiteLayout />}>
-        <Route path="/terrenos" element={<CatalogoPage />} />
-        <Route path="/terrenos/:id" element={<DetalheTerrenoPage />} />
+        <Route path="/terrenos" element={<EmBrevePublicoPage titulo="Catálogo" />} />
+        <Route path="/terrenos/:id" element={<EmBrevePublicoPage titulo="Terreno" />} />
         <Route path="/empreendimentos" element={<EmBrevePublicoPage titulo="Empreendimentos" />} />
         <Route path="/financiamento" element={<EmBrevePublicoPage titulo="Financiamento" />} />
         <Route path="/contato" element={<EmBrevePublicoPage titulo="Contato" />} />
-        <Route path="/inicio" element={<Navigate to="/terrenos" replace />} />
+        <Route path="/inicio" element={<EmBrevePublicoPage titulo="Inicio" />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
