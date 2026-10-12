@@ -19,6 +19,7 @@ import { LoteamentoFormPage } from './pages/loteamento/LoteamentoFormPage'
 import { LoteamentosPage } from './pages/loteamento/LoteamentosPage'
 import { MapaLoteamentoPage } from './pages/loteamento/MapaLoteamentoPage'
 import { NovaQuadraPage } from './pages/loteamento/NovaQuadraPage'
+import { PropostaDocumentoPage } from './pages/propostas/PropostaDocumentoPage'
 import { PropostaFormPage } from './pages/propostas/PropostaFormPage'
 import { PropostaPage } from './pages/propostas/PropostaPage'
 import { PropostasPage } from './pages/propostas/PropostasPage'
@@ -85,6 +86,7 @@ export function Rotas() {
         <Route path="/propostas" element={<PropostasPage />} />
         <Route path="/propostas/nova" element={<PropostaFormPage modo="nova" />} />
         <Route path="/propostas/:id" element={<PropostaPage />} />
+        <Route path="/propostas/:id/documento" element={<PropostaDocumentoPage />} />
         <Route path="/propostas/:id/editar" element={<PropostaFormPage modo="editar" />} />
         <Route path="/propostas/:id/versoes" element={<VersoesPropostaPage />} />
         <Route path="/propostas/:id/versoes/nova" element={<PropostaFormPage modo="versao" />} />

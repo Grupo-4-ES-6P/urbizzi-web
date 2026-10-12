@@ -3,6 +3,7 @@ import { screen, within } from '@testing-library/react'
 import { lerDb } from '../../data/db'
 import { reservaAtiva } from '../../data/selectors'
 import { calcularCondicoes, propostaAberta } from '../../lib/propostas'
+import { formatarMoedaInteira } from '../../lib/format'
 import { renderizar } from '../../test/utils'
 
 const texto = (s: string | null | undefined) => (s ?? '').replace(/\s/g, ' ')
@@ -238,5 +239,40 @@ describe('Versões da proposta', () => {
     expect(versoes[2].condicoes).toEqual(v3.condicoes)
     expect(versoes[2].situacao).toBe('substituida')
     expect(screen.getByText('“Cliente pediu prazo maior.”')).toBeInTheDocument()
+  })
+})
+
+describe('Documento da proposta', () => {
+  it('abre a visualização a partir do detalhe e imprime', async () => {
+    const proposta = lote12()
+    const { user } = renderizar(`/propostas/${proposta.id}`)
+    await user.click(screen.getByRole('link', { name: 'Visualizar PDF' }))
+    const folha = await screen.findByRole('article', { name: new RegExp(`Proposta ${proposta.codigo}`) })
+    const atual = proposta.versoes[proposta.versoes.length - 1]
+    expect(texto(folha.textContent)).toContain(`versão v${atual.numero}`)
+    expect(texto(folha.textContent)).toContain(lerDb().clientes.find((c) => c.id === proposta.clienteId)!.nome)
+    expect(texto(folha.textContent)).toContain(texto(formatarMoedaInteira(calcularCondicoes(atual.condicoes).valorProposto)))
+    expect(document.title).toBe(`${proposta.codigo}-v${atual.numero}`)
+
+    const imprimir = vi.spyOn(window, 'print').mockImplementation(() => {})
+    await user.click(screen.getByRole('button', { name: 'Imprimir / salvar PDF' }))
+    expect(imprimir).toHaveBeenCalledOnce()
+    imprimir.mockRestore()
+  })
+
+  it('marca versões substituídas como sem validade e permite trocar a versão', async () => {
+    const proposta = lote12()
+    const { user } = renderizar(`/propostas/${proposta.id}/versoes`)
+    await user.click(screen.getByRole('link', { name: 'Visualizar PDF da versão 1' }))
+    expect(await screen.findByRole('note')).toHaveTextContent(/sem validade comercial/i)
+
+    const atual = proposta.versoes[proposta.versoes.length - 1].numero
+    await user.selectOptions(screen.getByLabelText('Versão'), String(atual))
+    expect(screen.getByRole('article', { name: `Proposta ${proposta.codigo}, versão ${atual}` })).toBeInTheDocument()
+  })
+
+  it('avisa quando a proposta não existe', () => {
+    renderizar('/propostas/inexistente/documento')
+    expect(screen.getByRole('heading', { name: 'Proposta não encontrada' })).toBeInTheDocument()
   })
 })

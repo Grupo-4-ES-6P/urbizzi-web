@@ -1,4 +1,4 @@
-import { Paperclip, TriangleAlert } from 'lucide-react'
+import { FileText, Paperclip, TriangleAlert } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
@@ -144,6 +144,9 @@ export function PropostaPage() {
           </p>
         </div>
         <div className="cabecalho__acoes">
+          <Link to={`/propostas/${proposta.id}/documento`} className="btn btn--secundario">
+            <FileText size={15} aria-hidden /> Visualizar PDF
+          </Link>
           {decide ? (
             <>
               <button type="button" className="btn btn--contorno-perigo" onClick={() => setDialogo('recusar')} disabled={processando}>

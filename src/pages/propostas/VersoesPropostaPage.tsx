@@ -140,6 +140,7 @@ export function VersoesPropostaPage() {
                   <th>O que mudou</th>
                   <th>Valor</th>
                   <th>Situação</th>
+                  <th><span className="sr-only">Documento</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -157,6 +158,15 @@ export function VersoesPropostaPage() {
                       <td>{formatarMoedaInteira(calcularCondicoes(v.condicoes).valorProposto)}</td>
                       <td>
                         <Badge variante={s.variante}>{s.rotulo}</Badge>
+                      </td>
+                      <td>
+                        <Link
+                          to={`/propostas/${proposta.id}/documento?versao=${v.numero}`}
+                          className="link"
+                          aria-label={`Visualizar PDF da versão ${v.numero}`}
+                        >
+                          Visualizar PDF
+                        </Link>
                       </td>
                     </tr>
                   )
