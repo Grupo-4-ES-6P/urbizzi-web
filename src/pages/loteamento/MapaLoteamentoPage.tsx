@@ -5,16 +5,11 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Badge } from '../../components/ui'
 import { useToast } from '../../contexts/ToastContext'
 import { useDb } from '../../data/db'
-import { indexar, nomeLote, reservaAtiva, SITUACAO_EXIBICAO } from '../../data/selectors'
+import { CORES_SITUACAO, indexar, nomeLote, reservaAtiva, SITUACAO_EXIBICAO } from '../../data/selectors'
 import type { Imovel, Situacao } from '../../data/types'
 import { formatarMoedaInteira } from '../../lib/format'
 
-const CORES: Record<Situacao, string> = {
-  disponivel: '#2f8a55',
-  reservado: '#e0922a',
-  vendido: '#f0641e',
-  bloqueado: '#8e8e93',
-}
+const CORES = CORES_SITUACAO
 
 /** Gera um PNG da planta a partir dos dados (não depende de print da tela). */
 async function exportarPng(nome: string, linhas: { quadra: string; lotes: Imovel[] }[]) {
@@ -136,7 +131,7 @@ export function MapaLoteamentoPage() {
         <section className="card secao">
           <div className="secao__cabecalho">
             <h2 className="card__titulo">Planta do loteamento</h2>
-            <p className="card__subtitulo">Cada retângulo é um lote; a cor mostra a situação atual.</p>
+            <p className="card__subtitulo">Cada retângulo é um lote; a cor mostra a situação atual. Clique no nome da quadra para ver os detalhes dela.</p>
           </div>
           <ul className="legenda">
             {(Object.keys(CORES) as Situacao[]).map((s) => (
@@ -150,27 +145,40 @@ export function MapaLoteamentoPage() {
             <p className="card__vazio">Nenhum lote cadastrado. Gere uma quadra para começar.</p>
           ) : (
             <div className="planta">
-              {linhas.map((linha) => (
-                <div key={linha.quadra} className="planta__linha">
-                  <span className="planta__quadra">{linha.quadra ? `Qd. ${linha.quadra}` : 'Lotes'}</span>
-                  <div className="planta__lotes">
-                    {linha.lotes.map((l) => (
-                      <button
-                        key={l.id}
-                        type="button"
-                        className={`planta__lote ${l.id === selecionadoId ? 'planta__lote--ativo' : ''}`}
-                        style={{ background: CORES[l.situacao] }}
-                        aria-pressed={l.id === selecionadoId}
-                        aria-label={`${nomeLote(l.endereco.lote, linha.quadra, ', ')} — ${SITUACAO_EXIBICAO[l.situacao].rotulo}`}
-                        title={`Lote ${l.endereco.lote} · ${SITUACAO_EXIBICAO[l.situacao].rotulo}`}
-                        onClick={() => setSelecionadoId(l.id)}
+              {linhas.map((linha) => {
+                const quadra = linha.quadra ? db.quadras.find((q) => q.loteamento === loteamento.nome && q.identificacao === linha.quadra) : undefined
+                return (
+                  <div key={linha.quadra} className="planta__linha">
+                    {quadra ? (
+                      <Link
+                        to={`/imoveis/loteamentos/${loteamento.id}/quadras/${quadra.id}`}
+                        className="link planta__quadra planta__quadra--link"
+                        title={`Ver detalhes da Qd. ${linha.quadra}`}
                       >
-                        {l.endereco.lote}
-                      </button>
-                    ))}
+                        Qd. {linha.quadra}
+                      </Link>
+                    ) : (
+                      <span className="planta__quadra">{linha.quadra ? `Qd. ${linha.quadra}` : 'Lotes'}</span>
+                    )}
+                    <div className="planta__lotes">
+                      {linha.lotes.map((l) => (
+                        <button
+                          key={l.id}
+                          type="button"
+                          className={`planta__lote ${l.id === selecionadoId ? 'planta__lote--ativo' : ''}`}
+                          style={{ background: CORES[l.situacao] }}
+                          aria-pressed={l.id === selecionadoId}
+                          aria-label={`${nomeLote(l.endereco.lote, linha.quadra, ', ')} — ${SITUACAO_EXIBICAO[l.situacao].rotulo}`}
+                          title={`Lote ${l.endereco.lote} · ${SITUACAO_EXIBICAO[l.situacao].rotulo}`}
+                          onClick={() => setSelecionadoId(l.id)}
+                        >
+                          {l.endereco.lote}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </section>
