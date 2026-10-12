@@ -1725,6 +1725,9 @@ textarea {
   font-weight: 600;
   color: var(--texto-3);
 }
+.planta__quadra--link:hover {
+  color: var(--laranja-forte);
+}
 .planta__lotes {
   display: flex;
   gap: 6px;
@@ -1753,6 +1756,54 @@ textarea {
   display: flex;
   justify-content: space-between;
   gap: 12px;
+}
+
+/* ============ Planta da quadra ============ */
+.quadra-planta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 4px;
+  padding: 3px;
+  background: var(--borda);
+  border: 1px solid var(--borda-forte);
+  border-radius: var(--raio);
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  max-width: 640px;
+}
+.quadra-planta__fileira {
+  display: flex;
+  flex: 1;
+  gap: 3px;
+  min-height: 0;
+}
+.quadra-planta__lote {
+  flex: 1 1 0;
+  min-width: 36px;
+  border: 2px solid transparent;
+  border-radius: 3px;
+  color: rgb(255 255 255 / 92%);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+.quadra-planta__lote:hover {
+  transform: scale(1.015);
+  box-shadow: 0 3px 10px rgb(0 0 0 / 20%);
+  z-index: 1;
+}
+.quadra-planta__lote--ativo {
+  border-color: var(--preto);
+  box-shadow: 0 0 0 2px #fff inset;
+  z-index: 1;
+}
+@media (max-width: 640px) {
+  .quadra-planta {
+    aspect-ratio: 1;
+    max-width: none;
+  }
 }
 
 /* ============ Site público ============ */

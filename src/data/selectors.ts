@@ -56,6 +56,14 @@ export const SITUACAO_EXIBICAO: Record<Situacao, { rotulo: string; variante: Var
   bloqueado: { rotulo: 'Bloqueado', variante: 'escuro' },
 }
 
+/** Cor de preenchimento por situação, usada nas plantas (mapa do loteamento e da quadra). */
+export const CORES_SITUACAO: Record<Situacao, string> = {
+  disponivel: '#2f8a55',
+  reservado: '#e0922a',
+  vendido: '#f0641e',
+  bloqueado: '#8e8e93',
+}
+
 /** Situação mostrada nas listas: proposta pendente aparece como "Em aprovação". */
 export function situacaoExibida(imovel: Imovel, propostasPendentes: Set<string>) {
   if (imovel.status === 'rascunho') return { rotulo: 'Rascunho', variante: 'rascunho' as VarianteBadge }
