@@ -56,6 +56,9 @@ export function Dialogo({
         e.preventDefault()
         if (!carregando) onCancelar()
       }}
+      onClick={(e) => {
+        if (e.target === ref.current && !carregando) onCancelar()
+      }}
     >
       {aberto && (
         <form

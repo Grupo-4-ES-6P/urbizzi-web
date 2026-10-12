@@ -33,6 +33,7 @@ const vazio: Form = {
   numeroRegistro: '',
   licencaAmbiental: '',
   validadeLicenca: '',
+  limiteRenovacoes: 2,
 }
 
 /** "-24.7239, -53.7412" → { lat, lng } */
@@ -52,6 +53,9 @@ function validar(f: Form) {
   if (!f.endereco.trim()) e.endereco = 'Informe o endereço.'
   if (!f.cidade.trim()) e.cidade = 'Informe a cidade.'
   if (f.coordenadas.trim() && !lerCoordenadas(f.coordenadas)) e.coordenadas = 'Use o formato -24.7239, -53.7412.'
+  if (!Number.isInteger(f.limiteRenovacoes) || f.limiteRenovacoes < 0 || f.limiteRenovacoes > 10) {
+    e.limiteRenovacoes = 'Use um número de 0 a 10.'
+  }
   if (f.areaTotal && f.areaLoteavel && f.areaLoteavel > f.areaTotal) e.areaLoteavel = 'Não pode ser maior que a área total.'
   if (f.situacao === 'em_comercializacao' && !f.numeroRegistro.trim()) {
     e.numeroRegistro = 'Obrigatório para liberar a comercialização.'
@@ -183,11 +187,11 @@ function FormLoteamento({ loteamento }: Readonly<{ loteamento?: Loteamento }>) {
             <p className="card__subtitulo">O código do loteamento entra no início do identificador de cada lote.</p>
           </div>
           <div className="grade">
-            {texto('nome', 'Nome do loteamento', 'c-5', { placeholder: 'Universitário I' })}
+            {texto('nome', 'Nome do loteamento', 'c-4', { placeholder: 'Universitário I' })}
             <Campo rotulo="Código" erro={erros.codigo} className="c-2">
               {(p) => <input {...p} className="input" placeholder="UNI-I" value={form.codigo} onChange={(e) => alterar({ codigo: e.target.value.toUpperCase() })} />}
             </Campo>
-            <Campo rotulo="Situação" className="c-3">
+            <Campo rotulo="Situação" className="c-2">
               {(p) => (
                 <select {...p} className="input select" value={form.situacao} onChange={(e) => alterar({ situacao: e.target.value as SituacaoLoteamento })}>
                   {SITUACOES_LOTEAMENTO.map((s) => <option key={s.valor} value={s.valor}>{s.rotulo}</option>)}
@@ -195,6 +199,20 @@ function FormLoteamento({ loteamento }: Readonly<{ loteamento?: Loteamento }>) {
               )}
             </Campo>
             {texto('dataAprovacao', 'Data de aprovação', 'c-2', { type: 'date' })}
+            <Campo rotulo="Renovações de reserva" erro={erros.limiteRenovacoes} dica="Limite por reserva · RF15" className="c-2">
+              {(p) => (
+                <input
+                  {...p}
+                  type="number"
+                  className="input"
+                  min={0}
+                  max={10}
+                  step={1}
+                  value={Number.isNaN(form.limiteRenovacoes) ? '' : form.limiteRenovacoes}
+                  onChange={(e) => alterar({ limiteRenovacoes: e.target.value === '' ? Number.NaN : Number(e.target.value) })}
+                />
+              )}
+            </Campo>
           </div>
         </section>
 
