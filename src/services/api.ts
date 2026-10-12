@@ -14,6 +14,7 @@ import type {
 } from '../data/types'
 import type { FormCliente } from '../lib/clienteForm'
 import { formatarMoedaInteira } from '../lib/format'
+import { emAndamento, situacaoProposta } from '../lib/propostas'
 import { classificarReserva, estenderExpiracao, instanteExpiracao } from '../lib/reservas'
 
 /**
@@ -21,12 +22,12 @@ import { classificarReserva, estenderExpiracao, instanteExpiracao } from '../lib
  * simulada; quando o backend existir, basta trocar o corpo destas funções.
  */
 const LATENCIA = import.meta.env.MODE === 'test' ? 0 : 450
-const esperar = (ms = LATENCIA) => new Promise((r) => setTimeout(r, ms))
+export const esperar = (ms = LATENCIA) => new Promise((r) => setTimeout(r, ms))
 
-const novoId = (prefixo: string) =>
+export const novoId = (prefixo: string) =>
   `${prefixo}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
 
-const ROTULO_SITUACAO: Record<Situacao, EventoHistorico['situacao']> = {
+export const ROTULO_SITUACAO: Record<Situacao, EventoHistorico['situacao']> = {
   disponivel: { rotulo: 'Disponível', variante: 'normal' },
   reservado: { rotulo: 'Reservado', variante: 'atencao' },
   vendido: { rotulo: 'Vendido', variante: 'laranja' },
@@ -34,20 +35,20 @@ const ROTULO_SITUACAO: Record<Situacao, EventoHistorico['situacao']> = {
 }
 
 /** Toda ação relevante vira um registro imutável no histórico do imóvel (RF32/RF33). */
-function comEvento(db: Db, e: Omit<EventoHistorico, 'id' | 'data'> & { data?: string }): Db {
+export function comEvento(db: Db, e: Omit<EventoHistorico, 'id' | 'data'> & { data?: string }): Db {
   return {
     ...db,
     historico: [...db.historico, { id: novoId('his'), data: new Date().toISOString(), ...e }],
   }
 }
 
-function acharImovel(db: Db, id: string) {
+export function acharImovel(db: Db, id: string) {
   const imovel = db.imoveis.find((i) => i.id === id)
   if (!imovel) throw new Error('Imóvel não encontrado.')
   return imovel
 }
 
-function proximoCodigo(prefixo: string, existentes: string[]) {
+export function proximoCodigo(prefixo: string, existentes: string[]) {
   const ano = new Date().getFullYear()
   const maior = existentes
     .filter((c) => c.startsWith(`${prefixo}-${ano}-`))
@@ -70,104 +71,6 @@ export async function autenticar(email: string, senha: string): Promise<UsuarioP
 export async function solicitarRecuperacaoSenha(email: string) {
   await esperar()
   return { email: email.trim() }
-}
-
-export async function aprovarProposta(propostaId: string, autor = 'Administrador') {
-  await esperar()
-  const agora = new Date().toISOString()
-  atualizarDb((db) => {
-    const proposta = db.propostas.find((p) => p.id === propostaId)
-    if (!proposta || proposta.status !== 'pendente') {
-      throw new Error('Esta proposta já foi analisada.')
-    }
-    const { imovelId } = proposta
-    if (!acharImovel(db, imovelId).matricula) {
-      throw new Error('Este lote ainda está com a matrícula pendente e não pode ser vendido (RF06).')
-    }
-    const codigoVenda = proximoCodigo('VD', db.vendas.map((v) => v.codigo))
-    const cliente = db.clientes.find((c) => c.id === proposta.clienteId)?.nome ?? 'cliente'
-    const atualizado: Db = {
-      ...db,
-      // Aprovar uma proposta encerra as concorrentes do mesmo imóvel.
-      propostas: db.propostas.map((p) => {
-        if (p.id === propostaId) return { ...p, status: 'aprovada', decididaEm: agora }
-        if (p.imovelId === imovelId && p.status === 'pendente') {
-          return { ...p, status: 'recusada', decididaEm: agora, motivoRecusa: 'Outra proposta foi aprovada.' }
-        }
-        return p
-      }),
-      reservas: db.reservas.map((r) =>
-        r.imovelId === imovelId && r.status === 'ativa'
-          ? {
-              ...r,
-              status: 'convertida',
-              atualizadaEm: agora,
-              historico: [
-                ...r.historico,
-                eventoReserva('conversao', agora, {
-                  titulo: 'Reserva convertida em venda',
-                  autor,
-                  detalhe: `Proposta ${proposta.codigo} aprovada · venda ${codigoVenda}`,
-                  situacao: 'convertida',
-                }),
-              ],
-            }
-          : r,
-      ),
-      imoveis: db.imoveis.map((i) =>
-        i.id === imovelId
-          ? { ...i, situacao: 'vendido', publicacao: { ...i.publicacao, catalogo: false }, atualizadoEm: agora }
-          : i,
-      ),
-      vendas: [
-        ...db.vendas,
-        {
-          id: novoId('ven'),
-          codigo: codigoVenda,
-          imovelId,
-          clienteId: proposta.clienteId,
-          propostaId,
-          valor: proposta.valor,
-          data: agora,
-          status: 'ativa',
-        },
-      ],
-    }
-    return comEvento(atualizado, {
-      imovelId,
-      tipo: 'Venda',
-      descricao: `Proposta ${proposta.codigo} aprovada; venda registrada para ${cliente}`,
-      autor,
-      referencia: codigoVenda,
-      situacao: ROTULO_SITUACAO.vendido,
-    })
-  })
-}
-
-export async function recusarProposta(propostaId: string, motivo: string, autor = 'Administrador') {
-  await esperar()
-  atualizarDb((db) => {
-    const proposta = db.propostas.find((p) => p.id === propostaId)
-    if (!proposta || proposta.status !== 'pendente') {
-      throw new Error('Esta proposta já foi analisada.')
-    }
-    const atualizado: Db = {
-      ...db,
-      propostas: db.propostas.map((p) =>
-        p.id === propostaId
-          ? { ...p, status: 'recusada', decididaEm: new Date().toISOString(), motivoRecusa: motivo.trim() || undefined }
-          : p,
-      ),
-    }
-    return comEvento(atualizado, {
-      imovelId: proposta.imovelId,
-      tipo: 'Proposta',
-      descricao: `Proposta recusada${motivo.trim() ? `: ${motivo.trim()}` : ''}`,
-      autor,
-      referencia: proposta.codigo,
-      situacao: { rotulo: 'Recusada', variante: 'critico' },
-    })
-  })
 }
 
 export async function salvarImovel(
@@ -217,7 +120,7 @@ export async function excluirImovel(id: string) {
   atualizarDb((db) => {
     const vinculado =
       db.reservas.some((r) => r.imovelId === id && r.status === 'ativa') ||
-      db.propostas.some((p) => p.imovelId === id && p.status === 'pendente')
+      db.propostas.some((p) => p.imovelId === id && emAndamento(situacaoProposta(p, Date.now())))
     if (vinculado) {
       throw new Error('Este imóvel tem reserva ativa ou proposta pendente e não pode ser excluído.')
     }
@@ -683,7 +586,7 @@ const HORA = 3_600_000
 
 const dias = (n: number) => (n === 1 ? '1 dia' : `${n} dias`)
 
-function eventoReserva(
+export function eventoReserva(
   tipo: EventoReserva['tipo'],
   data: string,
   dados: Pick<EventoReserva, 'titulo' | 'autor' | 'detalhe' | 'situacao'>,

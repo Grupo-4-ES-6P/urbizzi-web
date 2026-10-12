@@ -8,6 +8,7 @@ import { useDb } from '../../data/db'
 import { indexar, reservaAtiva, SITUACAO_EXIBICAO } from '../../data/selectors'
 import type { Imovel, Situacao } from '../../data/types'
 import { formatarMoedaInteira } from '../../lib/format'
+import { emAndamento, SITUACAO_PROPOSTA, situacaoProposta } from '../../lib/propostas'
 
 const CORES: Record<Situacao, string> = {
   disponivel: '#2f8a55',
@@ -99,9 +100,8 @@ export function MapaLoteamentoPage() {
   const reserva = selecionado && db.reservas.find((r) => r.imovelId === selecionado.id && reservaAtiva(r, agora))
   const proposta = selecionado && db.propostas.filter((p) => p.imovelId === selecionado.id).sort((a, b) => b.criadaEm.localeCompare(a.criadaEm))[0]
   const venda = selecionado && db.vendas.find((v) => v.imovelId === selecionado.id && v.status === 'ativa')
-  const clienteId = reserva?.clienteId ?? venda?.clienteId ?? (proposta?.status === 'pendente' ? proposta.clienteId : undefined)
+  const clienteId = reserva?.clienteId ?? venda?.clienteId ?? (proposta && emAndamento(situacaoProposta(proposta, agora)) ? proposta.clienteId : undefined)
   const responsavelId = reserva?.corretorId ?? proposta?.corretorId
-  const statusProposta = { pendente: 'em análise', aprovada: 'aprovada', recusada: 'recusada' }
 
   return (
     <>
@@ -199,7 +199,7 @@ export function MapaLoteamentoPage() {
               <div><dt>Valor de tabela</dt><dd>{selecionado.valores.tabela ? formatarMoedaInteira(selecionado.valores.tabela) : '—'}</dd></div>
               <div><dt>Cliente</dt><dd>{clienteId ? pessoas.get(clienteId)?.nome : '—'}</dd></div>
               <div><dt>Reserva</dt><dd>{reserva ? `${reserva.codigo} · expira em ${new Date(reserva.expiraEm).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}` : '—'}</dd></div>
-              <div><dt>Proposta</dt><dd>{proposta ? `${proposta.codigo} · ${statusProposta[proposta.status]}` : '—'}</dd></div>
+              <div><dt>Proposta</dt><dd>{proposta ? `${proposta.codigo} · ${SITUACAO_PROPOSTA[situacaoProposta(proposta, agora)].rotulo.toLowerCase()}` : '—'}</dd></div>
               <div><dt>Responsável</dt><dd>{responsavelId ? pessoas.get(responsavelId)?.nome : '—'}</dd></div>
               {selecionado.bloqueio && <div><dt>Bloqueio</dt><dd>{selecionado.bloqueio.motivo}</dd></div>}
             </dl>

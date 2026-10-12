@@ -117,22 +117,119 @@ export interface Reserva {
   historico: EventoReserva[]
 }
 
-export type StatusProposta = 'pendente' | 'aprovada' | 'recusada'
+/**
+ * Situação persistida da proposta. "Expirada" também é derivada da data em
+ * `situacaoProposta` (lib/propostas), já que não há backend para gravá-la (RF21).
+ */
+export type SituacaoProposta =
+  | 'rascunho'
+  | 'enviada'
+  | 'em_analise'
+  | 'aguardando_diretoria'
+  | 'aprovada'
+  | 'recusada'
+  | 'contraproposta'
+  | 'expirada'
+
+/**
+ * Situação de cada versão, independente da situação da proposta (RF18).
+ * "Expirada" só aparece na exibição, derivada da proposta.
+ */
+export type SituacaoVersao = 'rascunho' | 'em_analise' | 'aprovada' | 'recusada' | 'contraproposta' | 'substituida' | 'expirada'
+
+/** Condições comerciais informadas; os valores derivados saem de `calcularCondicoes`. */
+export interface CondicoesProposta {
+  valorTabela: number
+  /** Percentual sobre o valor de tabela, ex.: 3 para 3%. */
+  descontoPercentual: number
+  entrada: number
+  parcelas: number
+  indiceCorrecao: string
+  /** YYYY-MM-DD */
+  primeiroVencimento: string
+  formaPagamento: string
+  /** Validade em dias úteis contados a partir do envio. */
+  validadeDias: number
+  escritura: string
+  garantia: string
+}
+
+export interface VersaoProposta {
+  /** 1, 2, 3… — nunca reaproveitado nem sobrescrito depois do envio. */
+  numero: number
+  criadaEm: string
+  autor: string
+  enviadaEm?: string
+  condicoes: CondicoesProposta
+  /** Desconto acima da alçada do vendedor no momento do envio. */
+  acimaDaAlcada: boolean
+  aprovadorId: string
+  observacoes: string
+  /** Só os nomes: o upload real de anexos ainda não existe. */
+  anexos: string[]
+  /** Gerado comparando com a versão anterior. */
+  oQueMudou: string
+  comentario: string
+  situacao: SituacaoVersao
+}
+
+export type TipoEtapa = 'envio' | 'analise_comercial' | 'diretoria' | 'contrato'
+export type EstadoEtapa = 'concluida' | 'aguardando' | 'pendente' | 'recusada'
+
+/** Etapa do fluxo de aprovação (RF19). */
+export interface EtapaAprovacao {
+  tipo: TipoEtapa
+  titulo: string
+  /** Usuário que decide a etapa; vazio nas etapas automáticas. */
+  responsavelId: string
+  responsavelNome: string
+  cargo: string
+  estado: EstadoEtapa
+  automatica: boolean
+  concluidaEm?: string
+}
+
+export type TipoEventoProposta =
+  | 'criacao'
+  | 'rascunho'
+  | 'envio'
+  | 'nova_versao'
+  | 'analise'
+  | 'aprovacao_etapa'
+  | 'aprovacao'
+  | 'recusa'
+  | 'contraproposta'
+
+/** Registro imutável de auditoria da proposta (RF32). */
+export interface EventoProposta {
+  id: string
+  tipo: TipoEventoProposta
+  data: string
+  titulo: string
+  autor: string
+  detalhe: string
+  versao: number
+}
 
 export interface Proposta {
   id: string
-  /** Código de exibição, ex.: PROP-2026-0311 */
+  /** Código de exibição no padrão PROP-AAAA-NNNN. */
   codigo: string
+  /** Reserva ativa que originou a proposta (RF17). */
+  reservaId: string
   imovelId: string
   clienteId: string
   corretorId: string
-  valor: number
-  /** Condição de pagamento, ex.: "Entrada 30% + 24x". */
-  condicao?: string
-  status: StatusProposta
+  situacao: SituacaoProposta
   criadaEm: string
+  atualizadaEm: string
+  /** Fim do prazo da versão enviada; vazio em rascunho (RF21). */
+  expiraEm?: string
   decididaEm?: string
   motivoRecusa?: string
+  versoes: VersaoProposta[]
+  etapas: EtapaAprovacao[]
+  historico: EventoProposta[]
 }
 
 export interface Venda {

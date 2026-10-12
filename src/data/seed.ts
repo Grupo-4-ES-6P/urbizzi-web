@@ -1,7 +1,23 @@
 import { LOTEAMENTOS, type LoteamentoInicial } from './catalogos'
+import { formatarMoedaInteira } from '../lib/format'
+import {
+  acimaDaAlcada,
+  calcularCondicoes,
+  descreverMudancas,
+  exigeDiretoria,
+  formatarParcelas,
+  instanteExpiracaoProposta,
+  montarEtapas,
+} from '../lib/propostas'
 import { dataCalendario } from '../lib/reservas'
 import type {
   Cliente,
+  CondicoesProposta,
+  EtapaAprovacao,
+  EventoProposta,
+  SituacaoVersao,
+  Usuario,
+  VersaoProposta,
   Db,
   Documento,
   EventoHistorico,
@@ -15,7 +31,7 @@ import type {
   Venda,
 } from './types'
 
-export const VERSAO_DB = 3
+export const VERSAO_DB = 4
 
 const HORA = 3_600_000
 const DIA = 24 * HORA
@@ -36,8 +52,6 @@ const RUAS: Record<string, string[]> = {
   'Biopark Toledo': ['Av. Ministro Cirne Lima'],
   'Jd. Porto Alegre': ['Rua Guaíba', 'Rua Farroupilha'],
 }
-
-const CONDICOES = ['À vista', 'Entrada 20% + 36x', 'Financiamento bancário', 'Entrada 40% + 12x']
 
 const PROFISSOES = ['Engenheira civil', 'Professor', 'Médica', 'Advogado', 'Comerciante', 'Agricultor', 'Analista de sistemas', 'Enfermeira', 'Contador', 'Arquiteta']
 const ESTADOS_CIVIS = ['Solteiro(a)', 'Casado(a)', 'Casado(a)', 'Divorciado(a)', 'União estável']
@@ -201,6 +215,10 @@ export function criarSeed(agora: Date): Db {
     imoveis.find(
       (i) => i.loteamento === loteamento && i.endereco.quadra === quadra && i.endereco.lote === lote,
     )!
+  // Valores exibidos no protótipo de propostas (Lote 12 — Qd. 04 e Lote 31 — Biopark).
+  for (const [imovel, minimo] of [[achar('Lot. Universitário', '04', '12'), 418_500], [achar('Biopark Toledo', '', '31'), 420_000]] as const) {
+    imovel.valores = { ...imovel.valores, tabela: 455_000, minimo }
+  }
 
   // Ordem embaralhada para distribuir as situações de forma determinística.
   const livres = [...imoveis]
@@ -287,30 +305,8 @@ export function criarSeed(agora: Date): Db {
     )
   }
 
-  // Propostas pendentes: três abaixo da tabela (exigem aprovação do administrador).
-  const propostas: Proposta[] = []
-  const novaProposta = (imovel: Imovel, cli: string, cor: string, valor: number, condicao?: string) => {
-    propostas.push({
-      id: `pro-${propostas.length + 1}`,
-      codigo: `PROP-${ano}-${pad4(311 - propostas.length)}`,
-      imovelId: imovel.id,
-      clienteId: cli,
-      corretorId: cor,
-      valor,
-      condicao,
-      status: 'pendente',
-      criadaEm: new Date(agoraMs - (1 + propostas.length) * 5 * HORA).toISOString(),
-    })
-  }
-  const [r31, r07, r44] = [destaque[2].imovel, destaque[1].imovel, destaque[4].imovel]
-  novaProposta(r31, cliente('Construtora ML'), corretor('M. Oening'), arredondar(r31.valores.tabela! * 0.92, 1000))
-  novaProposta(r07, cliente('Rafael Nunes'), corretor('D. Krüger'), arredondar(r07.valores.tabela! * 0.95, 500), 'Entrada 30% + 24x')
-  novaProposta(r44, cliente('Tiago Ferraz'), corretor('G. Lima'), arredondar(r44.valores.tabela! * 0.97, 1000), 'À vista')
-  const reservadosRestantes = reservas.slice(5, 13)
-  for (const r of reservadosRestantes) {
-    const imovel = imoveis.find((i) => i.id === r.imovelId)!
-    novaProposta(imovel, r.clienteId, r.corretorId, imovel.valores.tabela!, escolher(CONDICOES))
-  }
+  // Mantém a sequência do gerador usada pela versão anterior do seed, para não mudar os demais dados.
+  for (let i = 0; i < 8; i++) rand()
 
   // Vendas dos últimos 12 meses.
   const vendas: Venda[] = []
@@ -373,6 +369,327 @@ export function criarSeed(agora: Date): Db {
       const motivo = escolher2(['Desistência do cliente', 'Crédito não aprovado', 'Troca de imóvel'])
       encerrar(r, { tipo: 'cancelamento', data: new Date(inicio + 3 * DIA).toISOString(), titulo: 'Reserva cancelada', autor: r.historico[0].autor, detalhe: `${motivo} · imóvel liberado`, situacao: 'cancelada' })
     }
+  }
+
+  // ===== Usuários e propostas =====
+  // As duas primeiras propostas reproduzem o protótipo (Lote 12 com três versões e Lote 31 aguardando a diretoria);
+  // as demais cobrem as outras situações. Não usam o gerador aleatório, para não alterar os dados seguintes.
+  const usuarios: Usuario[] = [
+    { id: 'usr-1', nome: 'Ayran Bade', email: 'admin@urbizzi.com.br', senha: 'urbizzi123', papel: 'Administrador' },
+    { id: 'usr-2', nome: 'Matheus Oening', email: 'gestor@urbizzi.com.br', senha: 'urbizzi123', papel: 'Gestor comercial' },
+    { id: 'usr-3', nome: 'Gabriela Krüger', email: 'gerente@urbizzi.com.br', senha: 'urbizzi123', papel: 'Gerente comercial' },
+  ]
+  const resp = (id: string) => {
+    const u = usuarios.find((x) => x.id === id)!
+    return { id: u.id, nome: u.nome, cargo: u.papel }
+  }
+  const iso = (ms: number) => new Date(ms).toISOString()
+  const descontoPara = (tabela: number, valor: number) => ((tabela - valor) / tabela) * 100
+  const propostas: Proposta[] = []
+  let seqEventoProposta = 0
+  const evp = (tipo: EventoProposta['tipo'], ms: number, titulo: string, autor: string, detalhe: string, versao: number): EventoProposta => ({
+    id: `evp-${++seqEventoProposta}`,
+    tipo,
+    data: iso(ms),
+    titulo,
+    autor,
+    detalhe,
+    versao,
+  })
+
+  interface VersaoSeed {
+    em: number
+    autor: string
+    desconto: number
+    entrada: number
+    parcelas: number
+    aprovadorId: string
+    indice?: string
+    forma?: string
+    escritura?: string
+    garantia?: string
+    validade?: number
+    observacoes?: string
+    anexos?: string[]
+    comentario?: string
+    rascunho?: boolean
+  }
+  /** Versões em ordem; todas, menos a última, ficam "Substituída". */
+  const montarVersoes = (tabela: number, lista: VersaoSeed[], situacaoAtual: SituacaoVersao): VersaoProposta[] => {
+    const versoes: VersaoProposta[] = []
+    // O vencimento acordado é o mesmo em todas as versões, para não aparecer como mudança.
+    const primeiroVencimento = dataCalendario(new Date(lista[0].em + 40 * DIA))
+    lista.forEach((v, i) => {
+      const condicoes: CondicoesProposta = {
+        valorTabela: tabela,
+        descontoPercentual: v.desconto,
+        entrada: v.entrada,
+        parcelas: v.parcelas,
+        indiceCorrecao: v.indice ?? 'IGP-M',
+        primeiroVencimento,
+        formaPagamento: v.forma ?? 'Entrada + parcelamento',
+        validadeDias: v.validade ?? 7,
+        escritura: v.escritura ?? 'Após quitação',
+        garantia: v.garantia ?? 'Alienação fiduciária',
+      }
+      versoes.push({
+        numero: i + 1,
+        criadaEm: iso(v.em),
+        autor: v.autor,
+        enviadaEm: v.rascunho ? undefined : iso(v.em),
+        condicoes,
+        acimaDaAlcada: acimaDaAlcada(v.desconto),
+        aprovadorId: v.aprovadorId,
+        observacoes: v.observacoes ?? '',
+        anexos: v.anexos ?? [],
+        oQueMudou: descreverMudancas(versoes[i - 1]?.condicoes, condicoes),
+        comentario: v.comentario ?? '',
+        situacao: i === lista.length - 1 ? situacaoAtual : 'substituida',
+      })
+    })
+    return versoes
+  }
+  const registrarProposta = (
+    reserva: Reserva,
+    dados: Pick<Proposta, 'situacao' | 'versoes' | 'etapas' | 'historico'> & Partial<Pick<Proposta, 'decididaEm' | 'motivoRecusa'>>,
+  ) => {
+    const ultima = dados.versoes[dados.versoes.length - 1]
+    const proposta: Proposta = {
+      id: `pro-${propostas.length + 1}`,
+      codigo: `PROP-${ano}-${pad4(311 - propostas.length)}`,
+      reservaId: reserva.id,
+      imovelId: reserva.imovelId,
+      clienteId: reserva.clienteId,
+      corretorId: reserva.corretorId,
+      criadaEm: dados.versoes[0].criadaEm,
+      atualizadaEm: dados.historico[dados.historico.length - 1].data,
+      expiraEm: ultima.enviadaEm
+        ? instanteExpiracaoProposta(dataCalendario(new Date(ultima.enviadaEm)), ultima.condicoes.validadeDias)
+        : undefined,
+      ...dados,
+    }
+    propostas.push(proposta)
+    return proposta
+  }
+  const resumo = (v: VersaoProposta) => {
+    const k = calcularCondicoes(v.condicoes)
+    return `v${v.numero} · ${formatarMoedaInteira(k.valorProposto)} · ${formatarParcelas(v.condicoes.parcelas, k.valorParcela)}`
+  }
+  const comEstados = (etapas: EtapaAprovacao[], estados: Partial<Record<EtapaAprovacao['tipo'], [EtapaAprovacao['estado'], number?]>>) =>
+    etapas.map((e) => {
+      const novo = estados[e.tipo]
+      return novo ? { ...e, estado: novo[0], concluidaEm: novo[1] === undefined ? e.concluidaEm : iso(novo[1]) } : e
+    })
+
+  // PROP-0311 — Lote 12, Qd. 04: três versões, em análise com o gestor (fora da alçada do usuário logado).
+  {
+    const reserva = reservas[0]
+    const tabela = 455_000
+    const [t1, t2, t3, t4] = [agoraMs - 6 * DIA, agoraMs - 4 * DIA, agoraMs - 2 * DIA, agoraMs - 1 * DIA]
+    const anexos = ['proposta-lote12.pdf', 'simulacao-120x.xlsx', 'rg-cpf-cliente.pdf']
+    const observacoes = 'Cliente pediu simulação alternativa em 120x. Visita realizada no lote.'
+    const versoes = montarVersoes(
+      tabela,
+      [
+        { em: t1, autor: 'Ayran Bade', desconto: 0, entrada: 136_500, parcelas: 18, aprovadorId: 'usr-2', observacoes, anexos: anexos.slice(0, 1) },
+        { em: t2, autor: 'Gustavo Marques', desconto: 0, entrada: 136_500, parcelas: 24, aprovadorId: 'usr-2', observacoes, anexos: anexos.slice(0, 2) },
+        { em: t3, autor: 'Gustavo Marques', desconto: 3, entrada: 88_270, parcelas: 24, aprovadorId: 'usr-2', observacoes, anexos, forma: 'Entrada + financiamento direto', comentario: 'Cliente aceita fechar com 3% de desconto.' },
+      ],
+      'em_analise',
+    )
+    registrarProposta(reserva, {
+      situacao: 'em_analise',
+      versoes,
+      etapas: montarEtapas({ autor: 'Gustavo Marques', enviadaEm: iso(t3), aprovador: resp('usr-2') }),
+      historico: [
+        evp('criacao', t1, 'Proposta criada', 'Ayran Bade', `A partir da reserva ${reserva.codigo}`, 1),
+        evp('envio', t1, 'Enviada para aprovação', 'Ayran Bade', resumo(versoes[0]), 1),
+        evp('nova_versao', t2, 'Nova versão enviada', 'Gustavo Marques', `v2 · ${versoes[1].oQueMudou}`, 2),
+        evp('nova_versao', t3, 'Nova versão enviada', 'Gustavo Marques', `v3 · ${versoes[2].oQueMudou} · desconto acima da alçada`, 3),
+        evp('analise', t4, 'Em análise', 'Matheus Oening', 'Gestor solicitou comparação com o Jd. Europa', 3),
+      ],
+    })
+  }
+
+  // PROP-0310 — Lote 31, Biopark: no valor mínimo, aguardando a diretoria (usuário logado).
+  {
+    const reserva = reservas[2]
+    const tabela = 455_000
+    const [t1, t2, t3] = [agoraMs - 3 * DIA, agoraMs - 2 * DIA, agoraMs - 1 * DIA + 2 * HORA]
+    const base = { autor: 'Matheus Oening', parcelas: 24, aprovadorId: 'usr-3', indice: 'INCC mensal', escritura: 'Após 12ª parcela', observacoes: 'Cliente já adquiriu dois lotes na quadra 12 em 2025. Solicita desconto para fechar os dois lotes remanescentes ainda neste trimestre.' }
+    const versoes = montarVersoes(
+      tabela,
+      [
+        { ...base, em: t1, desconto: descontoPara(tabela, 435_000), entrada: 130_500 },
+        { ...base, em: t2, desconto: descontoPara(tabela, 420_000), entrada: 126_000, comentario: 'Valor revisado a pedido do cliente.' },
+      ],
+      'em_analise',
+    )
+    const etapas = comEstados(
+      montarEtapas({ autor: 'Matheus Oening', enviadaEm: iso(t2), aprovador: resp('usr-3'), diretoria: resp('usr-1') }),
+      { analise_comercial: ['concluida', t3], diretoria: ['aguardando'] },
+    )
+    registrarProposta(reserva, {
+      situacao: 'aguardando_diretoria',
+      versoes,
+      etapas,
+      historico: [
+        evp('criacao', t1, 'Proposta criada', 'Matheus Oening', `A partir da reserva ${reserva.codigo}`, 1),
+        evp('envio', t1, 'Enviada para aprovação', 'Matheus Oening', resumo(versoes[0]), 1),
+        evp('nova_versao', t2, 'Nova versão enviada', 'Matheus Oening', `v2 · Valor revisado: R$ 435.000 → R$ 420.000`, 2),
+        evp('aprovacao_etapa', t3, 'Análise comercial aprovada', 'Gabriela Krüger', 'Aprovada com ressalva: cliente recorrente · encaminhada para aprovação da diretoria', 2),
+      ],
+    })
+  }
+
+  // PROP-0309 — Lote 07, Qd. 02: dentro da alçada, recém-enviada para análise do usuário logado.
+  {
+    const reserva = reservas[1]
+    const tabela = imoveis.find((i) => i.id === reserva.imovelId)!.valores.tabela!
+    const t1 = agoraMs - 5 * HORA
+    const valor = arredondar(tabela * 0.985, 500)
+    const versoes = montarVersoes(
+      tabela,
+      [{ em: t1, autor: 'D. Krüger', desconto: descontoPara(tabela, valor), entrada: arredondar(valor * 0.3, 10), parcelas: 24, aprovadorId: 'usr-1' }],
+      'em_analise',
+    )
+    registrarProposta(reserva, {
+      situacao: 'enviada',
+      versoes,
+      etapas: montarEtapas({ autor: 'D. Krüger', enviadaEm: iso(t1), aprovador: resp('usr-1') }),
+      historico: [
+        evp('criacao', t1 - HORA, 'Proposta criada', 'D. Krüger', `A partir da reserva ${reserva.codigo}`, 1),
+        evp('envio', t1, 'Enviada para aprovação', 'D. Krüger', resumo(versoes[0]), 1),
+      ],
+    })
+  }
+
+  // PROP-0308 — Lote 44, Biopark: recusada na análise comercial; a reserva continua ativa.
+  {
+    const reserva = reservas[4]
+    const tabela = imoveis.find((i) => i.id === reserva.imovelId)!.valores.tabela!
+    const [t1, t2] = [agoraMs - 4 * DIA, agoraMs - 3 * DIA]
+    const versoes = montarVersoes(
+      tabela,
+      [{ em: t1, autor: 'G. Lima', desconto: 4, entrada: arredondar(tabela * 0.1, 10), parcelas: 120, aprovadorId: 'usr-2', forma: 'Entrada + financiamento direto' }],
+      'recusada',
+    )
+    const motivo = 'Parcelamento em 120x fora da política para lotes comerciais.'
+    registrarProposta(reserva, {
+      situacao: 'recusada',
+      decididaEm: iso(t2),
+      motivoRecusa: motivo,
+      versoes,
+      etapas: comEstados(montarEtapas({ autor: 'G. Lima', enviadaEm: iso(t1), aprovador: resp('usr-2') }), { analise_comercial: ['recusada', t2] }),
+      historico: [
+        evp('criacao', t1, 'Proposta criada', 'G. Lima', `A partir da reserva ${reserva.codigo}`, 1),
+        evp('envio', t1, 'Enviada para aprovação', 'G. Lima', resumo(versoes[0]), 1),
+        evp('recusa', t2, 'Proposta recusada', 'Matheus Oening', `Análise comercial: ${motivo}`, 1),
+      ],
+    })
+  }
+
+  // PROP-0307 — contraproposta do gestor aguardando a resposta do cliente.
+  {
+    const reserva = reservas[5]
+    const tabela = imoveis.find((i) => i.id === reserva.imovelId)!.valores.tabela!
+    const [t1, t2] = [agoraMs - 2 * DIA, agoraMs - 20 * HORA]
+    const corretor = corretores.find((c) => c.id === reserva.corretorId)!.nome
+    const versoes = montarVersoes(
+      tabela,
+      [
+        { em: t1, autor: corretor, desconto: 4, entrada: arredondar(tabela * 0.2, 10), parcelas: 36, aprovadorId: 'usr-2' },
+        { em: t2, autor: 'Matheus Oening', desconto: 2.5, entrada: arredondar(tabela * 0.25, 10), parcelas: 36, aprovadorId: 'usr-2', comentario: 'Podemos chegar a 2,5% com entrada de 25%.' },
+      ],
+      'contraproposta',
+    )
+    registrarProposta(reserva, {
+      situacao: 'contraproposta',
+      versoes,
+      etapas: montarEtapas({ autor: corretor, enviadaEm: iso(t1), aprovador: resp('usr-2') }),
+      historico: [
+        evp('criacao', t1, 'Proposta criada', corretor, `A partir da reserva ${reserva.codigo}`, 1),
+        evp('envio', t1, 'Enviada para aprovação', corretor, resumo(versoes[0]), 1),
+        evp('contraproposta', t2, 'Contraproposta', 'Matheus Oening', `v2 · ${versoes[1].oQueMudou}`, 2),
+      ],
+    })
+  }
+
+  // PROP-0306 — rascunho ainda não enviado.
+  {
+    const reserva = reservas[6]
+    const tabela = imoveis.find((i) => i.id === reserva.imovelId)!.valores.tabela!
+    const t1 = agoraMs - 3 * HORA
+    const corretor = corretores.find((c) => c.id === reserva.corretorId)!.nome
+    const versoes = montarVersoes(
+      tabela,
+      [{ em: t1, autor: corretor, desconto: 1, entrada: arredondar(tabela * 0.2, 10), parcelas: 12, aprovadorId: '', rascunho: true }],
+      'rascunho',
+    )
+    registrarProposta(reserva, {
+      situacao: 'rascunho',
+      versoes,
+      etapas: [],
+      historico: [
+        evp('criacao', t1, 'Proposta criada', corretor, `A partir da reserva ${reserva.codigo}`, 1),
+        evp('rascunho', t1, 'Rascunho salvo', corretor, resumo(versoes[0]), 1),
+      ],
+    })
+  }
+
+  // PROP-0305 — enviada e nunca decidida: a validade passou e ela aparece como Expirada (RF21).
+  {
+    const reserva = reservas.find((r) => r.status === 'expirada')!
+    const tabela = reserva.valorTabela!
+    const t1 = new Date(reserva.criadaEm).getTime() + DIA
+    const corretor = corretores.find((c) => c.id === reserva.corretorId)!.nome
+    const versoes = montarVersoes(
+      tabela,
+      [{ em: t1, autor: corretor, desconto: 1.5, entrada: arredondar(tabela * 0.3, 10), parcelas: 24, aprovadorId: 'usr-2', validade: 3 }],
+      'em_analise',
+    )
+    registrarProposta(reserva, {
+      situacao: 'enviada',
+      versoes,
+      etapas: montarEtapas({ autor: corretor, enviadaEm: iso(t1), aprovador: resp('usr-2') }),
+      historico: [
+        evp('criacao', t1, 'Proposta criada', corretor, `A partir da reserva ${reserva.codigo}`, 1),
+        evp('envio', t1, 'Enviada para aprovação', corretor, resumo(versoes[0]), 1),
+      ],
+    })
+  }
+
+  // PROP-0304 — aprovada: originou a venda mais recente e a conversão da reserva.
+  {
+    const reserva = reservas.find((r) => r.status === 'convertida')!
+    const venda = vendas.find((v) => v.imovelId === reserva.imovelId)!
+    const tabela = reserva.valorTabela!
+    const fim = new Date(venda.data).getTime()
+    const t1 = Math.max(new Date(reserva.criadaEm).getTime() + HORA, fim - 2 * DIA)
+    const desconto = descontoPara(tabela, venda.valor)
+    const corretor = corretores.find((c) => c.id === reserva.corretorId)!.nome
+    const versoes = montarVersoes(
+      tabela,
+      [{ em: t1, autor: corretor, desconto, entrada: arredondar(venda.valor * 0.3, 10), parcelas: 24, aprovadorId: 'usr-2' }],
+      'aprovada',
+    )
+    const diretoria = exigeDiretoria(desconto)
+    const etapas = comEstados(
+      montarEtapas({ autor: corretor, enviadaEm: iso(t1), aprovador: resp('usr-2'), diretoria: diretoria ? resp('usr-1') : undefined }),
+      { analise_comercial: ['concluida', diretoria ? (t1 + fim) / 2 : fim], diretoria: ['concluida', fim] },
+    )
+    const proposta = registrarProposta(reserva, {
+      situacao: 'aprovada',
+      decididaEm: venda.data,
+      versoes,
+      etapas,
+      historico: [
+        evp('criacao', t1, 'Proposta criada', corretor, `A partir da reserva ${reserva.codigo}`, 1),
+        evp('envio', t1, 'Enviada para aprovação', corretor, resumo(versoes[0]), 1),
+        evp('aprovacao', fim, 'Proposta aprovada', diretoria ? 'Ayran Bade' : 'Matheus Oening', `v1 · ${formatarMoedaInteira(venda.valor)} · venda ${venda.codigo} registrada; contrato será gerado automaticamente`, 1),
+      ],
+    })
+    venda.propostaId = proposta.id
   }
 
   // Alguns cadastros recentes para o indicador "este mês".
@@ -489,7 +806,8 @@ export function criarSeed(agora: Date): Db {
     }
   }
   for (const p of propostas) {
-    evento({ imovelId: p.imovelId, data: p.criadaEm, tipo: 'Proposta', descricao: 'Proposta enviada para aprovação', autor: nomeCorretor(p.corretorId), referencia: p.codigo, situacao: { rotulo: 'Em análise', variante: 'escuro' } })
+    const envio = p.historico.find((e) => e.tipo === 'envio')
+    if (envio) evento({ imovelId: p.imovelId, data: envio.data, tipo: 'Proposta', descricao: 'Proposta enviada para aprovação', autor: envio.autor, referencia: p.codigo, situacao: { rotulo: 'Em análise', variante: 'escuro' } })
   }
   for (const v of vendas) {
     evento({ imovelId: v.imovelId, data: v.data, tipo: 'Venda', descricao: `Venda registrada para ${nomeCliente(v.clienteId)}`, autor: escolher(autores), referencia: v.codigo, situacao: { rotulo: 'Vendido', variante: 'laranja' } })
@@ -522,15 +840,7 @@ export function criarSeed(agora: Date): Db {
     reservas,
     propostas,
     vendas,
-    usuarios: [
-      {
-        id: 'usr-1',
-        nome: 'Ayran Bade',
-        email: 'admin@urbizzi.com.br',
-        senha: 'urbizzi123',
-        papel: 'Administrador',
-      },
-    ],
+    usuarios,
     loteamentos,
     quadras,
     interesses,

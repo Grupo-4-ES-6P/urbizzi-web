@@ -7,6 +7,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useToast } from '../../contexts/ToastContext'
 import { useDb } from '../../data/db'
 import { formatarMoedaInteira, formatarTempoRestante } from '../../lib/format'
+import { propostaAberta } from '../../lib/propostas'
 import {
   correspondeAoFiltro,
   estenderExpiracao,
@@ -62,6 +63,7 @@ export function ReservaPage() {
   const novaExpiracao = dias !== null ? estenderExpiracao(reserva.expiraEm, dias) : null
   const situacao = SITUACAO_RESERVA[linha.situacao]
   const historico = [...reserva.historico].sort((a, b) => a.data.localeCompare(b.data))
+  const proposta = propostaAberta(db.propostas, reserva.id, agora)
 
   const renovar = async () => {
     const e: typeof errosRenovacao = {}
@@ -122,6 +124,15 @@ export function ReservaPage() {
               <button type="button" className="btn btn--primario" onClick={renovar} disabled={processando || limiteAtingido}>
                 Renovar reserva
               </button>
+              {proposta ? (
+                <Link to={`/propostas/${proposta.id}`} className="btn btn--suave">
+                  Ver proposta {proposta.codigo}
+                </Link>
+              ) : (
+                <Link to={`/propostas/nova?reserva=${reserva.id}`} className="btn btn--suave">
+                  Gerar proposta
+                </Link>
+              )}
             </>
           ) : (
             <Link to="/reservas" className="btn btn--secundario">

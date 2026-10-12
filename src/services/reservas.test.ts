@@ -2,7 +2,6 @@ import { lerDb } from '../data/db'
 import { cpfValido, cnpjValido } from '../lib/clienteForm'
 import { adicionarDias, dataCalendario } from '../lib/reservas'
 import {
-  aprovarProposta,
   cancelarReserva,
   criarReserva,
   excluirClientes,
@@ -11,6 +10,7 @@ import {
   sincronizarReservas,
   type DadosNovaReserva,
 } from './api'
+import { aprovarProposta } from './propostas'
 
 const hoje = () => dataCalendario(new Date())
 
@@ -142,10 +142,11 @@ describe('reservas', () => {
   })
 
   it('aprovar a proposta converte a reserva e registra no histórico dela', async () => {
-    const proposta = lerDb().propostas.find((p) => p.status === 'pendente' && lerDb().imoveis.find((i) => i.id === p.imovelId)?.matricula)!
-    const reserva = lerDb().reservas.find((r) => r.imovelId === proposta.imovelId && r.status === 'ativa')!
+    // Lote 31: aguardando a diretoria, última etapa de decisão (responsável: usr-1).
+    const proposta = lerDb().propostas.find((p) => p.situacao === 'aguardando_diretoria')!
+    const reserva = lerDb().reservas.find((r) => r.id === proposta.reservaId)!
 
-    await aprovarProposta(proposta.id)
+    await aprovarProposta(proposta.id, { id: 'usr-1', nome: 'Ayran Bade' })
 
     const convertida = lerDb().reservas.find((r) => r.id === reserva.id)!
     expect(convertida.status).toBe('convertida')
