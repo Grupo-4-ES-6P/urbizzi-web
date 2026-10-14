@@ -10,7 +10,7 @@
       try {
         var tema = localStorage.getItem('urbizzi:tema')
         if (tema === 'claro' || tema === 'escuro') {
-          document.documentElement.setAttribute('data-theme', tema === 'escuro' ? 'dark' : 'light')
+          document.documentElement.dataset('data-theme', tema === 'escuro' ? 'dark' : 'light')
         }
       } catch (e) {}
     </script>
