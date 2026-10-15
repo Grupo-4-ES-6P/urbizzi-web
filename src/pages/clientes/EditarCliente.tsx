@@ -17,25 +17,27 @@ export function EditarCliente() {
   useEffect(() => {
     const clienteId = Number(id);
 
-    buscarClientePorId(clienteId).then((cliente) => {
-      if (!cliente) {
-        setNotFound(true);
-        return;
-      }
+    buscarClientePorId(clienteId)
+      .then((cliente) => {
+        if (!cliente) {
+          setNotFound(true);
+          return;
+        }
 
-      setInitialValues({
-        nome_completo: cliente.nome_completo,
-        telefone: cliente.telefone,
-        email: cliente.email,
-        ativo: cliente.ativo,
-        tipo_pessoa: cliente.tipo_pessoa,
-        cpf_cnpj: cliente.cpf_cnpj,
-        data_nascimento: cliente.data_nascimento,
-        estado_civil: cliente.estado_civil,
-        profissao: cliente.profissao,
-        endereco: cliente.endereco,
-      });
-    });
+        setInitialValues({
+          nome_completo: cliente.nome_completo,
+          telefone: cliente.telefone,
+          email: cliente.email,
+          ativo: cliente.ativo,
+          tipo_pessoa: cliente.tipo_pessoa,
+          cpf_cnpj: cliente.cpf_cnpj,
+          data_nascimento: cliente.data_nascimento,
+          estado_civil: cliente.estado_civil,
+          profissao: cliente.profissao,
+          endereco: cliente.endereco,
+        });
+      })
+      .catch(() => setNotFound(true));
   }, [id]);
 
   async function handleSubmit(values: ClienteFormValues) {

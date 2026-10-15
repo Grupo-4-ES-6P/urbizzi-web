@@ -25,12 +25,16 @@ export function ListaClientes() {
   useEffect(() => {
     let ativo = true;
 
-    listarClientes().then((dados) => {
-      if (ativo) {
-        setClientes(dados);
-        setIsLoading(false);
-      }
-    });
+    listarClientes()
+      .then((dados) => {
+        if (ativo) setClientes(dados);
+      })
+      .catch(() => {
+        // Falha no carregamento: mostra a lista vazia em vez de ficar carregando para sempre.
+      })
+      .finally(() => {
+        if (ativo) setIsLoading(false);
+      });
 
     return () => {
       ativo = false;

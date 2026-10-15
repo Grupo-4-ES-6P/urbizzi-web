@@ -29,6 +29,9 @@ interface Catalogo {
   corretores: Map<number, Corretor>;
 }
 
+/** Usado quando o carregamento falha: encerra o "carregando" e a tela mostra o estado vazio. */
+const CATALOGO_VAZIO: Catalogo = { imoveis: new Map(), loteamentos: new Map(), clientes: new Map(), corretores: new Map() };
+
 async function carregarCatalogo(): Promise<Catalogo> {
   const [imoveis, loteamentos, clientes, corretores] = await Promise.all([
     listarImoveis(),
@@ -76,11 +79,15 @@ export function useReservas() {
 
   useEffect(() => {
     let ativo = true;
-    Promise.all([listarReservas(), carregarCatalogo()]).then(([dados, cat]) => {
-      if (!ativo) return;
-      setReservas(dados);
-      setCatalogo(cat);
-    });
+    Promise.all([listarReservas(), carregarCatalogo()])
+      .then(([dados, cat]) => {
+        if (!ativo) return;
+        setReservas(dados);
+        setCatalogo(cat);
+      })
+      .catch(() => {
+        if (ativo) setCatalogo(CATALOGO_VAZIO);
+      });
     return () => {
       ativo = false;
     };
@@ -107,11 +114,15 @@ export function useReserva(id: string) {
 
   useEffect(() => {
     let ativo = true;
-    Promise.all([buscarReserva(id), carregarCatalogo()]).then(([dados, cat]) => {
-      if (!ativo) return;
-      setReserva(dados);
-      setCatalogo(cat);
-    });
+    Promise.all([buscarReserva(id), carregarCatalogo()])
+      .then(([dados, cat]) => {
+        if (!ativo) return;
+        setReserva(dados);
+        setCatalogo(cat);
+      })
+      .catch(() => {
+        if (ativo) setCatalogo(CATALOGO_VAZIO);
+      });
     return () => {
       ativo = false;
     };

@@ -20,8 +20,8 @@ export function useOpcoesNovaReserva(): OpcoesNovaReserva | null {
 
   useEffect(() => {
     let ativo = true;
-    Promise.all([listarLoteamentos(), listarImoveis(), listarSituacaoImoveis(), listarClientes(), listarCorretores()]).then(
-      ([loteamentos, imoveis, situacoes, clientes, corretores]) => {
+    Promise.all([listarLoteamentos(), listarImoveis(), listarSituacaoImoveis(), listarClientes(), listarCorretores()])
+      .then(([loteamentos, imoveis, situacoes, clientes, corretores]) => {
         if (!ativo) return;
         setOpcoes({
           loteamentos,
@@ -30,8 +30,11 @@ export function useOpcoesNovaReserva(): OpcoesNovaReserva | null {
           clientes: clientes.filter((cliente) => cliente.ativo),
           corretores,
         });
-      },
-    );
+      })
+      .catch(() => {
+        // Sem as opções o formulário fica com as listas vazias, em vez de preso no "carregando".
+        if (ativo) setOpcoes({ loteamentos: [], imoveis: [], situacoes: {}, clientes: [], corretores: [] });
+      });
     return () => {
       ativo = false;
     };
