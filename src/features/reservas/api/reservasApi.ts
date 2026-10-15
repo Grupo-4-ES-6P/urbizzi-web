@@ -79,7 +79,7 @@ function novoEvento(
   data: Date,
   dados: Pick<EventoReserva, 'evento' | 'responsavel' | 'detalhe' | 'situacao'>,
 ): EventoReserva {
-  return { id: `${tipo}-${data.getTime()}-${Math.random().toString(36).slice(2, 8)}`, tipo, data: data.toISOString(), ...dados };
+  return { id: `${tipo}-${data.getTime()}-${crypto.randomUUID().slice(0, 8)}`, tipo, data: data.toISOString(), ...dados };
 }
 
 function proximoId(reservas: Reserva[], agora: Date): string {
