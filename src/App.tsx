@@ -12,6 +12,8 @@ import { AcoesPage } from './pages/imovel/AcoesPage'
 import { DocumentosPage } from './pages/imovel/DocumentosPage'
 import { HistoricoPage } from './pages/imovel/HistoricoPage'
 import { LoginPage } from './pages/LoginPage'
+import { CatalogoPage } from './pages/publico/CatalogoPage'
+import { DetalheTerrenoPage } from './pages/publico/DetalheTerrenoPage'
 import { QuadraPage } from './pages/quadra/QuadraPage'
 import { EmBrevePublicoPage } from './pages/publico/EmBrevePublicoPage'
 import { SiteLayout } from './pages/publico/SiteLayout'
@@ -71,12 +73,12 @@ export function Rotas() {
       </Route>
       {/* Site público: não exige login */}
       <Route element={<SiteLayout />}>
-        <Route path="/terrenos" element={<EmBrevePublicoPage titulo="Catálogo" />} />
-        <Route path="/terrenos/:id" element={<EmBrevePublicoPage titulo="Terreno" />} />
+        <Route path="/terrenos" element={<CatalogoPage />} />
+        <Route path="/terrenos/:id" element={<DetalheTerrenoPage />} />
         <Route path="/empreendimentos" element={<EmBrevePublicoPage titulo="Empreendimentos" />} />
         <Route path="/financiamento" element={<EmBrevePublicoPage titulo="Financiamento" />} />
         <Route path="/contato" element={<EmBrevePublicoPage titulo="Contato" />} />
-        <Route path="/inicio" element={<EmBrevePublicoPage titulo="Inicio" />} />
+        <Route path="/inicio" element={<Navigate to="/terrenos" replace />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
