@@ -10,7 +10,7 @@ describe('Página de detalhes da quadra', () => {
   it('mostra a planta da quadra e os dados do lote clicado', async () => {
     const lot = universitario()
     const qd = quadra04()
-    const { user } = renderizar(`/loteamentos/${lot.id}/quadras/${qd.id}`)
+    const { user } = renderizar(`/imoveis/loteamentos/${lot.id}/quadras/${qd.id}`)
 
     expect(await screen.findByRole('heading', { name: `Qd. 04 — ${lot.nome}` })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Lote 12, Qd. 04 — Reservado' }))
@@ -22,13 +22,13 @@ describe('Página de detalhes da quadra', () => {
 
   it('avisa quando a quadra não existe', async () => {
     const lot = universitario()
-    renderizar(`/loteamentos/${lot.id}/quadras/inexistente`)
+    renderizar(`/imoveis/loteamentos/${lot.id}/quadras/inexistente`)
     expect(await screen.findByRole('heading', { name: 'Quadra não encontrada' })).toBeInTheDocument()
   })
 
   it('a listagem de quadras do loteamento leva até a página de detalhes', async () => {
     const lot = universitario()
-    const { user } = renderizar(`/loteamentos/${lot.id}`)
+    const { user } = renderizar(`/imoveis/loteamentos/${lot.id}`)
 
     await user.click(screen.getByRole('link', { name: 'Qd. 04' }))
     expect(await screen.findByRole('heading', { name: `Qd. 04 — ${lot.nome}` })).toBeInTheDocument()

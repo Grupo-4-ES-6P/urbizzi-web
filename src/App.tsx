@@ -67,7 +67,7 @@ export function Rotas() {
         <Route path="/imoveis/loteamentos/:id" element={<LoteamentoFormPage />} />
         <Route path="/imoveis/loteamentos/:id/mapa" element={<MapaLoteamentoPage />} />
         <Route path="/imoveis/loteamentos/:id/quadras/nova" element={<NovaQuadraPage />} />
-        <Route path="/loteamentos/:id/quadras/:quadraId" element={<QuadraPage />} />
+        <Route path="/imoveis/loteamentos/:id/quadras/:quadraId" element={<QuadraPage />} />
         <Route path="/clientes" element={<EmConstrucaoPage titulo="Clientes" />} />
         <Route path="/reservas" element={<EmConstrucaoPage titulo="Reservas" />} />
         <Route path="/propostas" element={<EmConstrucaoPage titulo="Propostas" />} />

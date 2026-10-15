@@ -42,7 +42,7 @@ export function QuadraPage() {
       <main className="conteudo">
         <section className="card vazio">
           <h2>Loteamento não encontrado</h2>
-          <Link to="/loteamentos" className="btn btn--secundario">Voltar</Link>
+          <Link to="/imoveis/loteamentos" className="btn btn--secundario">Voltar</Link>
         </section>
       </main>
     )
@@ -53,7 +53,7 @@ export function QuadraPage() {
       <main className="conteudo">
         <section className="card vazio">
           <h2>Quadra não encontrada</h2>
-          <Link to={`/loteamentos/${loteamento.id}`} className="btn btn--secundario">Voltar ao loteamento</Link>
+          <Link to={`/imoveis/loteamentos/${loteamento.id}`} className="btn btn--secundario">Voltar ao loteamento</Link>
         </section>
       </main>
     )
@@ -78,7 +78,7 @@ export function QuadraPage() {
           <nav className="migalhas" aria-label="Você está em">
             <Link to="/imoveis">Imóveis</Link>
             <span aria-hidden>›</span>
-            <Link to={`/loteamentos/${loteamento.id}`}>{loteamento.nome}</Link>
+            <Link to={`/imoveis/loteamentos/${loteamento.id}`}>{loteamento.nome}</Link>
             <span aria-hidden>›</span>
             <span>{titulo}</span>
           </nav>
@@ -90,7 +90,7 @@ export function QuadraPage() {
           </p>
         </div>
         <div className="cabecalho__acoes">
-          <Link to={`/loteamentos/${loteamento.id}/mapa`} className="btn btn--secundario">
+          <Link to={`/imoveis/loteamentos/${loteamento.id}/mapa`} className="btn btn--secundario">
             <Grid3x3 size={15} /> Ver mapa do loteamento
           </Link>
           <button
