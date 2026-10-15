@@ -12,6 +12,10 @@ import { AcoesPage } from './pages/imovel/AcoesPage'
 import { DocumentosPage } from './pages/imovel/DocumentosPage'
 import { HistoricoPage } from './pages/imovel/HistoricoPage'
 import { LoginPage } from './pages/LoginPage'
+import { LoteamentoFormPage } from './pages/loteamento/LoteamentoFormPage'
+import { LoteamentosPage } from './pages/loteamento/LoteamentosPage'
+import { MapaLoteamentoPage } from './pages/loteamento/MapaLoteamentoPage'
+import { NovaQuadraPage } from './pages/loteamento/NovaQuadraPage'
 import { CatalogoPage } from './pages/publico/CatalogoPage'
 import { DetalheTerrenoPage } from './pages/publico/DetalheTerrenoPage'
 import { QuadraPage } from './pages/quadra/QuadraPage'
@@ -58,12 +62,12 @@ export function Rotas() {
         <Route path="/imoveis/:id/historico" element={<HistoricoPage />} />
         <Route path="/imoveis/:id/acoes" element={<AcoesPage />} />
         <Route path="/imoveis/:id/documentos" element={<DocumentosPage />} />
-        <Route path="/loteamentos" element={<EmConstrucaoPage titulo="Loteamentos" />} />
-        <Route path="/loteamentos/novo" element={<EmConstrucaoPage titulo="Loteamentos" />} />
-        <Route path="/loteamentos/:id" element={<EmConstrucaoPage titulo="Loteamentos" />} />
-        <Route path="/loteamentos/:id/mapa" element={<EmConstrucaoPage titulo="Loteamentos" />} />
-        <Route path="/loteamentos/:id/quadras/nova" element={<EmConstrucaoPage titulo="Quadras" />} />
-        <Route path="/loteamentos/:id/quadras/:quadraId" element={<QuadraPage />} />
+        <Route path="/imoveis/loteamentos" element={<LoteamentosPage />} />
+        <Route path="/imoveis/loteamentos/novo" element={<LoteamentoFormPage />} />
+        <Route path="/imoveis/loteamentos/:id" element={<LoteamentoFormPage />} />
+        <Route path="/imoveis/loteamentos/:id/mapa" element={<MapaLoteamentoPage />} />
+        <Route path="/imoveis/loteamentos/:id/quadras/nova" element={<NovaQuadraPage />} />
+        <Route path="/imoveis/loteamentos/:id/quadras/:quadraId" element={<QuadraPage />} />
         <Route path="/clientes" element={<EmConstrucaoPage titulo="Clientes" />} />
         <Route path="/reservas" element={<EmConstrucaoPage titulo="Reservas" />} />
         <Route path="/propostas" element={<EmConstrucaoPage titulo="Propostas" />} />
