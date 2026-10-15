@@ -5,16 +5,11 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Badge } from '../../components/ui'
 import { useToast } from '../../contexts/ToastContext'
 import { useDb } from '../../data/db'
-import { indexar, nomeLote, reservaAtiva, SITUACAO_EXIBICAO } from '../../data/selectors'
-import type { Imovel, Situacao } from '../../data/types'
+import { CORES_SITUACAO, indexar, nomeLote, reservaAtiva, SITUACAO_EXIBICAO } from '../../data/selectors'
+import type { Imovel, Loteamento, Situacao } from '../../data/types'
 import { formatarMoedaInteira } from '../../lib/format'
 
-const CORES: Record<Situacao, string> = {
-  disponivel: '#2f8a55',
-  reservado: '#e0922a',
-  vendido: '#f0641e',
-  bloqueado: '#8e8e93',
-}
+const CORES = CORES_SITUACAO
 
 /** Gera um PNG da planta a partir dos dados (não depende de print da tela). */
 async function exportarPng(nome: string, linhas: { quadra: string; lotes: Imovel[] }[]) {
@@ -136,7 +131,7 @@ export function MapaLoteamentoPage() {
         <section className="card secao">
           <div className="secao__cabecalho">
             <h2 className="card__titulo">Planta do loteamento</h2>
-            <p className="card__subtitulo">Cada retângulo é um lote; a cor mostra a situação atual.</p>
+            <p className="card__subtitulo">Cada retângulo é um lote; a cor mostra a situação atual. Clique no nome da quadra para ver os detalhes dela.</p>
           </div>
           <ul className="legenda">
             {(Object.keys(CORES) as Situacao[]).map((s) => (
@@ -152,7 +147,7 @@ export function MapaLoteamentoPage() {
             <div className="planta">
               {linhas.map((linha) => (
                 <div key={linha.quadra} className="planta__linha">
-                  <span className="planta__quadra">{linha.quadra ? `Qd. ${linha.quadra}` : 'Lotes'}</span>
+                  <RotuloQuadra loteamento={loteamento} quadra={linha.quadra} />
                   <div className="planta__lotes">
                     {linha.lotes.map((l) => (
                       <button
@@ -209,5 +204,21 @@ export function MapaLoteamentoPage() {
         </section>
       </main>
     </>
+  )
+}
+
+/** Nome da quadra na planta; vira link para os detalhes quando a quadra está cadastrada. */
+function RotuloQuadra({ loteamento, quadra }: Readonly<{ loteamento: Loteamento; quadra: string }>) {
+  const db = useDb()
+  const cadastrada = quadra ? db.quadras.find((q) => q.loteamento === loteamento.nome && q.identificacao === quadra) : undefined
+  if (!cadastrada) return <span className="planta__quadra">{quadra ? `Qd. ${quadra}` : 'Lotes'}</span>
+  return (
+    <Link
+      to={`/imoveis/loteamentos/${loteamento.id}/quadras/${cadastrada.id}`}
+      className="link planta__quadra planta__quadra--link"
+      title={`Ver detalhes da Qd. ${quadra}`}
+    >
+      Qd. {quadra}
+    </Link>
   )
 }

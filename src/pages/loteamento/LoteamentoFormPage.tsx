@@ -285,7 +285,7 @@ function TabelaQuadras({ loteamento, quadras }: Readonly<{ loteamento?: Loteamen
           {quadras.map((q) => (
             <tr key={q.id}>
               <td className="tabela__destaque">
-                <Link to={`/imoveis?loteamento=${encodeURIComponent(loteamento.nome)}&quadra=${q.identificacao}`}>
+                <Link to={`/imoveis/loteamentos/${loteamento.id}/quadras/${q.id}`}>
                   {q.identificacao ? `Qd. ${q.identificacao}` : 'Sem quadra'}
                 </Link>
               </td>
