@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { Button } from './Button';
 import styles from './ConfirmDialog.module.css';
 
@@ -16,14 +17,28 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  // Fecha com Esc (teclado) ou com clique no fundo escurecido (mouse).
+  useEffect(() => {
+    const overlay = overlayRef.current;
+    const fecharNoEsc = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onCancel();
+    };
+    const fecharNoFundo = (event: MouseEvent) => {
+      if (event.target === overlay) onCancel();
+    };
+    document.addEventListener('keydown', fecharNoEsc);
+    overlay?.addEventListener('click', fecharNoFundo);
+    return () => {
+      document.removeEventListener('keydown', fecharNoEsc);
+      overlay?.removeEventListener('click', fecharNoFundo);
+    };
+  }, [onCancel]);
+
   return (
-    <div className={styles.overlay} onClick={onCancel}>
-      <div
-        className={styles.dialog}
-        role="alertdialog"
-        aria-modal="true"
-        onClick={(event) => event.stopPropagation()}
-      >
+    <div ref={overlayRef} className={styles.overlay}>
+      <div className={styles.dialog} role="alertdialog" aria-modal="true">
         <p className={styles.message}>{message}</p>
         <div className={styles.actions}>
           <Button variant="outline" type="button" onClick={onCancel}>
