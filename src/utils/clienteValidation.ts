@@ -32,7 +32,8 @@ export interface ClienteFormErrors {
   endereco?: EnderecoFormErrors;
 }
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Partes separadas por pontos sem sobreposição: evita retrocesso exponencial na regex.
+const EMAIL_REGEX = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/;
 const CEP_REGEX = /^\d{5}-?\d{3}$/;
 
 function validateEndereco(endereco: Endereco): EnderecoFormErrors {

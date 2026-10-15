@@ -96,7 +96,8 @@ export function formDeCliente(c: Cliente): FormCliente {
   return { ...form, endereco: { ...form.endereco } }
 }
 
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+// Partes separadas por pontos sem sobreposição: evita retrocesso exponencial na regex.
+const EMAIL = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/
 
 export function validarCliente(f: FormCliente, hoje = new Date().toISOString().slice(0, 10)): ErrosCliente {
   const e: ErrosCliente = {}
