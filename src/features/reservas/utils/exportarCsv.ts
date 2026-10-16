@@ -1,5 +1,5 @@
 function escaparCelula(valor: string): string {
-  return /[";\n\r]/.test(valor) ? `"${valor.replace(/"/g, '""')}"` : valor;
+  return /[";\n\r]/.test(valor) ? `"${valor.replaceAll('"', '""')}"` : valor;
 }
 
 /** Gera CSV separado por ";" (padrão do Excel em pt-BR). */

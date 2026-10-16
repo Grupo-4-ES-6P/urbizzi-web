@@ -127,8 +127,7 @@ export function criarSeed(agora: Date): Db {
       .normalize('NFD')
       .replace(/[\u0300-\u036f.]/g, '')
       .toLowerCase()
-      .split(/\s+/)
-      .join('.')
+      .replaceAll(/\s+/g, '.')
     const criadoEm = new Date(agora.getTime() - (400 + Math.floor(rnd() * 400)) * DIA).toISOString()
     return {
       id: `cli-${i + 1}`,

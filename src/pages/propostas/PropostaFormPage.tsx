@@ -626,7 +626,7 @@ function FormularioProposta({ modo, reserva, imovel, cliente, valorTabela, propo
                   </span>
                 ))}
                 <label className="btn btn--secundario btn--pequeno anexos__adicionar">
-                  Adicionar arquivos
+                  <span>Adicionar arquivos</span>
                   <input
                     id={idAnexos}
                     type="file"
