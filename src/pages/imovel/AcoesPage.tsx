@@ -9,7 +9,9 @@ import { useToast } from '../../contexts/ToastContext'
 import { MOTIVOS_BLOQUEIO, MOTIVOS_CANCELAMENTO, rotuloSituacao } from '../../data/catalogos'
 import { useDb } from '../../data/db'
 import { formatarMoedaInteira } from '../../lib/format'
-import { bloquearImovel, cancelarVenda, reabilitarImovel } from '../../services/api'
+import { podeGerirVendas, validarJustificativa, vendaAtiva } from '../../lib/vendas'
+import { bloquearImovel, reabilitarImovel } from '../../services/api'
+import { cancelarVenda } from '../../services/vendas'
 import { CabecalhoLote } from './CabecalhoLote'
 import { nomeCurtoLote, useImovelDaRota } from './lote'
 
@@ -23,12 +25,13 @@ export function AcoesPage() {
   const notificar = useToast()
   const { usuario } = useAuth()
   const { imovel, naoEncontrado } = useImovelDaRota()
-  const vendasAtivas = db.vendas.filter((v) => v.imovelId === imovel?.id && v.status === 'ativa')
+  const vendasAtivas = db.vendas.filter((v) => v.imovelId === imovel?.id && vendaAtiva(v))
+  const gestor = podeGerirVendas(usuario)
 
   const disponivel = {
     bloquear: imovel?.situacao === 'disponivel',
     reabilitar: imovel?.situacao === 'bloqueado',
-    cancelar: imovel?.situacao === 'vendido' && vendasAtivas.length > 0,
+    cancelar: gestor && imovel?.situacao === 'vendido' && vendasAtivas.length > 0,
   }
   const primeira = (Object.keys(disponivel) as Acao[]).find((a) => disponivel[a]) ?? null
 
@@ -36,7 +39,7 @@ export function AcoesPage() {
   const acao = escolhida && disponivel[escolhida] ? escolhida : primeira
   const [bloqueio, setBloqueio] = useState({ motivo: MOTIVOS_BLOQUEIO[0], justificativa: '', previsao: '' })
   const [reabilitacao, setReabilitacao] = useState({ documento: '', observacao: '' })
-  const [cancelamento, setCancelamento] = useState({ vendaId: '', motivo: MOTIVOS_CANCELAMENTO[0], dataDistrato: hoje(), devolucao: null as number | null })
+  const [cancelamento, setCancelamento] = useState({ vendaId: '', motivo: MOTIVOS_CANCELAMENTO[0], justificativa: '', dataDistrato: hoje(), devolucao: null as number | null })
   const [erros, setErros] = useState<Record<string, string>>({})
   const [confirmar, setConfirmar] = useState(false)
   const [executando, setExecutando] = useState(false)
@@ -53,6 +56,8 @@ export function AcoesPage() {
     if (acao === 'bloquear' && bloqueio.previsao && bloqueio.previsao < hoje()) e.previsao = 'A previsão não pode estar no passado.'
     if (acao === 'reabilitar' && !reabilitacao.documento.trim()) e.documento = 'Informe o documento que resolveu a pendência.'
     if (acao === 'cancelar') {
+      const erroJustificativa = validarJustificativa(cancelamento.justificativa)
+      if (erroJustificativa) e.justificativaCancelamento = erroJustificativa
       if (!cancelamento.dataDistrato) e.dataDistrato = 'Informe a data do distrato.'
       if (cancelamento.devolucao === null) e.devolucao = 'Informe o valor (use 0 se não houver).'
       else if (venda && cancelamento.devolucao > venda.valor) e.devolucao = 'A devolução não pode passar do valor da venda.'
@@ -72,7 +77,16 @@ export function AcoesPage() {
         await reabilitarImovel(imovel.id, reabilitacao, autor)
         notificar('Imóvel reabilitado: está disponível novamente.')
       } else if (acao === 'cancelar' && venda) {
-        await cancelarVenda(venda.id, { motivo: cancelamento.motivo, dataDistrato: cancelamento.dataDistrato, devolucao: cancelamento.devolucao ?? 0 }, autor)
+        await cancelarVenda(
+          venda.id,
+          {
+            motivo: cancelamento.motivo,
+            justificativa: cancelamento.justificativa,
+            dataDistrato: cancelamento.dataDistrato,
+            devolucao: cancelamento.devolucao ?? 0,
+          },
+          { nome: autor, papel: usuario?.papel ?? '' },
+        )
         notificar('Venda cancelada. O imóvel fica bloqueado até ser reabilitado.')
       }
       setConfirmar(false)
@@ -171,9 +185,9 @@ export function AcoesPage() {
           subtitulo="Desfaz uma venda registrada e devolve o imóvel ao estoque."
           ativa={acao === 'cancelar'}
           habilitada={disponivel.cancelar}
-          motivoDesabilitada="Não há venda ativa para este imóvel."
+          motivoDesabilitada={gestor ? 'Não há venda ativa para este imóvel.' : 'Seu perfil não tem permissão para cancelar vendas.'}
           onEscolher={() => setEscolhida('cancelar')}
-          regra="RF24 — o cancelamento exige motivo, gera lançamento na trilha de auditoria e só libera o imóvel após a reabilitação."
+          regra="RF24 — o cancelamento exige motivo e justificativa, gera lançamento na trilha de auditoria e só libera o imóvel após a reabilitação."
         >
           <div className="grade">
             <Campo rotulo="Venda" className="c-3">
@@ -198,6 +212,17 @@ export function AcoesPage() {
             </Campo>
             <Campo rotulo="Devolução ao cliente" erro={erros.devolucao} className="c-3">
               {(p) => <InputNumerico {...p} prefixo="R$" valor={cancelamento.devolucao} onChange={(v) => setCancelamento({ ...cancelamento, devolucao: v })} />}
+            </Campo>
+            <Campo rotulo="Justificativa do cancelamento" erro={erros.justificativaCancelamento} className="c-12">
+              {(p) => (
+                <input
+                  {...p}
+                  className="input"
+                  placeholder="Ex.: cliente desistiu após a negativa do financiamento."
+                  value={cancelamento.justificativa}
+                  onChange={(e) => setCancelamento({ ...cancelamento, justificativa: e.target.value })}
+                />
+              )}
             </Campo>
           </div>
         </SecaoAcao>
