@@ -1,3 +1,5 @@
+import { esperar } from '../../../services/api';
+
 export interface Corretor {
   id: number;
   nome: string;
@@ -14,9 +16,11 @@ const CORRETORES: Corretor[] = [
 ];
 
 export async function listarCorretores(): Promise<Corretor[]> {
+  await esperar();
   return [...CORRETORES];
 }
 
 export async function buscarCorretor(id: number): Promise<Corretor | undefined> {
+  await esperar();
   return CORRETORES.find((corretor) => corretor.id === id);
 }

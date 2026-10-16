@@ -19,6 +19,7 @@ import {
   msRestantes,
 } from '../utils/prazo';
 import { formatarMoeda } from '../utils/formatacao';
+import { esperar } from '../../../services/api';
 
 /*
  * Servidor mock de Reservas, persistido em localStorage.
@@ -177,10 +178,12 @@ function textoDias(dias: number): string {
 }
 
 export async function listarReservas(): Promise<Reserva[]> {
+  await esperar();
   return lerReservasSincronizadas();
 }
 
 export async function buscarReserva(id: string): Promise<Reserva | undefined> {
+  await esperar();
   return lerReservasSincronizadas().find((reserva) => reserva.id === id);
 }
 
@@ -276,6 +279,7 @@ function obterReservaAtiva(reservas: Reserva[], id: string): { reserva: Reserva;
 
 /** RF15: estende a validade a partir da expiração atual, respeitando o limite do loteamento. */
 export async function renovarReserva(id: string, dados: RenovacaoInput): Promise<Reserva> {
+  await esperar();
   const agora = agoraServidor();
   const reservas = lerReservasSincronizadas();
   const { reserva, index } = obterReservaAtiva(reservas, id);
@@ -312,6 +316,7 @@ export async function renovarReserva(id: string, dados: RenovacaoInput): Promise
 
 /** Cancela a reserva, liberando o imóvel imediatamente e mantendo o histórico. */
 export async function cancelarReserva(id: string, dados: CancelamentoInput): Promise<Reserva> {
+  await esperar();
   const agora = agoraServidor();
   const reservas = lerReservasSincronizadas();
   const { reserva, index } = obterReservaAtiva(reservas, id);

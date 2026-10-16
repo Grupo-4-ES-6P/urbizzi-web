@@ -1,4 +1,5 @@
 import type { Cliente, Endereco, NovoClienteInput } from '../../types/Cliente';
+import { esperar } from '../../services/api';
 
 const STORAGE_KEY = 'urbizzi:clientes';
 
@@ -66,6 +67,7 @@ function proximoId(clientes: Cliente[]): number {
 }
 
 export async function criarCliente(dados: NovoClienteInput): Promise<Cliente> {
+  await esperar();
   const clientes = lerClientes();
   const agora = new Date().toISOString();
 
@@ -91,14 +93,17 @@ export async function criarCliente(dados: NovoClienteInput): Promise<Cliente> {
 }
 
 export async function listarClientes(): Promise<Cliente[]> {
+  await esperar();
   return [...lerClientes()].sort((a, b) => a.nome_completo.localeCompare(b.nome_completo, 'pt-BR'));
 }
 
 export async function buscarClientePorId(id: number): Promise<Cliente | undefined> {
+  await esperar();
   return lerClientes().find((cliente) => cliente.id_cliente === id);
 }
 
 export async function atualizarCliente(id: number, dados: NovoClienteInput): Promise<Cliente> {
+  await esperar();
   const clientes = lerClientes();
   const index = clientes.findIndex((cliente) => cliente.id_cliente === id);
 
@@ -128,11 +133,13 @@ export async function atualizarCliente(id: number, dados: NovoClienteInput): Pro
 }
 
 export async function excluirClientes(ids: number[]): Promise<void> {
+  await esperar();
   const idsSet = new Set(ids);
   salvarClientes(lerClientes().filter((cliente) => !idsSet.has(cliente.id_cliente)));
 }
 
 export async function atualizarStatusClientes(ids: number[], ativo: boolean): Promise<void> {
+  await esperar();
   const idsSet = new Set(ids);
   const agora = new Date().toISOString();
 

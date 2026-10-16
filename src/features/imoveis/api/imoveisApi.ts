@@ -1,4 +1,5 @@
 import type { Imovel, Loteamento } from '../types';
+import { esperar } from '../../../services/api';
 
 // Catálogo mock: substituir por chamadas HTTP quando o módulo de Imóveis/Loteamentos existir no backend.
 const LOTEAMENTOS: Loteamento[] = [
@@ -24,17 +25,21 @@ const IMOVEIS: Imovel[] = [
 ];
 
 export async function listarLoteamentos(): Promise<Loteamento[]> {
+  await esperar();
   return [...LOTEAMENTOS];
 }
 
 export async function listarImoveis(): Promise<Imovel[]> {
+  await esperar();
   return [...IMOVEIS];
 }
 
 export async function buscarImovel(id: number): Promise<Imovel | undefined> {
+  await esperar();
   return IMOVEIS.find((imovel) => imovel.id === id);
 }
 
 export async function buscarLoteamento(id: number): Promise<Loteamento | undefined> {
+  await esperar();
   return LOTEAMENTOS.find((loteamento) => loteamento.id === id);
 }
