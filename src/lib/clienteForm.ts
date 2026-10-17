@@ -78,13 +78,19 @@ export function clienteVazio(): FormCliente {
     nome: '',
     tipoPessoa: 'fisica',
     cpfCnpj: '',
+    rg: '',
     dataNascimento: '',
     estadoCivil: '',
     profissao: '',
     telefone: '',
+    celular: '',
     email: '',
     ativo: true,
     endereco: { cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', uf: 'PR', pais: 'Brasil' },
+    origem: '',
+    responsavel: '',
+    imovelInteresseId: '',
+    contatos: [],
   }
 }
 
@@ -93,7 +99,7 @@ export function formDeCliente(c: Cliente): FormCliente {
   void _id
   void _c
   void _a
-  return { ...form, endereco: { ...form.endereco } }
+  return { ...form, endereco: { ...form.endereco }, contatos: [...form.contatos] }
 }
 
 // Partes separadas por pontos sem sobreposição: evita retrocesso exponencial na regex.
@@ -110,12 +116,15 @@ export function validarCliente(f: FormCliente, hoje = new Date().toISOString().s
   else if (!documentoValido(f.cpfCnpj, f.tipoPessoa)) e.cpfCnpj = fisica ? 'Informe um CPF válido.' : 'Informe um CNPJ válido.'
 
   const telefone = f.telefone.trim()
+  const celular = f.celular.trim()
   const email = f.email.trim()
-  if (!telefone && !email) {
+  if (!telefone && !celular && !email) {
     e.telefone = 'Informe pelo menos um telefone ou e-mail.'
+    e.celular = 'Informe pelo menos um telefone ou e-mail.'
     e.email = 'Informe pelo menos um telefone ou e-mail.'
   } else {
     if (telefone && telefone.replace(/\D/g, '').length < 10) e.telefone = 'Telefone incompleto.'
+    if (celular && celular.replace(/\D/g, '').length < 11) e.celular = 'Celular incompleto.'
     if (email && !EMAIL.test(email)) e.email = 'Informe um e-mail válido.'
   }
 

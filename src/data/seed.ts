@@ -9,6 +9,7 @@ import {
   instanteExpiracaoProposta,
   montarEtapas,
 } from '../lib/propostas'
+import { CANAIS_CONTATO, ORIGENS_CLIENTE, ordenarContatos } from '../lib/clientes'
 import { dataCalendario } from '../lib/reservas'
 import { instanteDaVenda } from '../lib/vendas'
 import type {
@@ -34,7 +35,7 @@ import type {
   Venda,
 } from './types'
 
-export const VERSAO_DB = 5
+export const VERSAO_DB = 6
 
 const HORA = 3_600_000
 const DIA = 24 * HORA
@@ -134,12 +135,14 @@ export function criarSeed(agora: Date): Db {
       nome,
       tipoPessoa: juridica ? 'juridica' : 'fisica',
       cpfCnpj: juridica ? gerarCnpj(rnd) : gerarCpf(rnd),
+      rg: '',
       dataNascimento: juridica
         ? ''
         : `${1960 + Math.floor(rnd() * 40)}-${pad(1 + Math.floor(rnd() * 12))}-${pad(1 + Math.floor(rnd() * 28))}`,
       estadoCivil: juridica ? '' : sortear(ESTADOS_CIVIS),
       profissao: juridica ? '' : sortear(PROFISSOES),
       telefone: `(45) 9${8800 + Math.floor(rnd() * 1199)}-${pad4(Math.floor(rnd() * 10000))}`,
+      celular: '',
       email: `${usuarioEmail}@email.com`,
       ativo: !CLIENTES_INATIVOS.includes(nome),
       endereco: {
@@ -152,6 +155,11 @@ export function criarSeed(agora: Date): Db {
         uf: 'PR',
         pais: 'Brasil',
       },
+      // Origem, responsável e contatos são preenchidos no fim, com gerador próprio.
+      origem: '',
+      responsavel: '',
+      imovelInteresseId: '',
+      contatos: [],
       criadoEm,
       atualizadoEm: criadoEm,
     }
@@ -896,6 +904,46 @@ export function criarSeed(agora: Date): Db {
     }
   }
   evento({ imovelId: lote12.id, data: new Date(agoraMs - 2 * HORA).toISOString(), tipo: 'Sistema', descricao: 'Aviso de vencimento da reserva enviado ao responsável', autor: 'Sistema', situacao: { rotulo: 'Atenção', variante: 'atencao' } })
+
+  // ===== Cadastro comercial dos clientes (RF11, RF12) =====
+  // Gerador separado: não altera a sequência usada pelos dados acima.
+  const rand4 = mulberry32(20261016)
+  const escolher4 = <T,>(lista: T[]) => lista[Math.floor(rand4() * lista.length)]
+  const responsaveis = ['Ayran Bade', ...autores]
+  const ASSUNTOS = [
+    'Pediu simulação de parcelamento em 120x',
+    'Visita ao lote com a família',
+    'Apresentou opções de lotes de esquina',
+    'Envio do catálogo do loteamento',
+    'Formulário de interesse recebido',
+    'Retorno sobre a documentação do lote',
+    'Dúvidas sobre financiamento direto',
+  ]
+  const RESULTADOS: Cliente['contatos'][number]['resultado'][] = ['em_andamento', 'positivo', 'positivo', 'sem_retorno', 'novo']
+  for (const c of clientes) {
+    const reservaCliente = reservas.find((r) => r.clienteId === c.id)
+    const juridica = c.tipoPessoa === 'juridica'
+    c.rg = juridica
+      ? `${pad(Math.floor(rand4() * 100))}${String(Math.floor(rand4() * 1_000_000)).padStart(6, '0')}-${pad(Math.floor(rand4() * 100))}`
+      : `${pad(10 + Math.floor(rand4() * 90))}.${String(Math.floor(rand4() * 1000)).padStart(3, '0')}.${String(Math.floor(rand4() * 1000)).padStart(3, '0')}-${Math.floor(rand4() * 10)}`
+    c.celular = c.telefone
+    c.telefone = rand4() < 0.4 ? `(45) 3${pad(Math.floor(rand4() * 100))}${Math.floor(rand4() * 10)}-${pad4(Math.floor(rand4() * 10000))}` : ''
+    c.origem = juridica && rand4() < 0.5 ? 'Parceiro' : escolher4(ORIGENS_CLIENTE.filter((o) => o !== 'Parceiro'))
+    c.responsavel = reservaCliente ? nomeCorretor(reservaCliente.corretorId) : escolher4(responsaveis)
+    c.imovelInteresseId = reservaCliente?.imovelId ?? (rand4() < 0.7 ? escolher4(imoveis).id : '')
+    const qtd = Math.floor(rand4() * 5)
+    c.contatos = ordenarContatos(
+      Array.from({ length: qtd }, (_, k) => ({
+        id: `ctt-${c.id}-${k + 1}`,
+        data: dataCalendario(new Date(agoraMs - (1 + Math.floor(rand4() * 90)) * DIA)),
+        canal: escolher4(CANAIS_CONTATO),
+        responsavel: k === 0 ? c.responsavel : escolher4(responsaveis),
+        imovelId: rand4() < 0.8 ? c.imovelInteresseId : '',
+        assunto: escolher4(ASSUNTOS),
+        resultado: escolher4(RESULTADOS),
+      })),
+    )
+  }
 
   // ===== Documentos =====
   const documentos: Documento[] = []
