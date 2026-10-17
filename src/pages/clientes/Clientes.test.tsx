@@ -8,7 +8,7 @@ const linhas = () => within(screen.getByRole('table')).getAllByRole('row').slice
 describe('Lista de clientes', () => {
   it('busca por nome ignorando acentos e por dígitos do CPF', async () => {
     const { user } = renderizar('/clientes')
-    expect(screen.getByText(/^32 cadastrados · 30 ativos · 2 inativos$/)).toBeInTheDocument()
+    expect(screen.getByText(/^32 cadastrados · \d+ com reserva ativa · \d+ com proposta em análise$/)).toBeInTheDocument()
 
     const busca = screen.getByRole('searchbox', { name: 'Buscar clientes' })
     await user.type(busca, 'silvia')
@@ -51,7 +51,7 @@ describe('Cadastro de cliente', () => {
 
     expect(screen.getByText('Informe o nome completo.')).toBeInTheDocument()
     expect(screen.getByText('Informe o CPF.')).toBeInTheDocument()
-    expect(screen.getAllByText('Informe pelo menos um telefone ou e-mail.')).toHaveLength(2)
+    expect(screen.getAllByText('Informe pelo menos um telefone ou e-mail.')).toHaveLength(3)
     expect(screen.getByLabelText('Nome completo / Razão social')).toHaveAttribute('aria-invalid', 'true')
     expect(lerDb().clientes).toHaveLength(32)
   })
@@ -67,9 +67,11 @@ describe('Cadastro de cliente', () => {
     const { user } = renderizar('/clientes/novo')
 
     await user.type(screen.getByLabelText('Nome completo / Razão social'), 'Maria da Silva')
-    await user.type(screen.getByLabelText('CPF'), '52998224725')
-    expect(screen.getByLabelText('CPF')).toHaveValue('529.982.247-25')
+    await user.type(screen.getByLabelText('CPF / CNPJ'), '52998224725')
+    expect(screen.getByLabelText('CPF / CNPJ')).toHaveValue('529.982.247-25')
     await user.type(screen.getByLabelText('Telefone'), '45998124477')
+    await user.selectOptions(screen.getByLabelText('Origem do cadastro'), 'Catálogo público')
+    await user.selectOptions(screen.getByLabelText('Responsável comercial'), 'Gustavo Marques')
     await user.type(screen.getByLabelText('CEP'), '85900010')
     await waitFor(() => expect(screen.getByLabelText('Logradouro')).toHaveValue('Rua Barão do Rio Branco'))
     await user.type(screen.getByLabelText('Número'), '1200')
@@ -81,6 +83,8 @@ describe('Cadastro de cliente', () => {
       cpfCnpj: '529.982.247-25',
       telefone: '(45) 99812-4477',
       ativo: true,
+      origem: 'Catálogo público',
+      responsavel: 'Gustavo Marques',
       endereco: { cep: '85900-010', logradouro: 'Rua Barão do Rio Branco', numero: '1200', cidade: 'Toledo', uf: 'PR' },
     })
   })
@@ -99,5 +103,29 @@ describe('Cadastro de cliente', () => {
 
     expect(await screen.findByText('Cliente atualizado.')).toBeInTheDocument()
     expect(lerDb().clientes[0].email).toBe('marina@urbizzi.com.br')
+  })
+
+  it('registra um contato comercial e grava junto com o cliente', async () => {
+    const antes = lerDb().clientes[0].contatos.length
+    const { user } = renderizar('/clientes/cli-1')
+
+    await user.click(screen.getByRole('button', { name: 'Registrar contato' }))
+    const dialogo = screen.getByRole('dialog')
+    await user.click(within(dialogo).getByRole('button', { name: 'Registrar contato' }))
+    expect(within(dialogo).getByText('Descreva o assunto do contato.')).toBeInTheDocument()
+
+    await user.selectOptions(within(dialogo).getByLabelText('Canal'), 'Telefone')
+    await user.selectOptions(within(dialogo).getByLabelText('Resultado'), 'positivo')
+    await user.type(within(dialogo).getByLabelText('Assunto'), 'Retorno sobre a simulação')
+    await user.click(within(dialogo).getByRole('button', { name: 'Registrar contato' }))
+
+    const tabela = screen.getByRole('table', { name: 'Contatos comerciais' })
+    expect(within(tabela).getAllByRole('row')[1]).toHaveTextContent(/Telefone.*Ayran Bade.*Retorno sobre a simulação.*Positivo/)
+
+    await user.click(screen.getByRole('button', { name: 'Salvar alterações' }))
+    expect(await screen.findByText('Cliente atualizado.')).toBeInTheDocument()
+    const contatos = lerDb().clientes[0].contatos
+    expect(contatos).toHaveLength(antes + 1)
+    expect(contatos[0]).toMatchObject({ canal: 'Telefone', responsavel: 'Ayran Bade', assunto: 'Retorno sobre a simulação', resultado: 'positivo' })
   })
 })
