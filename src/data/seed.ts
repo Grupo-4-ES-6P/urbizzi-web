@@ -14,6 +14,7 @@ import { dataCalendario } from '../lib/reservas'
 import { instanteDaVenda } from '../lib/vendas'
 import type {
   Cliente,
+  ContatoComercial,
   CondicoesProposta,
   EtapaAprovacao,
   EventoProposta,
@@ -32,6 +33,7 @@ import type {
   Proposta,
   Quadra,
   Reserva,
+  ResultadoContato,
   Venda,
 } from './types'
 
@@ -106,80 +108,65 @@ const pad = (n: number) => String(n).padStart(2, '0')
 const pad4 = (n: number) => String(n).padStart(4, '0')
 const arredondar = (v: number, passo = 500) => Math.round(v / passo) * passo
 
-export function criarSeed(agora: Date): Db {
-  const rand = mulberry32(20260824)
-  const escolher = <T,>(lista: T[]) => lista[Math.floor(rand() * lista.length)]
-  const agoraMs = agora.getTime()
-  const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1).getTime()
+const iso = (ms: number) => new Date(ms).toISOString()
 
-  // Gerador separado para clientes e reservas encerradas: assim os demais dados não mudam.
-  const rand2 = mulberry32(20261003)
-  const escolher2 = <T,>(lista: T[]) => lista[Math.floor(rand2() * lista.length)]
-  const fimDoDia = (ms: number) => {
-    const d = new Date(ms)
-    d.setHours(23, 59, 59, 999)
-    return d.getTime()
+function fimDoDia(ms: number) {
+  const d = new Date(ms)
+  d.setHours(23, 59, 59, 999)
+  return d.getTime()
+}
+
+function montarCliente(nome: string, i: number, rnd: () => number, agoraMs: number): Cliente {
+  const sortear = <T,>(lista: T[]) => lista[Math.floor(rnd() * lista.length)]
+  const juridica = PREFIXOS_JURIDICA.some((p) => nome.startsWith(p))
+  const usuarioEmail = nome
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f.]/g, '')
+    .toLowerCase()
+    .replaceAll(/\s+/g, '.')
+  const criadoEm = new Date(agoraMs - (400 + Math.floor(rnd() * 400)) * DIA).toISOString()
+  return {
+    id: `cli-${i + 1}`,
+    nome,
+    tipoPessoa: juridica ? 'juridica' : 'fisica',
+    cpfCnpj: juridica ? gerarCnpj(rnd) : gerarCpf(rnd),
+    rg: '',
+    dataNascimento: juridica
+      ? ''
+      : `${1960 + Math.floor(rnd() * 40)}-${pad(1 + Math.floor(rnd() * 12))}-${pad(1 + Math.floor(rnd() * 28))}`,
+    estadoCivil: juridica ? '' : sortear(ESTADOS_CIVIS),
+    profissao: juridica ? '' : sortear(PROFISSOES),
+    telefone: `(45) 9${8800 + Math.floor(rnd() * 1199)}-${pad4(Math.floor(rnd() * 10000))}`,
+    celular: '',
+    email: `${usuarioEmail}@email.com`,
+    ativo: !CLIENTES_INATIVOS.includes(nome),
+    endereco: {
+      cep: `859${pad(Math.floor(rnd() * 100))}-${String(Math.floor(rnd() * 1000)).padStart(3, '0')}`,
+      logradouro: sortear(RUAS_CLIENTES),
+      numero: String(100 + Math.floor(rnd() * 2900)),
+      complemento: rnd() < 0.2 ? `Apto ${10 + Math.floor(rnd() * 90)}` : '',
+      bairro: sortear(BAIRROS_CLIENTES),
+      cidade: 'Toledo',
+      uf: 'PR',
+      pais: 'Brasil',
+    },
+    // Origem, responsável e contatos são preenchidos no fim, com gerador próprio.
+    origem: '',
+    responsavel: '',
+    imovelInteresseId: '',
+    contatos: [],
+    criadoEm,
+    atualizadoEm: criadoEm,
   }
+}
 
-  const montarCliente = (nome: string, i: number, rnd: () => number): Cliente => {
-    const sortear = <T,>(lista: T[]) => lista[Math.floor(rnd() * lista.length)]
-    const juridica = PREFIXOS_JURIDICA.some((p) => nome.startsWith(p))
-    const usuarioEmail = nome
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f.]/g, '')
-      .toLowerCase()
-      .replaceAll(/\s+/g, '.')
-    const criadoEm = new Date(agora.getTime() - (400 + Math.floor(rnd() * 400)) * DIA).toISOString()
-    return {
-      id: `cli-${i + 1}`,
-      nome,
-      tipoPessoa: juridica ? 'juridica' : 'fisica',
-      cpfCnpj: juridica ? gerarCnpj(rnd) : gerarCpf(rnd),
-      rg: '',
-      dataNascimento: juridica
-        ? ''
-        : `${1960 + Math.floor(rnd() * 40)}-${pad(1 + Math.floor(rnd() * 12))}-${pad(1 + Math.floor(rnd() * 28))}`,
-      estadoCivil: juridica ? '' : sortear(ESTADOS_CIVIS),
-      profissao: juridica ? '' : sortear(PROFISSOES),
-      telefone: `(45) 9${8800 + Math.floor(rnd() * 1199)}-${pad4(Math.floor(rnd() * 10000))}`,
-      celular: '',
-      email: `${usuarioEmail}@email.com`,
-      ativo: !CLIENTES_INATIVOS.includes(nome),
-      endereco: {
-        cep: `859${pad(Math.floor(rnd() * 100))}-${String(Math.floor(rnd() * 1000)).padStart(3, '0')}`,
-        logradouro: sortear(RUAS_CLIENTES),
-        numero: String(100 + Math.floor(rnd() * 2900)),
-        complemento: rnd() < 0.2 ? `Apto ${10 + Math.floor(rnd() * 90)}` : '',
-        bairro: sortear(BAIRROS_CLIENTES),
-        cidade: 'Toledo',
-        uf: 'PR',
-        pais: 'Brasil',
-      },
-      // Origem, responsável e contatos são preenchidos no fim, com gerador próprio.
-      origem: '',
-      responsavel: '',
-      imovelInteresseId: '',
-      contatos: [],
-      criadoEm,
-      atualizadoEm: criadoEm,
-    }
-  }
-  const clientes: Cliente[] = NOMES_CLIENTES.map((nome, i) => montarCliente(nome, i, rand2))
-  // Compradores do prot\u00f3tipo de vendas, com gerador pr\u00f3prio para n\u00e3o alterar os clientes acima.
-  const rand3 = mulberry32(20260812)
-  for (const nome of NOMES_COMPRADORES) clientes.push(montarCliente(nome, clientes.length, rand3))
-  const corretores: Pessoa[] = NOMES_CORRETORES.map((nome, i) => ({ id: `cor-${i + 1}`, nome }))
-  const cliente = (nome: string) => clientes.find((c) => c.nome === nome)!.id
-  const corretor = (nome: string) => corretores.find((c) => c.nome === nome)!.id
-
-  const ano = agora.getFullYear()
-  const planos: { lot: LoteamentoInicial; quadras: number; lotes: number }[] = [
-    { lot: LOTEAMENTOS[0], quadras: 6, lotes: 12 },
-    { lot: LOTEAMENTOS[1], quadras: 9, lotes: 8 },
-    { lot: LOTEAMENTOS[2], quadras: 0, lotes: 44 },
-    { lot: LOTEAMENTOS[3], quadras: 3, lotes: 10 },
-  ]
-
+/** Lotes de cada loteamento, numerados a partir do código 7701. */
+function gerarImoveis(
+  planos: { lot: LoteamentoInicial; quadras: number; lotes: number }[],
+  rand: () => number,
+  escolher: <T>(lista: T[]) => T,
+  agoraMs: number,
+): Imovel[] {
   const imoveis: Imovel[] = []
   let codigo = 7700
   for (const { lot, quadras, lotes } of planos) {
@@ -228,6 +215,398 @@ export function criarSeed(agora: Date): Db {
       }
     })
   }
+  return imoveis
+}
+
+interface VendaSeed {
+  imovel: Imovel
+  comprador: string
+  corretor: string
+  valor: number
+  data: string
+  status: StatusVenda
+  justificativa?: string
+}
+
+interface ContextoVenda {
+  retirar: (imovel: Imovel) => Imovel
+  evv: (tipo: EventoVenda['tipo'], ms: number, autor: string, statusAnterior: StatusVenda | null, status: StatusVenda, detalhe: string) => EventoVenda
+  cliente: (nome: string) => string
+  corretor: (nome: string) => string
+  agoraMs: number
+}
+
+function montarVenda(s: VendaSeed, i: number, { retirar, evv, cliente, corretor, agoraMs }: ContextoVenda): Venda {
+  const imovel = retirar(s.imovel)
+  // Valor de venda ~3% abaixo da tabela, coerente com o desconto das propostas.
+  const tabela = arredondar(s.valor * 1.03)
+  imovel.valores = { ...imovel.valores, tabela, minimo: arredondar(tabela * 0.92) }
+  imovel.publicacao.catalogo = false
+  const data = instanteDaVenda(s.data)
+  const dataMs = new Date(data).getTime()
+  const historicoVenda = [evv('registro', dataMs, 'Matheus Oening', null, 'em_escritura', `Venda registrada · ${formatarMoedaInteira(s.valor)}`)]
+  const cancelada = s.status === 'cancelada'
+  // A primeira cancelada sai de Em escritura; a segunda, de Concluída (as duas origens permitidas).
+  const concluiu = s.status === 'concluida' || (cancelada && i === 7)
+  if (concluiu) historicoVenda.push(evv('conclusao', dataMs + 12 * DIA, 'Matheus Oening', 'em_escritura', 'concluida', 'Escritura concluída'))
+  let cancelamento: Venda['cancelamento']
+  if (cancelada) {
+    const em = new Date(Math.min(dataMs + (concluiu ? 45 : 13) * DIA, agoraMs)).toISOString()
+    cancelamento = { justificativa: s.justificativa!, em, autor: 'Ayran Bade' }
+    const anterior = concluiu ? 'concluida' : 'em_escritura'
+    historicoVenda.push(evv('cancelamento', new Date(em).getTime(), 'Ayran Bade', anterior, 'cancelada', `${concluiu ? 'Concluída' : 'Em escritura'} → Cancelada · ${s.justificativa}`))
+    // RF24: o imóvel de uma venda cancelada fica bloqueado até ser reabilitado.
+    imovel.situacao = 'bloqueado'
+    imovel.bloqueio = { motivo: 'Venda cancelada', justificativa: s.justificativa!, em }
+  } else {
+    imovel.situacao = 'vendido'
+  }
+  return {
+    id: `ven-${i + 1}`,
+    codigo: `VD-2026-${pad4(92 - i)}`,
+    imovelId: imovel.id,
+    clienteId: cliente(s.comprador),
+    corretorId: corretor(s.corretor),
+    valor: s.valor,
+    data,
+    status: s.status,
+    cancelamento,
+    historico: historicoVenda,
+  }
+}
+
+interface ContextoReservaAntiga {
+  registrarReserva: (imovel: Imovel, cli: string, cor: string, criadaEmMs: number, validadeDias: number, expiraEmMs: number, status: Reserva['status']) => Reserva
+  encerrar: (r: Reserva, e: Omit<Reserva['historico'][number], 'id'>) => void
+  clientes: Cliente[]
+  corretores: Pessoa[]
+  rand2: () => number
+  agoraMs: number
+}
+
+/** Reserva já encerrada: expirada sem renovação ou cancelada três dias depois de criada. */
+function encerrarReservaAntiga(imovel: Imovel, expirada: boolean, { registrarReserva, encerrar, clientes, corretores, rand2, agoraMs }: ContextoReservaAntiga) {
+  const escolher2 = <T,>(lista: T[]) => lista[Math.floor(rand2() * lista.length)]
+  const inicio = agoraMs - (20 + Math.floor(rand2() * 40)) * DIA
+  const validade = expirada ? 10 : 15
+  const expira = fimDoDia(inicio + validade * DIA)
+  const r = registrarReserva(imovel, escolher2(clientes).id, escolher2(corretores).id, inicio, validade, expira, expirada ? 'expirada' : 'cancelada')
+  if (expirada) {
+    encerrar(r, { tipo: 'expiracao', data: new Date(expira).toISOString(), titulo: 'Reserva expirada', autor: 'Sistema', detalhe: 'Sem renovação, o imóvel voltou para Disponível', situacao: 'expirada' })
+  } else {
+    const motivo = escolher2(['Desistência do cliente', 'Crédito não aprovado', 'Troca de imóvel'])
+    encerrar(r, { tipo: 'cancelamento', data: new Date(inicio + 3 * DIA).toISOString(), titulo: 'Reserva cancelada', autor: r.historico[0].autor, detalhe: `${motivo} · imóvel liberado`, situacao: 'cancelada' })
+  }
+}
+
+interface VersaoSeed {
+  em: number
+  autor: string
+  desconto: number
+  entrada: number
+  parcelas: number
+  aprovadorId: string
+  indice?: string
+  forma?: string
+  escritura?: string
+  garantia?: string
+  validade?: number
+  observacoes?: string
+  anexos?: string[]
+  comentario?: string
+  rascunho?: boolean
+}
+/** Versões em ordem; todas, menos a última, ficam "Substituída". */
+function montarVersoes(tabela: number, lista: VersaoSeed[], situacaoAtual: SituacaoVersao): VersaoProposta[] {
+  const versoes: VersaoProposta[] = []
+  // O vencimento acordado é o mesmo em todas as versões, para não aparecer como mudança.
+  const primeiroVencimento = dataCalendario(new Date(lista[0].em + 40 * DIA))
+  lista.forEach((v, i) => {
+    const condicoes: CondicoesProposta = {
+      valorTabela: tabela,
+      descontoPercentual: v.desconto,
+      entrada: v.entrada,
+      parcelas: v.parcelas,
+      indiceCorrecao: v.indice ?? 'IGP-M',
+      primeiroVencimento,
+      formaPagamento: v.forma ?? 'Entrada + parcelamento',
+      validadeDias: v.validade ?? 7,
+      escritura: v.escritura ?? 'Após quitação',
+      garantia: v.garantia ?? 'Alienação fiduciária',
+    }
+    versoes.push({
+      numero: i + 1,
+      criadaEm: iso(v.em),
+      autor: v.autor,
+      enviadaEm: v.rascunho ? undefined : iso(v.em),
+      condicoes,
+      acimaDaAlcada: acimaDaAlcada(v.desconto),
+      aprovadorId: v.aprovadorId,
+      observacoes: v.observacoes ?? '',
+      anexos: v.anexos ?? [],
+      oQueMudou: descreverMudancas(versoes[i - 1]?.condicoes, condicoes),
+      comentario: v.comentario ?? '',
+      situacao: i === lista.length - 1 ? situacaoAtual : 'substituida',
+    })
+  })
+  return versoes
+}
+
+function comEstados(etapas: EtapaAprovacao[], estados: Partial<Record<EtapaAprovacao['tipo'], [EtapaAprovacao['estado'], number?]>>) {
+  return etapas.map((e) => {
+    const novo = estados[e.tipo]
+    return novo ? { ...e, estado: novo[0], concluidaEm: novo[1] === undefined ? e.concluidaEm : iso(novo[1]) } : e
+  })
+}
+
+const NOMES_INTERESSE = ['Marina Ferreira Duarte', 'Carlos Menezes', 'Fernanda Lopes', 'João Ribeiro', 'Priscila Nogueira', 'Henrique Dalla']
+
+/** Cerca de um terço dos imóveis não bloqueados recebe de 1 a 6 interesses. */
+function interessesDoImovel(imovel: Imovel, rand: () => number, escolher: <T>(lista: T[]) => T, novo: (nome: string, diasAtras: number) => void) {
+  if (imovel.situacao === 'bloqueado' || rand() > 0.35) return
+  const qtd = 1 + Math.floor(rand() * 6)
+  for (let k = 0; k < qtd; k++) novo(escolher(NOMES_INTERESSE), 1 + Math.floor(rand() * 90))
+}
+
+type NovoEvento = (e: Omit<EventoHistorico, 'id'>) => void
+
+/** Cadastro do lote e, quando houver, o bloqueio (o de venda cancelada entra com o cancelamento). */
+function eventosDoImovel(imovel: Imovel, loteamentos: Loteamento[], autor: string, evento: NovoEvento) {
+  const lot = loteamentos.find((l) => l.nome === imovel.loteamento)!
+  evento({
+    imovelId: imovel.id,
+    data: imovel.criadoEm,
+    tipo: 'Cadastro',
+    descricao: imovel.endereco.quadra ? `Lote criado na geração da Qd. ${imovel.endereco.quadra}` : 'Lote cadastrado',
+    autor,
+    referencia: lot.codigo,
+    situacao: { rotulo: 'Disponível', variante: 'normal' },
+  })
+  // O bloqueio por venda cancelada entra junto com o cancelamento, mais abaixo.
+  if (imovel.bloqueio && imovel.bloqueio.motivo !== 'Venda cancelada') {
+    evento({
+      imovelId: imovel.id,
+      data: imovel.bloqueio.em,
+      tipo: 'Bloqueio',
+      descricao: `Bloqueado: ${imovel.bloqueio.motivo.toLowerCase()}`,
+      autor: 'Matheus Oening',
+      situacao: { rotulo: 'Bloqueado', variante: 'escuro' },
+    })
+  }
+}
+
+function eventosDaReserva(r: Reserva, cliente: string, corretor: string, evento: NovoEvento) {
+  evento({ imovelId: r.imovelId, data: r.criadaEm, tipo: 'Reserva', descricao: `Reserva criada para ${cliente}`, autor: corretor, referencia: r.codigo, situacao: { rotulo: 'Reservado', variante: 'atencao' } })
+  const fim = r.historico[1]
+  if (fim && fim.tipo !== 'conversao') {
+    evento({ imovelId: r.imovelId, data: fim.data, tipo: 'Reserva', descricao: `${fim.titulo}; imóvel liberado`, autor: fim.autor, referencia: r.codigo, situacao: { rotulo: 'Disponível', variante: 'normal' } })
+  }
+}
+
+function eventosDaVenda(v: Venda, cliente: string, autor: string, evento: NovoEvento) {
+  evento({ imovelId: v.imovelId, data: v.data, tipo: 'Venda', descricao: `Venda registrada para ${cliente}`, autor, referencia: v.codigo, situacao: { rotulo: 'Vendido', variante: 'laranja' } })
+  if (v.cancelamento) {
+    evento({ imovelId: v.imovelId, data: v.cancelamento.em, tipo: 'Cancelamento', descricao: `Venda cancelada: ${v.cancelamento.justificativa}`, autor: v.cancelamento.autor, referencia: v.codigo, situacao: { rotulo: 'Bloqueado', variante: 'escuro' } })
+  }
+}
+
+const ASSUNTOS_CONTATO = [
+  'Pediu simulação de parcelamento em 120x',
+  'Visita ao lote com a família',
+  'Apresentou opções de lotes de esquina',
+  'Envio do catálogo do loteamento',
+  'Formulário de interesse recebido',
+  'Retorno sobre a documentação do lote',
+  'Dúvidas sobre financiamento direto',
+]
+const RESULTADOS_SEED: ResultadoContato[] = ['em_andamento', 'positivo', 'positivo', 'sem_retorno', 'novo']
+
+interface ContextoCadastroComercial {
+  reservas: Reserva[]
+  imoveis: Imovel[]
+  nomeCorretor: (id: string) => string
+  responsaveis: string[]
+  agoraMs: number
+}
+
+/** RG ou inscrição estadual com formato plausível. */
+function documentoSecundario(juridica: boolean, rnd: () => number) {
+  const digitos = (n: number) => String(Math.floor(rnd() * 10 ** n)).padStart(n, '0')
+  if (juridica) return `${digitos(2)}${digitos(6)}-${digitos(2)}`
+  return `${pad(10 + Math.floor(rnd() * 90))}.${digitos(3)}.${digitos(3)}-${digitos(1)}`
+}
+
+/**
+ * Origem, responsável, imóvel de interesse e contatos comerciais (RF11, RF12).
+ * Usa gerador próprio para não alterar a sequência dos demais dados.
+ */
+function completarCadastroComercial(clientes: Cliente[], { reservas, imoveis, nomeCorretor, responsaveis, agoraMs }: ContextoCadastroComercial) {
+  const rnd = mulberry32(20261016)
+  const sortear = <T,>(lista: T[]) => lista[Math.floor(rnd() * lista.length)]
+  const chance = (p: number) => rnd() < p
+  const origensComuns = ORIGENS_CLIENTE.filter((o) => o !== 'Parceiro')
+  for (const c of clientes) {
+    const reservaCliente = reservas.find((r) => r.clienteId === c.id)
+    const juridica = c.tipoPessoa === 'juridica'
+    c.rg = documentoSecundario(juridica, rnd)
+    c.celular = c.telefone
+    c.telefone = chance(0.4) ? `(45) 3${pad(Math.floor(rnd() * 100))}${Math.floor(rnd() * 10)}-${pad4(Math.floor(rnd() * 10000))}` : ''
+    c.origem = juridica && chance(0.5) ? 'Parceiro' : sortear(origensComuns)
+    c.responsavel = reservaCliente ? nomeCorretor(reservaCliente.corretorId) : sortear(responsaveis)
+    c.imovelInteresseId = reservaCliente?.imovelId ?? (chance(0.7) ? sortear(imoveis).id : '')
+    const qtd = Math.floor(rnd() * 5)
+    c.contatos = ordenarContatos(
+      Array.from({ length: qtd }, (_, k): ContatoComercial => ({
+        id: `ctt-${c.id}-${k + 1}`,
+        data: dataCalendario(new Date(agoraMs - (1 + Math.floor(rnd() * 90)) * DIA)),
+        canal: sortear(CANAIS_CONTATO),
+        responsavel: k === 0 ? c.responsavel : sortear(responsaveis),
+        imovelId: chance(0.8) ? c.imovelInteresseId : '',
+        assunto: sortear(ASSUNTOS_CONTATO),
+        resultado: sortear(RESULTADOS_SEED),
+      })),
+    )
+  }
+}
+
+function retirarDe(livres: Imovel[], imovel: Imovel) {
+  const idx = livres.indexOf(imovel)
+  if (idx >= 0) livres.splice(idx, 1)
+  return imovel
+}
+
+/** Lote que não existe na geração regular, criado a partir de um vizinho do mesmo loteamento. */
+function criarLoteExtra(imoveis: Imovel[], loteamento: string, quadra: string, lote: string) {
+  const base = imoveis.find((i) => i.loteamento === loteamento && i.endereco.quadra === quadra) ?? imoveis.find((i) => i.loteamento === loteamento)!
+  const codigo = 7701 + imoveis.length
+  const novo: Imovel = {
+    ...base,
+    id: `imo-${codigo}`,
+    codigo: String(codigo),
+    matricula: String(40000 + imoveis.length * 7),
+    endereco: { ...base.endereco, quadra, lote },
+    geo: { lat: base.geo.lat, lng: base.geo.lng === null ? null : +(base.geo.lng + 0.0004).toFixed(6) },
+    dimensoes: { ...base.dimensoes },
+    valores: { ...base.valores },
+    publicacao: { ...base.publicacao },
+    fotos: [],
+  }
+  imoveis.push(novo)
+  return novo
+}
+
+/** A cada três bloqueios, um é por faixa de serviço; os demais, por averbação pendente. */
+function bloquear(imovel: Imovel, i: number, agoraMs: number) {
+  const faixa = i % 3 === 0
+  imovel.situacao = 'bloqueado'
+  imovel.publicacao.catalogo = false
+  imovel.bloqueio = {
+    motivo: faixa ? 'Faixa de serviço / área técnica' : 'Pendência de averbação',
+    justificativa: faixa ? 'Área reservada para passagem de rede.' : 'A averbação da unidade ainda não saiu no cartório.',
+    em: new Date(agoraMs - (20 + i * 9) * DIA).toISOString(),
+  }
+}
+
+/** Rascunho não vence; versão enviada vence ao fim da validade (RF21). */
+function expiracaoDaVersao(versao: VersaoProposta) {
+  if (!versao.enviadaEm) return undefined
+  return instanteExpiracaoProposta(dataCalendario(new Date(versao.enviadaEm)), versao.condicoes.validadeDias)
+}
+
+/** Uma quadra por combinação de loteamento e identificação, na ordem em que aparecem. */
+function gerarQuadras(imoveis: Imovel[]): Quadra[] {
+  const quadras: Quadra[] = []
+  for (const i of imoveis) {
+    if (!quadras.some((q) => q.loteamento === i.loteamento && q.identificacao === i.endereco.quadra)) {
+      quadras.push({
+        id: `qua-${quadras.length + 1}`,
+        loteamento: i.loteamento,
+        identificacao: i.endereco.quadra,
+        area: null,
+        testadaPara: i.endereco.logradouro,
+        criadaEm: i.criadoEm,
+      })
+    }
+  }
+  return quadras
+}
+
+interface ContextoHistorico {
+  imoveis: Imovel[]
+  loteamentos: Loteamento[]
+  interesses: Interesse[]
+  reservas: Reserva[]
+  propostas: Proposta[]
+  vendas: Venda[]
+  lote12: Imovel
+  autores: string[]
+  escolher: <T>(lista: T[]) => T
+  nomeCliente: (id: string) => string
+  nomeCorretor: (id: string) => string
+  diasAtras: (d: number) => string
+  agoraMs: number
+}
+
+/** Linha do tempo dos imóveis, em ordem de geração (somente leitura). */
+function montarHistorico(ctx: ContextoHistorico): EventoHistorico[] {
+  const { imoveis, loteamentos, interesses, reservas, propostas, vendas, lote12, autores, escolher, nomeCliente, nomeCorretor, diasAtras, agoraMs } = ctx
+  const historico: EventoHistorico[] = []
+  const evento = (e: Omit<EventoHistorico, 'id'>) => historico.push({ id: `his-${historico.length + 1}`, ...e })
+  for (const imovel of imoveis) eventosDoImovel(imovel, loteamentos, escolher(autores), evento)
+  // Linha do tempo detalhada do Lote 12 — Qd. 04 (reproduz o protótipo).
+  const valorLote12 = lote12.valores.tabela!.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
+  lote12.criadoEm = diasAtras(620)
+  historico.find((e) => e.imovelId === lote12.id && e.tipo === 'Cadastro')!.data = lote12.criadoEm
+  evento({ imovelId: lote12.id, data: diasAtras(600), tipo: 'Alteração', descricao: `Valor de tabela ajustado para ${valorLote12}`, autor: 'Matheus Oening', situacao: { rotulo: 'Disponível', variante: 'normal' } })
+  evento({ imovelId: lote12.id, data: diasAtras(560), tipo: 'Bloqueio', descricao: 'Bloqueado por pendência de averbação', autor: 'Matheus Oening', situacao: { rotulo: 'Bloqueado', variante: 'escuro' } })
+  evento({ imovelId: lote12.id, data: diasAtras(490), tipo: 'Reabilitação', descricao: 'Averbação concluída; imóvel liberado para venda', autor: 'Matheus Oening', referencia: `R-6/${lote12.matricula}`, situacao: { rotulo: 'Disponível', variante: 'normal' } })
+  for (const it of interesses) {
+    evento({ imovelId: it.imovelId, data: it.criadoEm, tipo: 'Interesse', descricao: 'Formulário recebido pelo catálogo público', autor: 'Sistema', referencia: it.codigo, situacao: { rotulo: 'Novo', variante: 'laranja' } })
+  }
+  for (const r of reservas) eventosDaReserva(r, nomeCliente(r.clienteId), nomeCorretor(r.corretorId), evento)
+  const envios = propostas.flatMap((p) => p.historico.filter((e) => e.tipo === 'envio').slice(0, 1).map((envio) => ({ p, envio })))
+  for (const { p, envio } of envios) {
+    evento({ imovelId: p.imovelId, data: envio.data, tipo: 'Proposta', descricao: 'Proposta enviada para aprovação', autor: envio.autor, referencia: p.codigo, situacao: { rotulo: 'Em análise', variante: 'escuro' } })
+  }
+  for (const v of vendas) eventosDaVenda(v, nomeCliente(v.clienteId), escolher(autores), evento)
+  evento({ imovelId: lote12.id, data: new Date(agoraMs - 2 * HORA).toISOString(), tipo: 'Sistema', descricao: 'Aviso de vencimento da reserva enviado ao responsável', autor: 'Sistema', situacao: { rotulo: 'Atenção', variante: 'atencao' } })
+  return historico
+}
+
+type Responsavel = { id: string; nome: string; cargo: string }
+
+/** Acima da alçada do gestor, a diretoria decide no fim e a análise comercial fecha no meio do prazo. */
+function aprovacaoFinal(diretoria: boolean, inicio: number, fim: number, resp: (id: string) => Responsavel) {
+  if (!diretoria) return { autor: 'Matheus Oening', diretoria: undefined, fimAnalise: fim }
+  return { autor: 'Ayran Bade', diretoria: resp('usr-1'), fimAnalise: (inicio + fim) / 2 }
+}
+
+export function criarSeed(agora: Date): Db {
+  const rand = mulberry32(20260824)
+  const escolher = <T,>(lista: T[]) => lista[Math.floor(rand() * lista.length)]
+  const agoraMs = agora.getTime()
+  const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1).getTime()
+
+  // Gerador separado para clientes e reservas encerradas: assim os demais dados não mudam.
+  const rand2 = mulberry32(20261003)
+
+  const clientes: Cliente[] = NOMES_CLIENTES.map((nome, i) => montarCliente(nome, i, rand2, agoraMs))
+  // Compradores do prot\u00f3tipo de vendas, com gerador pr\u00f3prio para n\u00e3o alterar os clientes acima.
+  const rand3 = mulberry32(20260812)
+  for (const nome of NOMES_COMPRADORES) clientes.push(montarCliente(nome, clientes.length, rand3, agoraMs))
+  const corretores: Pessoa[] = NOMES_CORRETORES.map((nome, i) => ({ id: `cor-${i + 1}`, nome }))
+  const cliente = (nome: string) => clientes.find((c) => c.nome === nome)!.id
+  const corretor = (nome: string) => corretores.find((c) => c.nome === nome)!.id
+
+  const ano = agora.getFullYear()
+  const planos: { lot: LoteamentoInicial; quadras: number; lotes: number }[] = [
+    { lot: LOTEAMENTOS[0], quadras: 6, lotes: 12 },
+    { lot: LOTEAMENTOS[1], quadras: 9, lotes: 8 },
+    { lot: LOTEAMENTOS[2], quadras: 0, lotes: 44 },
+    { lot: LOTEAMENTOS[3], quadras: 3, lotes: 10 },
+  ]
+
+  const imoveis = gerarImoveis(planos, rand, escolher, agoraMs)
 
   const achar = (loteamento: string, quadra: string, lote: string) =>
     imoveis.find(
@@ -244,35 +623,15 @@ export function criarSeed(agora: Date): Db {
     const j = Math.floor(rand() * (i + 1))
     ;[livres[i], livres[j]] = [livres[j], livres[i]]
   }
-  const retirar = (imovel: Imovel) => {
-    const idx = livres.indexOf(imovel)
-    if (idx >= 0) livres.splice(idx, 1)
-    return imovel
-  }
+  const retirar = (imovel: Imovel) => retirarDe(livres, imovel)
 
   // ===== Vendas =====
   // As oito primeiras reproduzem o protótipo; as demais completam o ano. Três lotes do protótipo
   // não existem na geração acima (Qd. 05 só vai até o Lote 12, Jd. Europa até o 08, Biopark até o 44)
   // e são criados aqui, fora da lista de livres, para não alterar o sorteio dos demais.
-  const loteExtra = (loteamento: string, quadra: string, lote: string) => {
-    const base = imoveis.find((i) => i.loteamento === loteamento && i.endereco.quadra === quadra) ?? imoveis.find((i) => i.loteamento === loteamento)!
-    codigo += 1
-    const novo: Imovel = {
-      ...base,
-      id: `imo-${codigo}`,
-      codigo: String(codigo),
-      matricula: String(40000 + imoveis.length * 7),
-      endereco: { ...base.endereco, quadra, lote },
-      geo: { lat: base.geo.lat, lng: base.geo.lng === null ? null : +(base.geo.lng + 0.0004).toFixed(6) },
-      dimensoes: { ...base.dimensoes },
-      valores: { ...base.valores },
-      publicacao: { ...base.publicacao },
-      fotos: [],
-    }
-    imoveis.push(novo)
-    return novo
-  }
-  const VENDAS_SEED: { imovel: Imovel; comprador: string; corretor: string; valor: number; data: string; status: StatusVenda; justificativa?: string }[] = [
+  const loteExtra = (loteamento: string, quadra: string, lote: string) => criarLoteExtra(imoveis, loteamento, quadra, lote)
+
+  const VENDAS_SEED: VendaSeed[] = [
     { imovel: achar('Jd. Europa', '07', '03'), comprador: 'Silvana Costa', corretor: 'G. Krüger', valor: 268_000, data: '2026-08-12', status: 'concluida' },
     { imovel: loteExtra('Lot. Universitário', '05', '21'), comprador: 'Marcos Antunes', corretor: 'J. Biló', valor: 205_000, data: '2026-08-04', status: 'concluida' },
     { imovel: achar('Biopark Toledo', '', '15'), comprador: 'Incorp. Vertice', corretor: 'M. Oening', valor: 512_000, data: '2026-07-29', status: 'em_escritura' },
@@ -301,44 +660,7 @@ export function criarSeed(agora: Date): Db {
     status,
     detalhe,
   })
-  const vendas: Venda[] = VENDAS_SEED.map((s, i) => {
-    const imovel = retirar(s.imovel)
-    // Valor de venda ~3% abaixo da tabela, coerente com o desconto das propostas.
-    const tabela = arredondar(s.valor * 1.03)
-    imovel.valores = { ...imovel.valores, tabela, minimo: arredondar(tabela * 0.92) }
-    imovel.publicacao.catalogo = false
-    const data = instanteDaVenda(s.data)
-    const dataMs = new Date(data).getTime()
-    const historicoVenda = [evv('registro', dataMs, 'Matheus Oening', null, 'em_escritura', `Venda registrada · ${formatarMoedaInteira(s.valor)}`)]
-    const cancelada = s.status === 'cancelada'
-    // A primeira cancelada sai de Em escritura; a segunda, de Concluída (as duas origens permitidas).
-    const concluiu = s.status === 'concluida' || (cancelada && i === 7)
-    if (concluiu) historicoVenda.push(evv('conclusao', dataMs + 12 * DIA, 'Matheus Oening', 'em_escritura', 'concluida', 'Escritura concluída'))
-    let cancelamento: Venda['cancelamento']
-    if (cancelada) {
-      const em = new Date(Math.min(dataMs + (concluiu ? 45 : 13) * DIA, agoraMs)).toISOString()
-      cancelamento = { justificativa: s.justificativa!, em, autor: 'Ayran Bade' }
-      const anterior = concluiu ? 'concluida' : 'em_escritura'
-      historicoVenda.push(evv('cancelamento', new Date(em).getTime(), 'Ayran Bade', anterior, 'cancelada', `${concluiu ? 'Concluída' : 'Em escritura'} → Cancelada · ${s.justificativa}`))
-      // RF24: o imóvel de uma venda cancelada fica bloqueado até ser reabilitado.
-      imovel.situacao = 'bloqueado'
-      imovel.bloqueio = { motivo: 'Venda cancelada', justificativa: s.justificativa!, em }
-    } else {
-      imovel.situacao = 'vendido'
-    }
-    return {
-      id: `ven-${i + 1}`,
-      codigo: `VD-2026-${pad4(92 - i)}`,
-      imovelId: imovel.id,
-      clienteId: cliente(s.comprador),
-      corretorId: corretor(s.corretor),
-      valor: s.valor,
-      data,
-      status: s.status,
-      cancelamento,
-      historico: historicoVenda,
-    }
-  })
+  const vendas: Venda[] = VENDAS_SEED.map((s, i) => montarVenda(s, i, { retirar, evv, cliente, corretor, agoraMs }))
 
   // Reservas ativas: as cinco primeiras reproduzem o protótipo.
   const reservas: Reserva[] = []
@@ -416,17 +738,8 @@ export function criarSeed(agora: Date): Db {
   // Mantém a sequência do gerador usada pela versão anterior do seed, para não mudar os demais dados.
   for (let i = 0; i < 8; i++) rand()
 
-  for (let i = 0; i < 8; i++) {
-    const imovel = retirar(livres[0])
-    imovel.situacao = 'bloqueado'
-    imovel.publicacao.catalogo = false
-    imovel.bloqueio = {
-      motivo: i % 3 === 0 ? 'Faixa de serviço / área técnica' : 'Pendência de averbação',
-      justificativa: i % 3 === 0 ? 'Área reservada para passagem de rede.' : 'A averbação da unidade ainda não saiu no cartório.',
-      em: new Date(agoraMs - (20 + i * 9) * DIA).toISOString(),
-    }
-  }
-  for (const i of imoveis) if (i.situacao === 'vendido') i.publicacao.catalogo = false
+  for (let i = 0; i < 8; i++) bloquear(retirar(livres[0]), i, agoraMs)
+  for (const i of imoveis.filter((x) => x.situacao === 'vendido')) i.publicacao.catalogo = false
 
   // Reservas já encerradas (vendidas, expiradas e canceladas) para o módulo de reservas.
   const encerrar = (r: Reserva, e: Omit<Reserva['historico'][number], 'id'>) => {
@@ -442,20 +755,7 @@ export function criarSeed(agora: Date): Db {
     venda.reservaId = r.id
   }
   // Usa o fim da lista de livres para não mexer nos imóveis do indicador "este mês".
-  for (let i = 0; i < 7; i++) {
-    const imovel = livres[livres.length - 1 - i]
-    const expirada = i < 4
-    const inicio = agoraMs - (20 + Math.floor(rand2() * 40)) * DIA
-    const validade = expirada ? 10 : 15
-    const expira = fimDoDia(inicio + validade * DIA)
-    const r = registrarReserva(imovel, escolher2(clientes).id, escolher2(corretores).id, inicio, validade, expira, expirada ? 'expirada' : 'cancelada')
-    if (expirada) {
-      encerrar(r, { tipo: 'expiracao', data: new Date(expira).toISOString(), titulo: 'Reserva expirada', autor: 'Sistema', detalhe: 'Sem renovação, o imóvel voltou para Disponível', situacao: 'expirada' })
-    } else {
-      const motivo = escolher2(['Desistência do cliente', 'Crédito não aprovado', 'Troca de imóvel'])
-      encerrar(r, { tipo: 'cancelamento', data: new Date(inicio + 3 * DIA).toISOString(), titulo: 'Reserva cancelada', autor: r.historico[0].autor, detalhe: `${motivo} · imóvel liberado`, situacao: 'cancelada' })
-    }
-  }
+  for (let i = 0; i < 7; i++) encerrarReservaAntiga(livres[livres.length - 1 - i], i < 4, { registrarReserva, encerrar, clientes, corretores, rand2, agoraMs })
 
   // ===== Usuários e propostas =====
   // As duas primeiras propostas reproduzem o protótipo (Lote 12 com três versões e Lote 31 aguardando a diretoria);
@@ -469,7 +769,6 @@ export function criarSeed(agora: Date): Db {
     const u = usuarios.find((x) => x.id === id)!
     return { id: u.id, nome: u.nome, cargo: u.papel }
   }
-  const iso = (ms: number) => new Date(ms).toISOString()
   const descontoPara = (tabela: number, valor: number) => ((tabela - valor) / tabela) * 100
   const propostas: Proposta[] = []
   let seqEventoProposta = 0
@@ -483,58 +782,6 @@ export function criarSeed(agora: Date): Db {
     versao,
   })
 
-  interface VersaoSeed {
-    em: number
-    autor: string
-    desconto: number
-    entrada: number
-    parcelas: number
-    aprovadorId: string
-    indice?: string
-    forma?: string
-    escritura?: string
-    garantia?: string
-    validade?: number
-    observacoes?: string
-    anexos?: string[]
-    comentario?: string
-    rascunho?: boolean
-  }
-  /** Versões em ordem; todas, menos a última, ficam "Substituída". */
-  const montarVersoes = (tabela: number, lista: VersaoSeed[], situacaoAtual: SituacaoVersao): VersaoProposta[] => {
-    const versoes: VersaoProposta[] = []
-    // O vencimento acordado é o mesmo em todas as versões, para não aparecer como mudança.
-    const primeiroVencimento = dataCalendario(new Date(lista[0].em + 40 * DIA))
-    lista.forEach((v, i) => {
-      const condicoes: CondicoesProposta = {
-        valorTabela: tabela,
-        descontoPercentual: v.desconto,
-        entrada: v.entrada,
-        parcelas: v.parcelas,
-        indiceCorrecao: v.indice ?? 'IGP-M',
-        primeiroVencimento,
-        formaPagamento: v.forma ?? 'Entrada + parcelamento',
-        validadeDias: v.validade ?? 7,
-        escritura: v.escritura ?? 'Após quitação',
-        garantia: v.garantia ?? 'Alienação fiduciária',
-      }
-      versoes.push({
-        numero: i + 1,
-        criadaEm: iso(v.em),
-        autor: v.autor,
-        enviadaEm: v.rascunho ? undefined : iso(v.em),
-        condicoes,
-        acimaDaAlcada: acimaDaAlcada(v.desconto),
-        aprovadorId: v.aprovadorId,
-        observacoes: v.observacoes ?? '',
-        anexos: v.anexos ?? [],
-        oQueMudou: descreverMudancas(versoes[i - 1]?.condicoes, condicoes),
-        comentario: v.comentario ?? '',
-        situacao: i === lista.length - 1 ? situacaoAtual : 'substituida',
-      })
-    })
-    return versoes
-  }
   const registrarProposta = (
     reserva: Reserva,
     dados: Pick<Proposta, 'situacao' | 'versoes' | 'etapas' | 'historico'> & Partial<Pick<Proposta, 'decididaEm' | 'motivoRecusa'>>,
@@ -549,9 +796,7 @@ export function criarSeed(agora: Date): Db {
       corretorId: reserva.corretorId,
       criadaEm: dados.versoes[0].criadaEm,
       atualizadaEm: dados.historico[dados.historico.length - 1].data,
-      expiraEm: ultima.enviadaEm
-        ? instanteExpiracaoProposta(dataCalendario(new Date(ultima.enviadaEm)), ultima.condicoes.validadeDias)
-        : undefined,
+      expiraEm: expiracaoDaVersao(ultima),
       ...dados,
     }
     propostas.push(proposta)
@@ -561,11 +806,6 @@ export function criarSeed(agora: Date): Db {
     const k = calcularCondicoes(v.condicoes)
     return `v${v.numero} · ${formatarMoedaInteira(k.valorProposto)} · ${formatarParcelas(v.condicoes.parcelas, k.valorParcela)}`
   }
-  const comEstados = (etapas: EtapaAprovacao[], estados: Partial<Record<EtapaAprovacao['tipo'], [EtapaAprovacao['estado'], number?]>>) =>
-    etapas.map((e) => {
-      const novo = estados[e.tipo]
-      return novo ? { ...e, estado: novo[0], concluidaEm: novo[1] === undefined ? e.concluidaEm : iso(novo[1]) } : e
-    })
 
   // PROP-0311 — Lote 12, Qd. 04: três versões, em análise com o gestor (fora da alçada do usuário logado).
   {
@@ -759,10 +999,11 @@ export function criarSeed(agora: Date): Db {
       [{ em: t1, autor: corretor, desconto, entrada: arredondar(venda.valor * 0.3, 10), parcelas: 24, aprovadorId: 'usr-2' }],
       'aprovada',
     )
-    const diretoria = exigeDiretoria(desconto)
+    const final = aprovacaoFinal(exigeDiretoria(desconto), t1, fim, resp)
+    const aprovador = final.autor
     const etapas = comEstados(
-      montarEtapas({ autor: corretor, enviadaEm: iso(t1), aprovador: resp('usr-2'), diretoria: diretoria ? resp('usr-1') : undefined }),
-      { analise_comercial: ['concluida', diretoria ? (t1 + fim) / 2 : fim], diretoria: ['concluida', fim] },
+      montarEtapas({ autor: corretor, enviadaEm: iso(t1), aprovador: resp('usr-2'), diretoria: final.diretoria }),
+      { analise_comercial: ['concluida', final.fimAnalise], diretoria: ['concluida', fim] },
     )
     const proposta = registrarProposta(reserva, {
       situacao: 'aprovada',
@@ -772,11 +1013,11 @@ export function criarSeed(agora: Date): Db {
       historico: [
         evp('criacao', t1, 'Proposta criada', corretor, `A partir da reserva ${reserva.codigo}`, 1),
         evp('envio', t1, 'Enviada para aprovação', corretor, resumo(versoes[0]), 1),
-        evp('aprovacao', fim, 'Proposta aprovada', diretoria ? 'Ayran Bade' : 'Matheus Oening', `v1 · ${formatarMoedaInteira(venda.valor)} · venda ${venda.codigo} registrada; contrato será gerado automaticamente`, 1),
+        evp('aprovacao', fim, 'Proposta aprovada', aprovador, `v1 · ${formatarMoedaInteira(venda.valor)} · venda ${venda.codigo} registrada; contrato será gerado automaticamente`, 1),
       ],
     })
     venda.propostaId = proposta.id
-    venda.historico[0] = { ...venda.historico[0], autor: diretoria ? 'Ayran Bade' : 'Matheus Oening', detalhe: `Proposta ${proposta.codigo} aprovada · ${formatarMoedaInteira(venda.valor)}` }
+    venda.historico[0] = { ...venda.historico[0], autor: aprovador, detalhe: `Proposta ${proposta.codigo} aprovada · ${formatarMoedaInteira(venda.valor)}` }
   }
 
   // Alguns cadastros recentes para o indicador "este mês".
@@ -808,22 +1049,9 @@ export function criarSeed(agora: Date): Db {
     validadeLicenca: `${ano + 1}-06-30`,
     limiteRenovacoes: l.limiteRenovacoes,
   }))
-  const quadras: Quadra[] = []
-  for (const i of imoveis) {
-    if (!quadras.some((q) => q.loteamento === i.loteamento && q.identificacao === i.endereco.quadra)) {
-      quadras.push({
-        id: `qua-${quadras.length + 1}`,
-        loteamento: i.loteamento,
-        identificacao: i.endereco.quadra,
-        area: null,
-        testadaPara: i.endereco.logradouro,
-        criadaEm: i.criadoEm,
-      })
-    }
-  }
+  const quadras = gerarQuadras(imoveis)
 
   // ===== Interesses vindos do catálogo público =====
-  const NOMES_INTERESSE = ['Marina Ferreira Duarte', 'Carlos Menezes', 'Fernanda Lopes', 'João Ribeiro', 'Priscila Nogueira', 'Henrique Dalla']
   const interesses: Interesse[] = []
   const novoInteresse = (imovel: Imovel, nome: string, diasAtras: number) => {
     interesses.push({
@@ -840,110 +1068,19 @@ export function criarSeed(agora: Date): Db {
   const lote12 = destaque[0].imovel
   novoInteresse(lote12, 'Marina Ferreira Duarte', 49)
   for (const n of NOMES_INTERESSE.slice(1, 4)) novoInteresse(lote12, n, 10 + interesses.length * 3)
-  for (const imovel of imoveis) {
-    if (imovel === lote12 || imovel.situacao === 'bloqueado' || rand() > 0.35) continue
-    const qtd = 1 + Math.floor(rand() * 6)
-    for (let k = 0; k < qtd; k++) novoInteresse(imovel, escolher(NOMES_INTERESSE), 1 + Math.floor(rand() * 90))
+  for (const imovel of imoveis.filter((i) => i !== lote12)) {
+    interessesDoImovel(imovel, rand, escolher, (nome, dias) => novoInteresse(imovel, nome, dias))
   }
 
   // ===== Histórico (somente leitura) =====
-  const historico: EventoHistorico[] = []
-  const evento = (e: Omit<EventoHistorico, 'id'>) => historico.push({ id: `his-${historico.length + 1}`, ...e })
   const nomeCliente = (id: string) => clientes.find((c) => c.id === id)?.nome ?? 'cliente'
   const nomeCorretor = (id: string) => corretores.find((c) => c.id === id)?.nome ?? 'Sistema'
   const autores = ['Arthur Pacheco', 'Matheus Oening', 'Gustavo Marques', 'Gabriela Krüger']
-  for (const imovel of imoveis) {
-    const lot = loteamentos.find((l) => l.nome === imovel.loteamento)!
-    evento({
-      imovelId: imovel.id,
-      data: imovel.criadoEm,
-      tipo: 'Cadastro',
-      descricao: imovel.endereco.quadra ? `Lote criado na geração da Qd. ${imovel.endereco.quadra}` : 'Lote cadastrado',
-      autor: escolher(autores),
-      referencia: lot.codigo,
-      situacao: { rotulo: 'Disponível', variante: 'normal' },
-    })
-    // O bloqueio por venda cancelada entra junto com o cancelamento, mais abaixo.
-    if (imovel.bloqueio && imovel.bloqueio.motivo !== 'Venda cancelada') {
-      evento({
-        imovelId: imovel.id,
-        data: imovel.bloqueio.em,
-        tipo: 'Bloqueio',
-        descricao: `Bloqueado: ${imovel.bloqueio.motivo.toLowerCase()}`,
-        autor: 'Matheus Oening',
-        situacao: { rotulo: 'Bloqueado', variante: 'escuro' },
-      })
-    }
-  }
-  // Linha do tempo detalhada do Lote 12 — Qd. 04 (reproduz o protótipo).
   const diasAtras = (d: number) => new Date(agoraMs - d * DIA).toISOString()
-  const valorLote12 = lote12.valores.tabela!.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
-  lote12.criadoEm = diasAtras(620)
-  historico.find((e) => e.imovelId === lote12.id && e.tipo === 'Cadastro')!.data = lote12.criadoEm
-  evento({ imovelId: lote12.id, data: diasAtras(600), tipo: 'Alteração', descricao: `Valor de tabela ajustado para ${valorLote12}`, autor: 'Matheus Oening', situacao: { rotulo: 'Disponível', variante: 'normal' } })
-  evento({ imovelId: lote12.id, data: diasAtras(560), tipo: 'Bloqueio', descricao: 'Bloqueado por pendência de averbação', autor: 'Matheus Oening', situacao: { rotulo: 'Bloqueado', variante: 'escuro' } })
-  evento({ imovelId: lote12.id, data: diasAtras(490), tipo: 'Reabilitação', descricao: 'Averbação concluída; imóvel liberado para venda', autor: 'Matheus Oening', referencia: `R-6/${lote12.matricula}`, situacao: { rotulo: 'Disponível', variante: 'normal' } })
-  for (const it of interesses) {
-    evento({ imovelId: it.imovelId, data: it.criadoEm, tipo: 'Interesse', descricao: 'Formulário recebido pelo catálogo público', autor: 'Sistema', referencia: it.codigo, situacao: { rotulo: 'Novo', variante: 'laranja' } })
-  }
-  for (const r of reservas) {
-    evento({ imovelId: r.imovelId, data: r.criadaEm, tipo: 'Reserva', descricao: `Reserva criada para ${nomeCliente(r.clienteId)}`, autor: nomeCorretor(r.corretorId), referencia: r.codigo, situacao: { rotulo: 'Reservado', variante: 'atencao' } })
-    const fim = r.historico[1]
-    if (fim && fim.tipo !== 'conversao') {
-      evento({ imovelId: r.imovelId, data: fim.data, tipo: 'Reserva', descricao: `${fim.titulo}; imóvel liberado`, autor: fim.autor, referencia: r.codigo, situacao: { rotulo: 'Disponível', variante: 'normal' } })
-    }
-  }
-  for (const p of propostas) {
-    const envio = p.historico.find((e) => e.tipo === 'envio')
-    if (envio) evento({ imovelId: p.imovelId, data: envio.data, tipo: 'Proposta', descricao: 'Proposta enviada para aprovação', autor: envio.autor, referencia: p.codigo, situacao: { rotulo: 'Em análise', variante: 'escuro' } })
-  }
-  for (const v of vendas) {
-    evento({ imovelId: v.imovelId, data: v.data, tipo: 'Venda', descricao: `Venda registrada para ${nomeCliente(v.clienteId)}`, autor: escolher(autores), referencia: v.codigo, situacao: { rotulo: 'Vendido', variante: 'laranja' } })
-    if (v.cancelamento) {
-      evento({ imovelId: v.imovelId, data: v.cancelamento.em, tipo: 'Cancelamento', descricao: `Venda cancelada: ${v.cancelamento.justificativa}`, autor: v.cancelamento.autor, referencia: v.codigo, situacao: { rotulo: 'Bloqueado', variante: 'escuro' } })
-    }
-  }
-  evento({ imovelId: lote12.id, data: new Date(agoraMs - 2 * HORA).toISOString(), tipo: 'Sistema', descricao: 'Aviso de vencimento da reserva enviado ao responsável', autor: 'Sistema', situacao: { rotulo: 'Atenção', variante: 'atencao' } })
+  const historico = montarHistorico({ imoveis, loteamentos, interesses, reservas, propostas, vendas, lote12, autores, escolher, nomeCliente, nomeCorretor, diasAtras, agoraMs })
 
   // ===== Cadastro comercial dos clientes (RF11, RF12) =====
-  // Gerador separado: não altera a sequência usada pelos dados acima.
-  const rand4 = mulberry32(20261016)
-  const escolher4 = <T,>(lista: T[]) => lista[Math.floor(rand4() * lista.length)]
-  const responsaveis = ['Ayran Bade', ...autores]
-  const ASSUNTOS = [
-    'Pediu simulação de parcelamento em 120x',
-    'Visita ao lote com a família',
-    'Apresentou opções de lotes de esquina',
-    'Envio do catálogo do loteamento',
-    'Formulário de interesse recebido',
-    'Retorno sobre a documentação do lote',
-    'Dúvidas sobre financiamento direto',
-  ]
-  const RESULTADOS: Cliente['contatos'][number]['resultado'][] = ['em_andamento', 'positivo', 'positivo', 'sem_retorno', 'novo']
-  for (const c of clientes) {
-    const reservaCliente = reservas.find((r) => r.clienteId === c.id)
-    const juridica = c.tipoPessoa === 'juridica'
-    c.rg = juridica
-      ? `${pad(Math.floor(rand4() * 100))}${String(Math.floor(rand4() * 1_000_000)).padStart(6, '0')}-${pad(Math.floor(rand4() * 100))}`
-      : `${pad(10 + Math.floor(rand4() * 90))}.${String(Math.floor(rand4() * 1000)).padStart(3, '0')}.${String(Math.floor(rand4() * 1000)).padStart(3, '0')}-${Math.floor(rand4() * 10)}`
-    c.celular = c.telefone
-    c.telefone = rand4() < 0.4 ? `(45) 3${pad(Math.floor(rand4() * 100))}${Math.floor(rand4() * 10)}-${pad4(Math.floor(rand4() * 10000))}` : ''
-    c.origem = juridica && rand4() < 0.5 ? 'Parceiro' : escolher4(ORIGENS_CLIENTE.filter((o) => o !== 'Parceiro'))
-    c.responsavel = reservaCliente ? nomeCorretor(reservaCliente.corretorId) : escolher4(responsaveis)
-    c.imovelInteresseId = reservaCliente?.imovelId ?? (rand4() < 0.7 ? escolher4(imoveis).id : '')
-    const qtd = Math.floor(rand4() * 5)
-    c.contatos = ordenarContatos(
-      Array.from({ length: qtd }, (_, k) => ({
-        id: `ctt-${c.id}-${k + 1}`,
-        data: dataCalendario(new Date(agoraMs - (1 + Math.floor(rand4() * 90)) * DIA)),
-        canal: escolher4(CANAIS_CONTATO),
-        responsavel: k === 0 ? c.responsavel : escolher4(responsaveis),
-        imovelId: rand4() < 0.8 ? c.imovelInteresseId : '',
-        assunto: escolher4(ASSUNTOS),
-        resultado: escolher4(RESULTADOS),
-      })),
-    )
-  }
+  completarCadastroComercial(clientes, { reservas, imoveis, nomeCorretor, responsaveis: ['Ayran Bade', ...autores], agoraMs })
 
   // ===== Documentos =====
   const documentos: Documento[] = []
@@ -958,8 +1095,7 @@ export function criarSeed(agora: Date): Db {
   doc({ tipo: 'Fotos do lote', arquivo: 'fotos-l12.zip', tamanho: 8_900_000, versao: 3, enviadoPor: 'Gustavo Marques', data: diasAtras(49), visivelCatalogo: true, substituido: false })
   doc({ tipo: 'Contrato de reserva', arquivo: `${reservas[0].codigo.toLowerCase()}.pdf`, tamanho: 300_000, versao: 1, enviadoPor: 'Gustavo Marques', data: diasAtras(46), visivelCatalogo: false, substituido: false })
   doc({ tipo: 'Proposta assinada', arquivo: `${propostas[0].codigo.toLowerCase()}-v3.pdf`, tamanho: 200_000, versao: 1, enviadoPor: 'Gustavo Marques', data: diasAtras(36), visivelCatalogo: false, aguardandoAssinatura: true, substituido: false })
-  for (const imovel of imoveis) {
-    if (imovel === lote12) continue
+  for (const imovel of imoveis.filter((i) => i !== lote12)) {
     doc({ tipo: 'Matrícula', arquivo: `matricula-${imovel.matricula}.pdf`, tamanho: 900_000, versao: 1, enviadoPor: escolher(autores), data: imovel.criadoEm, visivelCatalogo: false, substituido: false }, imovel)
   }
 

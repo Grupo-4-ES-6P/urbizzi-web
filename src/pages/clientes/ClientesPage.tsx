@@ -65,6 +65,8 @@ export function ClientesPage() {
   const todosVisiveisMarcados = visiveis.length > 0 && visiveis.every((c) => selecionados.has(c.id))
   const comReservaAtiva = db.clientes.filter((c) => vinculos.comReservaAtiva.has(c.id)).length
   const comPropostaEmAnalise = db.clientes.filter((c) => vinculos.comPropostaEmAndamento.has(c.id)).length
+  // Sem nenhum cadastro, a lista filtrada também fica vazia.
+  const mensagemVazia = db.clientes.length === 0 ? 'Nenhum cliente cadastrado ainda.' : 'Nenhum cliente encontrado com esses filtros.'
   const contatoPrincipal = (c: Cliente) => c.celular || c.telefone || c.email
 
   const exportar = () => {
@@ -199,10 +201,8 @@ export function ClientesPage() {
             )}
           </div>
 
-          {db.clientes.length === 0 ? (
-            <p className="card__vazio">Nenhum cliente cadastrado ainda.</p>
-          ) : visiveis.length === 0 ? (
-            <p className="card__vazio">Nenhum cliente encontrado com esses filtros.</p>
+          {visiveis.length === 0 ? (
+            <p className="card__vazio">{mensagemVazia}</p>
           ) : (
             <div className="tabela-wrap">
               <table className="tabela tabela--clicavel">
