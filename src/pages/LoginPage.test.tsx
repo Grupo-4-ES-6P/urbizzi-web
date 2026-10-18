@@ -12,7 +12,7 @@ describe('Login', () => {
 
   it('mostra erro com credenciais inválidas', async () => {
     const { user } = renderizar('/login', { logado: false })
-    await user.type(screen.getByLabelText('E-mail'), 'admin@urbizzi.com.br')
+    await user.type(screen.getByLabelText('E-mail'), 'ayran@urbizzi.com.br')
     await user.type(screen.getByLabelText('Senha'), 'errada')
     await user.click(screen.getByRole('button', { name: 'Entrar' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('E-mail ou senha incorretos.')
@@ -20,7 +20,7 @@ describe('Login', () => {
 
   it('entra e volta para a página que exigiu login', async () => {
     const { user } = renderizar('/imoveis/novo', { logado: false })
-    await user.type(screen.getByLabelText('E-mail'), 'admin@urbizzi.com.br')
+    await user.type(screen.getByLabelText('E-mail'), 'ayran@urbizzi.com.br')
     await user.type(screen.getByLabelText('Senha'), 'urbizzi123')
     await user.click(screen.getByRole('button', { name: 'Entrar' }))
     expect(await screen.findByRole('heading', { name: 'Cadastrar imóvel' })).toBeInTheDocument()

@@ -10,12 +10,43 @@ import type { Db } from './types'
  */
 const CHAVE = 'urbizzi:db'
 
+const COLECOES = [
+  'imoveis',
+  'clientes',
+  'reservas',
+  'propostas',
+  'vendas',
+  'usuarios',
+  'acessos',
+  'alteracoesPermissoes',
+  'loteamentos',
+  'quadras',
+  'interesses',
+  'historico',
+  'documentos',
+] as const satisfies readonly (keyof Db)[]
+
+/**
+ * Outras branches compartilham o mesmo localStorage e podem ter usado o mesmo
+ * número de versão com outra estrutura; por isso a versão sozinha não basta.
+ */
+function bancoValido(db: unknown): db is Db {
+  if (typeof db !== 'object' || db === null) return false
+  const registro = db as Record<string, unknown>
+  return (
+    registro.versao === VERSAO_DB &&
+    COLECOES.every((c) => Array.isArray(registro[c])) &&
+    typeof registro.permissoes === 'object' &&
+    registro.permissoes !== null
+  )
+}
+
 function carregar(): Db {
   try {
     const bruto = localStorage.getItem(CHAVE)
     if (bruto) {
-      const db = JSON.parse(bruto) as Db
-      if (db.versao === VERSAO_DB) return db
+      const db: unknown = JSON.parse(bruto)
+      if (bancoValido(db)) return db
     }
   } catch {
     // Dados corrompidos ou storage indisponível: recria a base de demonstração.

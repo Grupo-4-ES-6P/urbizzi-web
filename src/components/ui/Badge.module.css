@@ -1,0 +1,35 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+  color: var(--color-status-text);
+}
+
+.success {
+  background: var(--color-status-ativa);
+}
+
+.warning {
+  background: var(--color-status-atencao);
+}
+
+.danger {
+  background: var(--color-status-critico);
+}
+
+.neutral {
+  background: var(--color-status-expirada);
+}
+
+.accent {
+  background: var(--color-status-vendida);
+}
+
+.dark {
+  background: var(--color-status-analise);
+}

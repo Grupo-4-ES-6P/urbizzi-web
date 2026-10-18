@@ -1,7 +1,8 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
 
+import { useDb } from '../data/db'
 import type { UsuarioPublico } from '../data/types'
-import { autenticar } from '../services/api'
+import { autenticar, paraUsuarioPublico } from '../services/api'
 
 const CHAVE = 'urbizzi:sessao'
 
@@ -36,7 +37,16 @@ function limparSessao() {
 }
 
 export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
-  const [usuario, setUsuario] = useState<UsuarioPublico | null>(lerSessao)
+  const db = useDb()
+  const [sessao, setSessao] = useState<UsuarioPublico | null>(lerSessao)
+
+  // A sessão guarda só a identidade; perfil e status vêm sempre do cadastro. Assim, quem é
+  // inativado sai na hora e uma troca de perfil vale sem novo login. Comparar o e-mail
+  // descarta sessões de uma versão anterior do banco em que o mesmo id era outra pessoa.
+  const usuario = useMemo(() => {
+    const atual = sessao && db.usuarios.find((u) => u.id === sessao.id && u.email === sessao.email)
+    return atual?.ativo ? paraUsuarioPublico(atual) : null
+  }, [db.usuarios, sessao])
 
   const entrar = useCallback(async (email: string, senha: string, manterConectado: boolean) => {
     const u = await autenticar(email, senha)
@@ -47,12 +57,12 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     } catch {
       // Sem persistência, a sessão dura até recarregar a página.
     }
-    setUsuario(u)
+    setSessao(u)
   }, [])
 
   const sair = useCallback(() => {
     limparSessao()
-    setUsuario(null)
+    setSessao(null)
   }, [])
 
   const valor = useMemo(() => ({ usuario, entrar, sair }), [usuario, entrar, sair])

@@ -41,7 +41,52 @@ export interface Pessoa {
   nome: string
 }
 
-export type StatusReserva = 'ativa' | 'convertida' | 'cancelada'
+export type TipoPessoa = 'fisica' | 'juridica'
+
+export interface EnderecoCliente {
+  cep: string
+  logradouro: string
+  numero: string
+  complemento: string
+  bairro: string
+  cidade: string
+  uf: string
+  pais: string
+}
+
+export interface Cliente extends Pessoa {
+  tipoPessoa: TipoPessoa
+  /** Com máscara, ex.: 048.912.330-27 */
+  cpfCnpj: string
+  /** YYYY-MM-DD; vazio quando não informado. */
+  dataNascimento: string
+  estadoCivil: string
+  profissao: string
+  telefone: string
+  email: string
+  ativo: boolean
+  endereco: EnderecoCliente
+  criadoEm: string
+  atualizadoEm: string
+}
+
+export type StatusReserva = 'ativa' | 'expirada' | 'cancelada' | 'convertida'
+
+/** Situação exibida: reservas ativas são classificadas pelo tempo restante. */
+export type SituacaoReserva = 'ativa' | 'atencao' | 'critico' | 'expirada' | 'cancelada' | 'convertida'
+
+export type TipoEventoReserva = 'criacao' | 'renovacao' | 'aviso' | 'expiracao' | 'cancelamento' | 'conversao'
+
+/** Registro de auditoria da reserva (RF32). */
+export interface EventoReserva {
+  id: string
+  tipo: TipoEventoReserva
+  data: string
+  titulo: string
+  autor: string
+  detalhe: string
+  situacao: SituacaoReserva
+}
 
 export interface Reserva {
   id: string
@@ -49,28 +94,171 @@ export interface Reserva {
   codigo: string
   imovelId: string
   clienteId: string
+  /** Usuário responsável (perfil Corretor, Gerente ou Administrador). */
   corretorId: string
   criadaEm: string
+  /** Data inicial de calendário (YYYY-MM-DD). */
+  dataInicio: string
+  validadeDias: number
+  /** Instante em que a reserva vence (fim do dia da expiração). */
   expiraEm: string
   status: StatusReserva
+  renovacoesUsadas: number
+  /** Limite herdado do loteamento no momento da criação (RF15). */
+  renovacoesPermitidas: number
+  avisarHorasAntes: number
+  valorTabela: number | null
+  sinal: number | null
+  formaPagamento: string
+  descontoPercentual: number | null
+  origemInteresse: string
+  contatoRecente: string
+  observacoes: string
+  atualizadaEm: string
+  historico: EventoReserva[]
 }
 
-export type StatusProposta = 'pendente' | 'aprovada' | 'recusada'
+/**
+ * Situação persistida da proposta. "Expirada" também é derivada da data em
+ * `situacaoProposta` (lib/propostas), já que não há backend para gravá-la (RF21).
+ */
+export type SituacaoProposta =
+  | 'rascunho'
+  | 'enviada'
+  | 'em_analise'
+  | 'aguardando_diretoria'
+  | 'aprovada'
+  | 'recusada'
+  | 'contraproposta'
+  | 'expirada'
+
+/**
+ * Situação de cada versão, independente da situação da proposta (RF18).
+ * "Expirada" só aparece na exibição, derivada da proposta.
+ */
+export type SituacaoVersao = 'rascunho' | 'em_analise' | 'aprovada' | 'recusada' | 'contraproposta' | 'substituida' | 'expirada'
+
+/** Condições comerciais informadas; os valores derivados saem de `calcularCondicoes`. */
+export interface CondicoesProposta {
+  valorTabela: number
+  /** Percentual sobre o valor de tabela, ex.: 3 para 3%. */
+  descontoPercentual: number
+  entrada: number
+  parcelas: number
+  indiceCorrecao: string
+  /** YYYY-MM-DD */
+  primeiroVencimento: string
+  formaPagamento: string
+  /** Validade em dias úteis contados a partir do envio. */
+  validadeDias: number
+  escritura: string
+  garantia: string
+}
+
+export interface VersaoProposta {
+  /** 1, 2, 3… — nunca reaproveitado nem sobrescrito depois do envio. */
+  numero: number
+  criadaEm: string
+  autor: string
+  enviadaEm?: string
+  condicoes: CondicoesProposta
+  /** Desconto acima da alçada do vendedor no momento do envio. */
+  acimaDaAlcada: boolean
+  aprovadorId: string
+  observacoes: string
+  /** Só os nomes: o upload real de anexos ainda não existe. */
+  anexos: string[]
+  /** Gerado comparando com a versão anterior. */
+  oQueMudou: string
+  comentario: string
+  situacao: SituacaoVersao
+}
+
+export type TipoEtapa = 'envio' | 'analise_comercial' | 'diretoria' | 'contrato'
+export type EstadoEtapa = 'concluida' | 'aguardando' | 'pendente' | 'recusada'
+
+/** Etapa do fluxo de aprovação (RF19). */
+export interface EtapaAprovacao {
+  tipo: TipoEtapa
+  titulo: string
+  /** Usuário que decide a etapa; vazio nas etapas automáticas. */
+  responsavelId: string
+  responsavelNome: string
+  cargo: string
+  estado: EstadoEtapa
+  automatica: boolean
+  concluidaEm?: string
+}
+
+export type TipoEventoProposta =
+  | 'criacao'
+  | 'rascunho'
+  | 'envio'
+  | 'nova_versao'
+  | 'analise'
+  | 'aprovacao_etapa'
+  | 'aprovacao'
+  | 'recusa'
+  | 'contraproposta'
+
+/** Registro imutável de auditoria da proposta (RF32). */
+export interface EventoProposta {
+  id: string
+  tipo: TipoEventoProposta
+  data: string
+  titulo: string
+  autor: string
+  detalhe: string
+  versao: number
+}
 
 export interface Proposta {
   id: string
-  /** Código de exibição, ex.: PROP-2026-0311 */
+  /** Código de exibição no padrão PROP-AAAA-NNNN. */
   codigo: string
+  /** Reserva ativa que originou a proposta (RF17). */
+  reservaId: string
   imovelId: string
   clienteId: string
+  /** Usuário responsável (perfil Corretor, Gerente ou Administrador). */
   corretorId: string
-  valor: number
-  /** Condição de pagamento, ex.: "Entrada 30% + 24x". */
-  condicao?: string
-  status: StatusProposta
+  situacao: SituacaoProposta
   criadaEm: string
+  atualizadaEm: string
+  /** Fim do prazo da versão enviada; vazio em rascunho (RF21). */
+  expiraEm?: string
   decididaEm?: string
   motivoRecusa?: string
+  versoes: VersaoProposta[]
+  etapas: EtapaAprovacao[]
+  historico: EventoProposta[]
+}
+
+/** "Cancelada" é final: a venda não pode ser reaberta nem editada. */
+export type StatusVenda = 'em_escritura' | 'concluida' | 'cancelada'
+
+export type TipoEventoVenda = 'registro' | 'conclusao' | 'cancelamento'
+
+/** Registro imutável de auditoria da venda (RF32); a lista só recebe novos itens. */
+export interface EventoVenda {
+  id: string
+  tipo: TipoEventoVenda
+  data: string
+  autor: string
+  /** Vazio no registro da venda. */
+  statusAnterior: StatusVenda | null
+  status: StatusVenda
+  detalhe: string
+}
+
+export interface CancelamentoVenda {
+  justificativa: string
+  /** Categoria e dados do distrato, informados quando o cancelamento é feito pelas ações do imóvel. */
+  motivo?: string
+  dataDistrato?: string
+  devolucao?: number
+  em: string
+  autor: string
 }
 
 export interface Venda {
@@ -79,11 +267,17 @@ export interface Venda {
   codigo: string
   imovelId: string
   clienteId: string
+  /** Usuário responsável (perfil Corretor, Gerente ou Administrador). */
+  corretorId: string
+  /** Proposta aprovada e reserva convertida que originaram a venda, quando houver. */
   propostaId?: string
+  reservaId?: string
   valor: number
+  /** Instante ISO da venda. */
   data: string
-  status: 'ativa' | 'cancelada'
-  cancelamento?: { motivo: string; dataDistrato: string; devolucao: number; em: string }
+  status: StatusVenda
+  cancelamento?: CancelamentoVenda
+  historico: EventoVenda[]
 }
 
 export type SituacaoLoteamento = 'em_aprovacao' | 'em_registro' | 'em_comercializacao' | 'esgotado'
@@ -108,6 +302,8 @@ export interface Loteamento {
   numeroRegistro: string
   licencaAmbiental: string
   validadeLicenca: string
+  /** Quantas vezes uma reserva pode ser renovada neste loteamento (RF15). */
+  limiteRenovacoes: number
 }
 
 export interface Quadra {
@@ -162,25 +358,75 @@ export interface Documento {
   conteudo?: string
 }
 
+/** Perfis de acesso; o que cada um pode fazer fica em `lib/permissoes.ts`. */
+export type Perfil = 'Administrador' | 'Gerente comercial' | 'Corretor' | 'Coletor'
+
+/** Ações controladas pela matriz de permissões (rótulos e padrão em `lib/permissoes.ts`). */
+export type Permissao =
+  | 'cadastrar_imoveis'
+  | 'publicar_imoveis'
+  | 'bloquear_imoveis'
+  | 'gerenciar_clientes'
+  | 'registrar_reserva'
+  | 'cancelar_reserva'
+  | 'criar_proposta'
+  | 'aprovar_proposta'
+  | 'aprovar_desconto_acima_alcada'
+  | 'registrar_venda'
+  | 'cancelar_venda'
+  | 'emitir_relatorios'
+  | 'gerenciar_usuarios'
+
+/** Perfis que têm cada permissão; o Administrador edita na tela de usuários. */
+export type MatrizPermissoes = Record<Permissao, Perfil[]>
+
+/** Registro de auditoria de cada vez que a matriz é salva. */
+export interface AlteracaoPermissoes {
+  id: string
+  data: string
+  autorId: string
+  autor: string
+  mudancas: { permissao: Permissao; perfil: Perfil; concedida: boolean }[]
+}
+
 export interface Usuario {
   id: string
   nome: string
   email: string
+  /** Vazia enquanto o convidado não definir a senha: não permite login. */
   senha: string
-  papel: string
+  papel: Perfil
+  /** Usuário inativo não consegue entrar, mas continua nos registros que já assinou. */
+  ativo: boolean
+  /** Último login bem-sucedido (ISO); `null` para quem nunca acessou. */
+  ultimoAcesso: string | null
 }
 
-export type UsuarioPublico = Omit<Usuario, 'senha'>
+export type UsuarioPublico = Pick<Usuario, 'id' | 'nome' | 'email' | 'papel'>
+
+export type ResultadoAcesso = 'sucesso' | 'senha_incorreta' | 'usuario_inativo'
+
+/** Tentativa de login registrada no log de acessos. */
+export interface RegistroAcesso {
+  id: string
+  /** `null` quando o e-mail informado não pertence a nenhum usuário. */
+  usuarioId: string | null
+  email: string
+  data: string
+  resultado: ResultadoAcesso
+}
 
 export interface Db {
   versao: number
   imoveis: Imovel[]
-  clientes: Pessoa[]
-  corretores: Pessoa[]
+  clientes: Cliente[]
   reservas: Reserva[]
   propostas: Proposta[]
   vendas: Venda[]
   usuarios: Usuario[]
+  acessos: RegistroAcesso[]
+  permissoes: MatrizPermissoes
+  alteracoesPermissoes: AlteracaoPermissoes[]
   loteamentos: Loteamento[]
   quadras: Quadra[]
   interesses: Interesse[]

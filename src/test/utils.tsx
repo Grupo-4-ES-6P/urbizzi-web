@@ -3,23 +3,28 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 
 import { AuthProvider } from '../contexts/AuthContext'
+import { TemaProvider } from '../contexts/TemaContext'
 import { ToastProvider } from '../contexts/ToastContext'
 import { lerDb } from '../data/db'
 import { Rotas } from '../App'
 import { paraUsuarioPublico } from '../services/api'
 
-export function renderizar(rota: string, { logado = true } = {}) {
+/** `usuarioId` troca o usuário logado (padrão: o administrador, usr-1). */
+export function renderizar(rota: string, { logado = true, usuarioId = 'usr-1' } = {}) {
   if (logado) {
-    sessionStorage.setItem('urbizzi:sessao', JSON.stringify(paraUsuarioPublico(lerDb().usuarios[0])))
+    const usuario = lerDb().usuarios.find((u) => u.id === usuarioId)!
+    sessionStorage.setItem('urbizzi:sessao', JSON.stringify(paraUsuarioPublico(usuario)))
   }
   const user = userEvent.setup()
   const resultado = render(
     <MemoryRouter initialEntries={[rota]}>
-      <ToastProvider>
-        <AuthProvider>
-          <Rotas />
-        </AuthProvider>
-      </ToastProvider>
+      <TemaProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <Rotas />
+          </AuthProvider>
+        </ToastProvider>
+      </TemaProvider>
     </MemoryRouter>,
   )
   return { user, ...resultado }

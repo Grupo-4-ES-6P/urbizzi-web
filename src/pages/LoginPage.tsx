@@ -1,6 +1,7 @@
 import { ArrowLeft, Eye, EyeOff, MailCheck } from 'lucide-react'
 import { useMemo, useState, type FormEvent } from 'react'
 
+import { BotaoTema } from '../components/BotaoTema'
 import { Logo } from '../components/Logo'
 import { Campo, Spinner } from '../components/ui'
 import { useAuth } from '../contexts/AuthContext'
@@ -45,6 +46,7 @@ export function LoginPage() {
       </aside>
 
       <main className="login__area">
+        <BotaoTema className="login__tema" />
         <div className="login__form-wrap">
           <div className="login__logo-mobile">
             <Logo comSlogan />
@@ -187,7 +189,7 @@ function FormEntrar({ email, setEmail, onEsqueci }: Readonly<FormEntrarProps>) {
       <p className="login__rodape">Não tem acesso? Solicite ao administrador do sistema.</p>
       {import.meta.env.DEV && (
         <p className="login__demo">
-          Demonstração: <code>admin@urbizzi.com.br</code> / <code>urbizzi123</code>
+          Demonstração: <code>ayran@urbizzi.com.br</code> / <code>urbizzi123</code>
         </p>
       )}
     </form>
