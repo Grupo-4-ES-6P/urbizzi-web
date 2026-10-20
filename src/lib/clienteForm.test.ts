@@ -47,6 +47,8 @@ describe('validarCliente', () => {
     expect(erros.telefone).toBe('Informe pelo menos um telefone ou e-mail.')
     expect(erros.email).toBe('Informe pelo menos um telefone ou e-mail.')
     expect(validarCliente(valido({ email: '', telefone: '(45) 99812-4477' }))).toEqual({})
+    expect(validarCliente(valido({ email: '', celular: '(45) 99812-4477' }))).toEqual({})
+    expect(validarCliente(valido({ celular: '(45) 9981' })).celular).toBe('Celular incompleto.')
   })
 
   it('rejeita documento inválido, e-mail malformado e nascimento no futuro', () => {

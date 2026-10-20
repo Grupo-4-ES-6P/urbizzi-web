@@ -496,7 +496,9 @@ export async function salvarCliente(dados: FormCliente & { id?: string }) {
       id: existente?.id ?? novoId('cli'),
       nome: dados.nome.trim(),
       cpfCnpj: dados.cpfCnpj.trim(),
+      rg: dados.rg.trim(),
       telefone: dados.telefone.trim(),
+      celular: dados.celular.trim(),
       email: dados.email.trim(),
       estadoCivil: fisica ? dados.estadoCivil : '',
       profissao: fisica ? dados.profissao.trim() : '',
@@ -510,6 +512,7 @@ export async function salvarCliente(dados: FormCliente & { id?: string }) {
         uf: dados.endereco.uf.trim().toUpperCase(),
         pais: dados.endereco.pais.trim(),
       },
+      contatos: dados.contatos.map((c) => ({ ...c, assunto: c.assunto.trim() })),
       criadoEm: existente?.criadoEm ?? agora,
       atualizadoEm: agora,
     }

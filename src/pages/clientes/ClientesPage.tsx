@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Download, Plus, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
@@ -6,8 +6,12 @@ import { Dialogo } from '../../components/Dialogo'
 import { Badge } from '../../components/ui'
 import { useToast } from '../../contexts/ToastContext'
 import { useDb } from '../../data/db'
-import { contarPor } from '../../data/selectors'
+import type { Cliente } from '../../data/types'
+import { SITUACAO_CLIENTE, situacaoCliente, ultimoContato, vinculosClientes } from '../../lib/clientes'
+import { baixarCsv, gerarCsv } from '../../lib/csv'
 import { normalizar } from '../../lib/format'
+import { formatarData } from '../../lib/reservas'
+import { useAgora } from '../../lib/useAgora'
 import { alterarStatusClientes, excluirClientes } from '../../services/api'
 
 const POR_PAGINA = 20
@@ -20,6 +24,7 @@ const FILTROS_STATUS = [
 
 export function ClientesPage() {
   const db = useDb()
+  const agora = useAgora()
   const navigate = useNavigate()
   const notificar = useToast()
   const [params, setParams] = useSearchParams()
@@ -38,10 +43,7 @@ export function ClientesPage() {
     setParams(novo, { replace: true })
   }
 
-  const reservasAtivas = useMemo(
-    () => contarPor(db.reservas.filter((r) => r.status === 'ativa'), (r) => r.clienteId),
-    [db.reservas],
-  )
+  const vinculos = useMemo(() => vinculosClientes(db, agora), [db, agora])
 
   const filtrados = useMemo(() => {
     const termo = normalizar(q.trim())
@@ -51,8 +53,8 @@ export function ClientesPage() {
       .filter(
         (c) =>
           !termo ||
-          normalizar(`${c.nome} ${c.email}`).includes(termo) ||
-          (digitos.length >= 3 && `${c.telefone} ${c.cpfCnpj}`.replace(/\D/g, '').includes(digitos)),
+          normalizar(`${c.nome} ${c.email} ${c.responsavel}`).includes(termo) ||
+          (digitos.length >= 3 && `${c.telefone} ${c.celular} ${c.cpfCnpj}`.replace(/\D/g, '').includes(digitos)),
       )
       .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
   }, [db.clientes, q, status])
@@ -61,7 +63,31 @@ export function ClientesPage() {
   const paginaAtual = Math.min(pagina, totalPaginas)
   const visiveis = filtrados.slice((paginaAtual - 1) * POR_PAGINA, paginaAtual * POR_PAGINA)
   const todosVisiveisMarcados = visiveis.length > 0 && visiveis.every((c) => selecionados.has(c.id))
-  const ativos = db.clientes.filter((c) => c.ativo).length
+  const comReservaAtiva = db.clientes.filter((c) => vinculos.comReservaAtiva.has(c.id)).length
+  const comPropostaEmAnalise = db.clientes.filter((c) => vinculos.comPropostaEmAndamento.has(c.id)).length
+  // Sem nenhum cadastro, a lista filtrada também fica vazia.
+  const mensagemVazia = db.clientes.length === 0 ? 'Nenhum cliente cadastrado ainda.' : 'Nenhum cliente encontrado com esses filtros.'
+  const contatoPrincipal = (c: Cliente) => c.celular || c.telefone || c.email
+
+  const exportar = () => {
+    const csv = gerarCsv(
+      ['Cliente', 'CPF / CNPJ', 'Celular', 'Telefone', 'E-mail', 'Responsável', 'Último contato', 'Situação'],
+      filtrados.map((c) => {
+        const ultimo = ultimoContato(c)
+        return [
+          c.nome,
+          c.cpfCnpj,
+          c.celular,
+          c.telefone,
+          c.email,
+          c.responsavel,
+          ultimo ? formatarData(ultimo.data) : '',
+          SITUACAO_CLIENTE[situacaoCliente(c, vinculos)].rotulo,
+        ]
+      }),
+    )
+    baixarCsv('clientes.csv', csv)
+  }
 
   const alternar = (id: string) =>
     setSelecionados((atual) => {
@@ -104,10 +130,13 @@ export function ClientesPage() {
         <div>
           <h1 className="cabecalho__titulo">Clientes</h1>
           <p className="cabecalho__subtitulo">
-            {db.clientes.length} cadastrados · {ativos} ativos · {db.clientes.length - ativos} inativos
+            {db.clientes.length} cadastrados · {comReservaAtiva} com reserva ativa · {comPropostaEmAnalise} com proposta em análise
           </p>
         </div>
         <div className="cabecalho__acoes">
+          <button type="button" className="btn btn--secundario" onClick={exportar} disabled={filtrados.length === 0}>
+            <Download size={15} /> Exportar
+          </button>
           <Link to="/clientes/novo" className="btn btn--primario">
             <Plus size={16} /> Novo cliente
           </Link>
@@ -119,7 +148,7 @@ export function ClientesPage() {
           <div className="card__cabecalho">
             <div>
               <h2 className="card__titulo">Todos os clientes</h2>
-              <p className="card__subtitulo">Clique em um cliente para ver e editar o cadastro</p>
+              <p className="card__subtitulo">Busca por nome, CPF/CNPJ, e-mail ou responsável comercial</p>
             </div>
             {(q || status) && (
               <button type="button" className="link" onClick={() => setParams({}, { replace: true })}>
@@ -133,7 +162,7 @@ export function ClientesPage() {
               <input
                 type="search"
                 className="busca__input"
-                placeholder="Nome, CPF/CNPJ, telefone ou e-mail"
+                placeholder="Nome, CPF/CNPJ, e-mail ou responsável"
                 aria-label="Buscar clientes"
                 value={q}
                 onChange={(e) => alterar('q', e.target.value)}
@@ -172,10 +201,8 @@ export function ClientesPage() {
             )}
           </div>
 
-          {db.clientes.length === 0 ? (
-            <p className="card__vazio">Nenhum cliente cadastrado ainda.</p>
-          ) : visiveis.length === 0 ? (
-            <p className="card__vazio">Nenhum cliente encontrado com esses filtros.</p>
+          {visiveis.length === 0 ? (
+            <p className="card__vazio">{mensagemVazia}</p>
           ) : (
             <div className="tabela-wrap">
               <table className="tabela tabela--clicavel">
@@ -184,36 +211,38 @@ export function ClientesPage() {
                     <th className="tabela__selecao">
                       <input type="checkbox" aria-label="Selecionar todos os clientes da página" checked={todosVisiveisMarcados} onChange={alternarTodos} />
                     </th>
-                    <th>Nome</th>
+                    <th>Cliente</th>
                     <th>CPF / CNPJ</th>
-                    <th>Telefone</th>
-                    <th>E-mail</th>
-                    <th>Cidade</th>
-                    <th>Reservas ativas</th>
-                    <th>Status</th>
+                    <th>Contato</th>
+                    <th>Responsável</th>
+                    <th>Último contato</th>
+                    <th>Situação</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {visiveis.map((c) => (
-                    <tr key={c.id} onClick={() => navigate(`/clientes/${c.id}`)}>
-                      <td className="tabela__selecao" onClick={(e) => e.stopPropagation()}>
-                        <input type="checkbox" aria-label={`Selecionar ${c.nome}`} checked={selecionados.has(c.id)} onChange={() => alternar(c.id)} />
-                      </td>
-                      <td>
-                        <Link to={`/clientes/${c.id}`} className="tabela__destaque" onClick={(e) => e.stopPropagation()}>
-                          {c.nome}
-                        </Link>
-                      </td>
-                      <td>{c.cpfCnpj || '—'}</td>
-                      <td>{c.telefone || '—'}</td>
-                      <td>{c.email || '—'}</td>
-                      <td>{c.endereco.cidade ? `${c.endereco.cidade}/${c.endereco.uf}` : '—'}</td>
-                      <td>{reservasAtivas.get(c.id) ?? '—'}</td>
-                      <td>
-                        <Badge variante={c.ativo ? 'normal' : 'neutro'}>{c.ativo ? 'Ativo' : 'Inativo'}</Badge>
-                      </td>
-                    </tr>
-                  ))}
+                  {visiveis.map((c) => {
+                    const ultimo = ultimoContato(c)
+                    const situacao = SITUACAO_CLIENTE[situacaoCliente(c, vinculos)]
+                    return (
+                      <tr key={c.id} onClick={() => navigate(`/clientes/${c.id}`)}>
+                        <td className="tabela__selecao" onClick={(e) => e.stopPropagation()}>
+                          <input type="checkbox" aria-label={`Selecionar ${c.nome}`} checked={selecionados.has(c.id)} onChange={() => alternar(c.id)} />
+                        </td>
+                        <td>
+                          <Link to={`/clientes/${c.id}`} className="tabela__destaque" onClick={(e) => e.stopPropagation()}>
+                            {c.nome}
+                          </Link>
+                        </td>
+                        <td>{c.cpfCnpj || '—'}</td>
+                        <td>{contatoPrincipal(c) || '—'}</td>
+                        <td>{c.responsavel || '—'}</td>
+                        <td>{ultimo ? formatarData(ultimo.data) : '—'}</td>
+                        <td>
+                          <Badge variante={situacao.variante}>{situacao.rotulo}</Badge>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>

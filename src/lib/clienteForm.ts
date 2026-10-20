@@ -78,13 +78,19 @@ export function clienteVazio(): FormCliente {
     nome: '',
     tipoPessoa: 'fisica',
     cpfCnpj: '',
+    rg: '',
     dataNascimento: '',
     estadoCivil: '',
     profissao: '',
     telefone: '',
+    celular: '',
     email: '',
     ativo: true,
     endereco: { cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', uf: 'PR', pais: 'Brasil' },
+    origem: '',
+    responsavel: '',
+    imovelInteresseId: '',
+    contatos: [],
   }
 }
 
@@ -93,14 +99,13 @@ export function formDeCliente(c: Cliente): FormCliente {
   void _id
   void _c
   void _a
-  return { ...form, endereco: { ...form.endereco } }
+  return { ...form, endereco: { ...form.endereco }, contatos: [...form.contatos] }
 }
 
 // Partes separadas por pontos sem sobreposição: evita retrocesso exponencial na regex.
 const EMAIL = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/
 
-export function validarCliente(f: FormCliente, hoje = new Date().toISOString().slice(0, 10)): ErrosCliente {
-  const e: ErrosCliente = {}
+function validarIdentificacao(f: FormCliente, hoje: string, e: ErrosCliente) {
   const nome = f.nome.trim()
   if (!nome) e.nome = 'Informe o nome completo.'
   else if (nome.length < 3) e.nome = 'O nome deve ter pelo menos 3 caracteres.'
@@ -109,25 +114,45 @@ export function validarCliente(f: FormCliente, hoje = new Date().toISOString().s
   if (!f.cpfCnpj.trim()) e.cpfCnpj = fisica ? 'Informe o CPF.' : 'Informe o CNPJ.'
   else if (!documentoValido(f.cpfCnpj, f.tipoPessoa)) e.cpfCnpj = fisica ? 'Informe um CPF válido.' : 'Informe um CNPJ válido.'
 
-  const telefone = f.telefone.trim()
-  const email = f.email.trim()
-  if (!telefone && !email) {
-    e.telefone = 'Informe pelo menos um telefone ou e-mail.'
-    e.email = 'Informe pelo menos um telefone ou e-mail.'
-  } else {
-    if (telefone && telefone.replace(/\D/g, '').length < 10) e.telefone = 'Telefone incompleto.'
-    if (email && !EMAIL.test(email)) e.email = 'Informe um e-mail válido.'
-  }
-
   if (f.dataNascimento && f.dataNascimento > hoje) e.dataNascimento = 'A data não pode estar no futuro.'
+}
 
-  const end = f.endereco
+/** Telefone, celular e e-mail são opcionais, mas pelo menos um precisa existir. */
+function validarContato(f: FormCliente, e: ErrosCliente) {
+  const telefone = f.telefone.trim()
+  const celular = f.celular.trim()
+  const email = f.email.trim()
+  if (!telefone && !celular && !email) {
+    e.telefone = 'Informe pelo menos um telefone ou e-mail.'
+    e.celular = 'Informe pelo menos um telefone ou e-mail.'
+    e.email = 'Informe pelo menos um telefone ou e-mail.'
+    return
+  }
+  if (telefone && telefone.replace(/\D/g, '').length < 10) e.telefone = 'Telefone incompleto.'
+  if (celular && celular.replace(/\D/g, '').length < 11) e.celular = 'Celular incompleto.'
+  if (email && !EMAIL.test(email)) e.email = 'Informe um e-mail válido.'
+}
+
+const ENDERECO_OBRIGATORIO: [Exclude<CampoEndereco, 'cep' | 'numero' | 'complemento'>, string][] = [
+  ['logradouro', 'Informe o logradouro.'],
+  ['bairro', 'Informe o bairro.'],
+  ['cidade', 'Informe a cidade.'],
+  ['uf', 'Informe a UF.'],
+  ['pais', 'Informe o país.'],
+]
+
+function validarEndereco(end: EnderecoCliente, e: ErrosCliente) {
   if (!end.cep.trim()) e['endereco.cep'] = 'Informe o CEP.'
   else if (end.cep.replace(/\D/g, '').length !== 8) e['endereco.cep'] = 'CEP deve ter 8 dígitos.'
-  if (!end.logradouro.trim()) e['endereco.logradouro'] = 'Informe o logradouro.'
-  if (!end.bairro.trim()) e['endereco.bairro'] = 'Informe o bairro.'
-  if (!end.cidade.trim()) e['endereco.cidade'] = 'Informe a cidade.'
-  if (!end.uf.trim()) e['endereco.uf'] = 'Informe a UF.'
-  if (!end.pais.trim()) e['endereco.pais'] = 'Informe o país.'
+  for (const [campo, mensagem] of ENDERECO_OBRIGATORIO) {
+    if (!end[campo].trim()) e[`endereco.${campo}`] = mensagem
+  }
+}
+
+export function validarCliente(f: FormCliente, hoje = new Date().toISOString().slice(0, 10)): ErrosCliente {
+  const e: ErrosCliente = {}
+  validarIdentificacao(f, hoje, e)
+  validarContato(f, e)
+  validarEndereco(f.endereco, e)
   return e
 }
