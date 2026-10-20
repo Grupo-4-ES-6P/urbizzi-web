@@ -7,6 +7,8 @@ import { AppLayout } from './layouts/AppLayout'
 import { DashboardPage } from './pages/DashboardPage'
 import { EmConstrucaoPage } from './pages/EmConstrucaoPage'
 import { LoginPage } from './pages/LoginPage'
+import { AcoesPage } from './pages/imovel/AcoesPage'
+import { DocumentosPage } from './pages/imovel/DocumentosPage'
 import { QuadraPage } from './pages/quadra/QuadraPage'
 import { EmBrevePublicoPage } from './pages/publico/EmBrevePublicoPage'
 import { SiteLayout } from './pages/publico/SiteLayout'
@@ -49,8 +51,8 @@ export function Rotas() {
         <Route path="/imoveis/novo" element={<EmConstrucaoPage titulo="Imóveis" />} />
         <Route path="/imoveis/:id" element={<EmConstrucaoPage titulo="Imóveis" />} />
         <Route path="/imoveis/:id/historico" element={<EmConstrucaoPage titulo="Imóveis" />} />
-        <Route path="/imoveis/:id/acoes" element={<EmConstrucaoPage titulo="Imóveis" />} />
-        <Route path="/imoveis/:id/documentos" element={<EmConstrucaoPage titulo="Imóveis" />} />
+        <Route path="/imoveis/:id/acoes" element={<AcoesPage />} />
+        <Route path="/imoveis/:id/documentos" element={<DocumentosPage />} />
         <Route path="/loteamentos" element={<EmConstrucaoPage titulo="Loteamentos" />} />
         <Route path="/loteamentos/novo" element={<EmConstrucaoPage titulo="Loteamentos" />} />
         <Route path="/loteamentos/:id" element={<EmConstrucaoPage titulo="Loteamentos" />} />
