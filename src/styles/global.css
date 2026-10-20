@@ -1758,6 +1758,97 @@ textarea {
   gap: 12px;
 }
 
+/* ============ Nova proposta ============ */
+.proposta-form {
+  max-width: 1120px;
+}
+.proposta-form .secao {
+  padding: 14px 18px 16px;
+}
+.proposta-form .secao__cabecalho {
+  margin-bottom: 12px;
+}
+.proposta-form__grade {
+  display: grid;
+  gap: 10px 14px;
+}
+.proposta-form__grade--vinculo {
+  grid-template-columns: 2fr 1.3fr 1fr 1.4fr;
+}
+.proposta-form__grade--comercial {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+.proposta-form__grade--comercial > :last-child {
+  grid-column: span 3;
+}
+.proposta-form__grade--aprovacao {
+  grid-template-columns: 0.8fr 0.8fr 1.2fr 1.6fr;
+}
+.proposta-form__grade--observacoes {
+  grid-template-columns: minmax(0, 1fr);
+}
+.proposta-form .campo__rotulo {
+  font-size: 11px;
+}
+.proposta-form .input {
+  min-width: 0;
+  height: 34px;
+}
+.proposta-form .input--area {
+  min-height: 40px;
+  height: auto;
+}
+.proposta-form__parcelas {
+  position: relative;
+}
+.proposta-form__parcelas .input {
+  padding-right: 115px;
+}
+.proposta-form__parcelas span {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--texto-2);
+  font-size: 11px;
+  pointer-events: none;
+}
+.proposta-form__arquivo {
+  padding: 5px 8px;
+  font-size: 12px;
+}
+.proposta-form__arquivo::file-selector-button {
+  border: 0;
+  background: none;
+  color: var(--texto-2);
+  font: inherit;
+  cursor: pointer;
+}
+.proposta-form__anexos {
+  margin-top: 6px;
+  color: var(--texto-2);
+  font-size: 11px;
+}
+@media (max-width: 1180px) {
+  .proposta-form__grade--vinculo,
+  .proposta-form__grade--aprovacao {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .proposta-form__grade--comercial {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .proposta-form__grade--comercial > :last-child {
+    grid-column: span 1;
+  }
+}
+@media (max-width: 620px) {
+  .proposta-form__grade--vinculo,
+  .proposta-form__grade--aprovacao,
+  .proposta-form__grade--comercial {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 /* ============ Planta da quadra ============ */
 .quadra-planta {
   display: flex;
