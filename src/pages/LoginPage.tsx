@@ -1,11 +1,11 @@
 import { ArrowLeft, Eye, EyeOff, MailCheck } from 'lucide-react'
 import { useMemo, useState, type FormEvent } from 'react'
 
+import { BotaoTema } from '../components/BotaoTema'
 import { Logo } from '../components/Logo'
 import { Campo, Spinner } from '../components/ui'
 import { useAuth } from '../contexts/AuthContext'
 import { useDb } from '../data/db'
-import { resumoGeral } from '../data/selectors'
 import { formatarMoedaCompacta } from '../lib/format'
 import { solicitarRecuperacaoSenha } from '../services/api'
 
@@ -16,7 +16,6 @@ type Modo = 'entrar' | 'recuperar' | 'enviado'
 
 export function LoginPage() {
   const db = useDb()
-  const resumo = useMemo(() => resumoGeral(db, Date.now()), [db])
   const [modo, setModo] = useState<Modo>('entrar')
   const [email, setEmail] = useState('')
 
@@ -31,20 +30,21 @@ export function LoginPage() {
         <dl className="login__numeros">
           <div>
             <dt>Imóveis cadastrados</dt>
-            <dd>{resumo.imoveisCadastrados}</dd>
+            <dd>{2}</dd>
           </div>
           <div>
             <dt>Reservas ativas</dt>
-            <dd>{resumo.reservasAtivas}</dd>
+            <dd>{4}</dd>
           </div>
           <div>
             <dt>Vendas no ano</dt>
-            <dd>{formatarMoedaCompacta(resumo.vendasNoAno)}</dd>
+            <dd>{formatarMoedaCompacta(8)}</dd>
           </div>
         </dl>
       </aside>
 
       <main className="login__area">
+        <BotaoTema className="login__tema" />
         <div className="login__form-wrap">
           <div className="login__logo-mobile">
             <Logo comSlogan />

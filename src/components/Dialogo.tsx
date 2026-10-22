@@ -47,6 +47,18 @@ export function Dialogo({
     }
   }, [aberto])
 
+  // Clique no fundo (fora da caixa) fecha, como o Esc. Fica fora do JSX porque o
+  // equivalente de teclado já é o Esc nativo do <dialog>, tratado em onCancel.
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const fecharNoFundo = (e: MouseEvent) => {
+      if (e.target === el && !carregando) onCancelar()
+    }
+    el.addEventListener('click', fecharNoFundo)
+    return () => el.removeEventListener('click', fecharNoFundo)
+  }, [carregando, onCancelar])
+
   return (
     <dialog
       ref={ref}
