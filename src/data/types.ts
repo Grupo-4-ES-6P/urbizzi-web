@@ -67,6 +67,8 @@ export interface Proposta {
   valor: number
   /** Condição de pagamento, ex.: "Entrada 30% + 24x". */
   condicao?: string
+  versao?: number
+  versoes?: { numero: number; valor: number; condicao?: string; registradaEm: string; autor: string }[]
   entrada?: number
   parcelas?: number
   indiceCorrecao?: string

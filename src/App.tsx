@@ -8,6 +8,7 @@ import { DashboardPage } from './pages/DashboardPage'
 import { EmConstrucaoPage } from './pages/EmConstrucaoPage'
 import { LoginPage } from './pages/LoginPage'
 import { QuadraPage } from './pages/quadra/QuadraPage'
+import { DetalhePropostaPage } from './pages/propostas/DetalhePropostaPage'
 import { NovaPropostaPage } from './pages/propostas/NovaPropostaPage'
 import { EmBrevePublicoPage } from './pages/publico/EmBrevePublicoPage'
 import { SiteLayout } from './pages/publico/SiteLayout'
@@ -62,6 +63,7 @@ export function Rotas() {
         <Route path="/reservas" element={<EmConstrucaoPage titulo="Reservas" />} />
         <Route path="/propostas" element={<EmConstrucaoPage titulo="Propostas" />} />
         <Route path="/propostas/nova" element={<NovaPropostaPage />} />
+        <Route path="/propostas/:id" element={<DetalhePropostaPage />} />
         <Route path="/vendas" element={<EmConstrucaoPage titulo="Vendas" />} />
         <Route path="/relatorios" element={<EmConstrucaoPage titulo="Relatórios" />} />
         <Route path="/usuarios" element={<EmConstrucaoPage titulo="Usuários" />} />
