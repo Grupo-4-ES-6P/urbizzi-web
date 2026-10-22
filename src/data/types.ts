@@ -55,7 +55,7 @@ export interface Reserva {
   status: StatusReserva
 }
 
-export type StatusProposta = 'pendente' | 'aprovada' | 'recusada'
+export type StatusProposta = 'rascunho' | 'pendente' | 'aprovada' | 'recusada'
 
 export interface Proposta {
   id: string
@@ -67,6 +67,18 @@ export interface Proposta {
   valor: number
   /** Condição de pagamento, ex.: "Entrada 30% + 24x". */
   condicao?: string
+  versao?: number
+  versoes?: { numero: number; valor: number; condicao?: string; registradaEm: string; autor: string }[]
+  entrada?: number
+  parcelas?: number
+  indiceCorrecao?: string
+  primeiroVencimento?: string
+  formaPagamento?: string
+  validadeDias?: number
+  expiraEm?: string
+  aprovador?: string
+  observacoes?: string
+  anexos?: string[]
   status: StatusProposta
   criadaEm: string
   decididaEm?: string

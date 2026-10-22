@@ -296,7 +296,7 @@ function ItemProposta({ proposta, rotulo, cliente, detalhe }: Readonly<ItemPropo
 
   return (
     <li className="proposta">
-      <strong className="proposta__imovel">{rotulo}</strong>
+      <Link className="proposta__imovel" to={`/propostas/${proposta.id}`}>{rotulo}</Link>
       <span className="proposta__detalhe">
         {cliente} · {detalhe}
       </span>
