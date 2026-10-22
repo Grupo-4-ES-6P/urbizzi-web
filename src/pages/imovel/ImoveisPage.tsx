@@ -2,12 +2,12 @@ import { ChevronLeft, ChevronRight, Map as MapIcon, Plus, Search, Upload } from 
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
-import { ImportarPlanilha } from '../components/ImportarPlanilha'
-import { Badge } from '../components/ui'
-import { SITUACOES } from '../data/catalogos'
-import { useDb } from '../data/db'
-import { contarPor, imoveisComPropostaPendente, rotuloImovel, situacaoExibida } from '../data/selectors'
-import { formatarDecimal, formatarMoedaInteira, normalizar } from '../lib/format'
+import { ImportarPlanilha } from '../../components/ImportarPlanilha'
+import { Badge } from '../../components/ui'
+import { SITUACOES } from '../../data/catalogos'
+import { useDb } from '../../data/db'
+import { contarPor, imoveisComPropostaPendente, rotuloImovel, situacaoExibida } from '../../data/selectors'
+import { formatarDecimal, formatarMoedaInteira, normalizar } from '../../lib/format'
 
 const POR_PAGINA = 20
 

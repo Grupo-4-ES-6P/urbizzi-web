@@ -1,7 +1,7 @@
 import { screen, waitFor } from '@testing-library/react'
 
-import { lerDb } from '../data/db'
-import { renderizar } from '../test/utils'
+import { lerDb } from '../../data/db'
+import { renderizar } from '../../test/utils'
 
 describe('Cadastro de imóvel', () => {
   afterEach(() => vi.unstubAllGlobals())
