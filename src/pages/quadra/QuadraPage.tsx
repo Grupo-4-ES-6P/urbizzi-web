@@ -60,14 +60,14 @@ export function QuadraPage() {
   }
 
   const selecionado = lotes.find((i) => i.id === selecionadoId)
-  const pessoas = indexar([...db.clientes, ...db.corretores])
+  const pessoas = indexar([...db.clientes, ...db.corretores, ...db.usuarios])
   const agora = Date.now()
   const reserva = selecionado && db.reservas.find((r) => r.imovelId === selecionado.id && reservaAtiva(r, agora))
   const proposta = selecionado && db.propostas.filter((p) => p.imovelId === selecionado.id).sort((a, b) => b.criadaEm.localeCompare(a.criadaEm))[0]
   const venda = selecionado && db.vendas.find((v) => v.imovelId === selecionado.id && v.status === 'ativa')
   const clienteId = reserva?.clienteId ?? venda?.clienteId ?? (proposta?.status === 'pendente' ? proposta.clienteId : undefined)
   const responsavelId = reserva?.corretorId ?? proposta?.corretorId
-  const statusProposta = { pendente: 'em análise', aprovada: 'aprovada', recusada: 'recusada' }
+  const statusProposta = { rascunho: 'rascunho', pendente: 'em análise', aprovada: 'aprovada', recusada: 'recusada' }
   const somaAreas = lotes.reduce((s, l) => s + (l.dimensoes.areaTotal ?? 0), 0)
   const titulo = quadra.identificacao ? `Qd. ${quadra.identificacao}` : 'Quadra'
 
