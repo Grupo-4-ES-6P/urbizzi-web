@@ -1,6 +1,5 @@
 import { reservaAtiva } from '../data/selectors'
 import type { CanalContato, Cliente, ContatoComercial, Db, ResultadoContato, VarianteBadge } from '../data/types'
-import { emAndamento, situacaoProposta } from './propostas'
 
 // ===== Catálogos do cadastro comercial (RF11, RF12) =====
 
@@ -65,17 +64,6 @@ export interface VinculosClientes {
   comVenda: Set<string>
   comReservaAtiva: Set<string>
   comPropostaEmAndamento: Set<string>
-}
-
-/** Calculado uma vez para a lista inteira, em vez de varrer o banco por cliente. */
-export function vinculosClientes(db: Pick<Db, 'vendas' | 'reservas' | 'propostas'>, agora: number): VinculosClientes {
-  return {
-    comVenda: new Set(db.vendas.filter((v) => v.status === 'concluida').map((v) => v.clienteId)),
-    comReservaAtiva: new Set(db.reservas.filter((r) => reservaAtiva(r, agora)).map((r) => r.clienteId)),
-    comPropostaEmAndamento: new Set(
-      db.propostas.filter((p) => emAndamento(situacaoProposta(p, agora))).map((p) => p.clienteId),
-    ),
-  }
 }
 
 /**

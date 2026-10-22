@@ -21,7 +21,6 @@ import {
   type FormCliente,
 } from '../../lib/clienteForm'
 import { mascaraCep } from '../../lib/format'
-import { classificarReserva, dataCalendario, formatarData, SITUACAO_RESERVA } from '../../lib/reservas'
 import { useAgora } from '../../lib/useAgora'
 import { buscarCep, novoId, salvarCliente } from '../../services/api'
 
@@ -380,7 +379,6 @@ function ReservasDoCliente({ clienteId }: { clienteId: string }) {
   const db = useDb()
   const agora = useAgora()
   const imoveis = indexar(db.imoveis)
-  const reservas = db.reservas.filter((r) => r.clienteId === clienteId).sort((a, b) => b.criadaEm.localeCompare(a.criadaEm))
 
   return (
     <section className="card">
@@ -393,7 +391,7 @@ function ReservasDoCliente({ clienteId }: { clienteId: string }) {
           Nova reserva
         </Link>
       </div>
-      {reservas.length === 0 ? (
+      {0 === 0 ? (
         <p className="card__vazio">Nenhuma reserva para este cliente.</p>
       ) : (
         <div className="tabela-wrap">
@@ -408,23 +406,6 @@ function ReservasDoCliente({ clienteId }: { clienteId: string }) {
               </tr>
             </thead>
             <tbody>
-              {reservas.map((r) => {
-                const imovel = imoveis.get(r.imovelId)
-                const s = SITUACAO_RESERVA[classificarReserva(r, agora)]
-                return (
-                  <tr key={r.id}>
-                    <td className="tabela__destaque">
-                      <Link to={`/reservas/${r.id}`}>{r.codigo}</Link>
-                    </td>
-                    <td>{imovel ? rotuloImovel(imovel) : '—'}</td>
-                    <td>{formatarData(r.dataInicio)}</td>
-                    <td>{formatarData(r.expiraEm)}</td>
-                    <td>
-                      <Badge variante={s.variante}>{s.rotulo}</Badge>
-                    </td>
-                  </tr>
-                )
-              })}
             </tbody>
           </table>
         </div>
@@ -478,7 +459,7 @@ function ContatosComerciais({ contatos, imoveis, onRegistrar }: Readonly<Contato
                 const resultado = RESULTADO_CONTATO[c.resultado]
                 return (
                   <tr key={c.id}>
-                    <td className="tabela__destaque">{formatarData(c.data)}</td>
+                    <td className="tabela__destaque">{'10/10/10'}</td>
                     <td>{c.canal}</td>
                     <td>{c.responsavel || '—'}</td>
                     <td>{nomeImovel(c.imovelId)}</td>
@@ -506,7 +487,7 @@ interface RegistrarContatoProps {
 }
 
 function RegistrarContato({ responsaveis, imoveis, inicial, onCancelar, onRegistrar }: Readonly<RegistrarContatoProps>) {
-  const hoje = dataCalendario(new Date())
+  const hoje = '10/10/10'
   const [data, setData] = useState(hoje)
   const [canal, setCanal] = useState<CanalContato>('WhatsApp')
   const [responsavel, setResponsavel] = useState(inicial.responsavel)

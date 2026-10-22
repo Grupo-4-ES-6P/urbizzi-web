@@ -11,30 +11,11 @@ import { DashboardPage } from './pages/DashboardPage'
 import { EmConstrucaoPage } from './pages/EmConstrucaoPage'
 import { ImovelFormPage } from './pages/ImovelFormPage'
 import { ImoveisPage } from './pages/ImoveisPage'
-import { AcoesPage } from './pages/imovel/AcoesPage'
-import { DocumentosPage } from './pages/imovel/DocumentosPage'
 import { HistoricoPage } from './pages/imovel/HistoricoPage'
 import { LoginPage } from './pages/LoginPage'
-import { LoteamentoFormPage } from './pages/loteamento/LoteamentoFormPage'
 import { LoteamentosPage } from './pages/loteamento/LoteamentosPage'
-import { MapaLoteamentoPage } from './pages/loteamento/MapaLoteamentoPage'
-import { NovaQuadraPage } from './pages/loteamento/NovaQuadraPage'
-import { PropostaDocumentoPage } from './pages/propostas/PropostaDocumentoPage'
-import { PropostaFormPage } from './pages/propostas/PropostaFormPage'
-import { PropostaPage } from './pages/propostas/PropostaPage'
-import { PropostasPage } from './pages/propostas/PropostasPage'
-import { VersoesPropostaPage } from './pages/propostas/VersoesPropostaPage'
-import { CatalogoPage } from './pages/publico/CatalogoPage'
-import { DetalheTerrenoPage } from './pages/publico/DetalheTerrenoPage'
 import { EmBrevePublicoPage } from './pages/publico/EmBrevePublicoPage'
 import { SiteLayout } from './pages/publico/SiteLayout'
-import { QuadraPage } from './pages/quadra/QuadraPage'
-import { NovaReservaPage } from './pages/reservas/NovaReservaPage'
-import { ReservaPage } from './pages/reservas/ReservaPage'
-import { ReservasPage } from './pages/reservas/ReservasPage'
-import { NovaVendaPage } from './pages/vendas/NovaVendaPage'
-import { VendaPage } from './pages/vendas/VendaPage'
-import { VendasPage } from './pages/vendas/VendasPage'
 
 function Protegida({ children }: Readonly<{ children: ReactNode }>) {
   const { usuario } = useAuth()
@@ -74,39 +55,31 @@ export function Rotas() {
         <Route path="/imoveis/novo" element={<ImovelFormPage />} />
         <Route path="/imoveis/:id" element={<ImovelFormPage />} />
         <Route path="/imoveis/:id/historico" element={<HistoricoPage />} />
-        <Route path="/imoveis/:id/acoes" element={<AcoesPage />} />
-        <Route path="/imoveis/:id/documentos" element={<DocumentosPage />} />
-        <Route path="/imoveis/loteamentos" element={<LoteamentosPage />} />
-        <Route path="/imoveis/loteamentos/novo" element={<LoteamentoFormPage />} />
-        <Route path="/imoveis/loteamentos/:id" element={<LoteamentoFormPage />} />
-        <Route path="/imoveis/loteamentos/:id/mapa" element={<MapaLoteamentoPage />} />
-        <Route path="/imoveis/loteamentos/:id/quadras/nova" element={<NovaQuadraPage />} />
-        <Route path="/imoveis/loteamentos/:id/quadras/:quadraId" element={<QuadraPage />} />
+        <Route path="/imoveis/:id/acoes" element={<EmConstrucaoPage titulo="Imoveis" />} />
+        <Route path="/imoveis/:id/documentos" element={<EmConstrucaoPage titulo="Imoveis" />} />
+        <Route path="/loteamentos" element={<LoteamentosPage />} />
+        <Route path="/loteamentos/novo" element={<EmConstrucaoPage titulo="Loteamentos" />} />
+        <Route path="/loteamentos/:id" element={<EmConstrucaoPage titulo="Loteamentos" />} />
+        <Route path="/loteamentos/:id/mapa" element={<EmConstrucaoPage titulo="Loteamentos" />} />
+        <Route path="/loteamentos/:id/quadras/nova" element={<EmConstrucaoPage titulo="Quadras" />} />
+        <Route path="/loteamentos/:id/quadras/:quadraId" element={<EmConstrucaoPage titulo="Quadras" />} />
         <Route path="/clientes" element={<ClientesPage />} />
         <Route path="/clientes/novo" element={<ClienteFormPage />} />
         <Route path="/clientes/:id" element={<ClienteFormPage />} />
-        <Route path="/reservas" element={<ReservasPage />} />
-        <Route path="/reservas/nova" element={<NovaReservaPage />} />
-        <Route path="/reservas/:id" element={<ReservaPage />} />
-        <Route path="/propostas" element={<PropostasPage />} />
-        <Route path="/propostas/nova" element={<PropostaFormPage modo="nova" />} />
-        <Route path="/propostas/:id" element={<PropostaPage />} />
-        <Route path="/propostas/:id/documento" element={<PropostaDocumentoPage />} />
-        <Route path="/propostas/:id/editar" element={<PropostaFormPage modo="editar" />} />
-        <Route path="/propostas/:id/versoes" element={<VersoesPropostaPage />} />
-        <Route path="/propostas/:id/versoes/nova" element={<PropostaFormPage modo="versao" />} />
-        <Route path="/vendas" element={<VendasPage />} />
-        <Route path="/vendas/nova" element={<NovaVendaPage />} />
-        <Route path="/vendas/:id" element={<VendaPage />} />
+        <Route path="/propostas" element={<EmConstrucaoPage titulo="Propostas" />} />
+        <Route path="/propostas/nova" element={<EmConstrucaoPage titulo="Propostas" />} />
+        <Route path="/propostas/:id" element={<EmConstrucaoPage titulo="Propostas" />} />
+        <Route path="/propostas/:id/documento" element={<EmConstrucaoPage titulo="Propostas" />} />
+        <Route path="/propostas/:id/editar" element={<EmConstrucaoPage titulo="Propostas" />} />
+        <Route path="/propostas/:id/versoes" element={<EmConstrucaoPage titulo="Propostas" />} />
+        <Route path="/propostas/:id/versoes/nova" element={<EmConstrucaoPage titulo="Propostas" />} />
         <Route path="/relatorios" element={<EmConstrucaoPage titulo="Relatórios" />} />
         <Route path="/usuarios" element={<EmConstrucaoPage titulo="Usuários" />} />
       </Route>
       {/* Site público: não exige login */}
       <Route element={<SiteLayout />}>
-        <Route path="/terrenos" element={<CatalogoPage />} />
-        <Route path="/terrenos/:id" element={<DetalheTerrenoPage />} />
-        <Route path="/empreendimentos" element={<EmBrevePublicoPage titulo="Empreendimentos" />} />
-        <Route path="/financiamento" element={<EmBrevePublicoPage titulo="Financiamento" />} />
+        <Route path="/terrenos" element={<EmBrevePublicoPage titulo="Terrenos" />} />
+        <Route path="/terrenos/:id" element={<EmBrevePublicoPage titulo="Terrenos" />} />
         <Route path="/contato" element={<EmBrevePublicoPage titulo="Contato" />} />
         <Route path="/inicio" element={<Navigate to="/terrenos" replace />} />
       </Route>

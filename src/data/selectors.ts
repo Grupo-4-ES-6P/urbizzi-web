@@ -1,5 +1,3 @@
-import { emAndamento, situacaoProposta } from '../lib/propostas'
-import { valorVendidoNoAno } from '../lib/vendas'
 import type { Db, Imovel, Loteamento, Reserva, Situacao, VarianteBadge } from './types'
 
 export function rotuloImovel(imovel: Imovel, comLoteamento = true) {
@@ -29,14 +27,6 @@ export function proximoCodigo(db: Db) {
   return String(maior + 1)
 }
 
-export function resumoGeral(db: Db, agora: number) {
-  return {
-    imoveisCadastrados: db.imoveis.filter((i) => i.status === 'publicado').length,
-    reservasAtivas: db.reservas.filter((r) => reservaAtiva(r, agora)).length,
-    vendasNoAno: valorVendidoNoAno(db.vendas, agora),
-  }
-}
-
 export const SITUACAO_EXIBICAO: Record<Situacao, { rotulo: string; variante: VarianteBadge }> = {
   disponivel: { rotulo: 'Disponível', variante: 'normal' },
   reservado: { rotulo: 'Reservado', variante: 'atencao' },
@@ -59,10 +49,6 @@ export function situacaoExibida(imovel: Imovel, propostasPendentes: Set<string>)
     return { rotulo: 'Em aprovação', variante: 'escuro' as VarianteBadge }
   }
   return SITUACAO_EXIBICAO[imovel.situacao]
-}
-
-export function imoveisComPropostaPendente(db: Db, agora = Date.now()) {
-  return new Set(db.propostas.filter((p) => emAndamento(situacaoProposta(p, agora))).map((p) => p.imovelId))
 }
 
 /** Identificador completo do lote: <código do loteamento>-<quadra>-<lote>, ex.: UNI-I-04-12. */

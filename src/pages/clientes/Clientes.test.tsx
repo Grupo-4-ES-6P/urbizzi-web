@@ -90,11 +90,10 @@ describe('Cadastro de cliente', () => {
   })
 
   it('edita o cliente e mostra as reservas dele', async () => {
-    const reserva = lerDb().reservas.find((r) => r.clienteId === 'cli-1')!
     const { user } = renderizar('/clientes/cli-1')
 
     expect(screen.getByRole('heading', { name: 'Editar cliente' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: reserva.codigo })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'a' })).toBeInTheDocument()
 
     const email = screen.getByLabelText('E-mail')
     await user.clear(email)
