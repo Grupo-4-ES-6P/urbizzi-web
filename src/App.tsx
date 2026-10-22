@@ -6,6 +6,9 @@ import { ToastProvider } from './contexts/ToastContext'
 import { AppLayout } from './layouts/AppLayout'
 import { DashboardPage } from './pages/DashboardPage'
 import { EmConstrucaoPage } from './pages/EmConstrucaoPage'
+import { ImovelFormPage } from './pages/imovel/ImovelFormPage'
+import { ImoveisPage } from './pages/imovel/ImoveisPage'
+import { HistoricoPage } from './pages/imovel/HistoricoPage'
 import { LoginPage } from './pages/LoginPage'
 import { AcoesPage } from './pages/imovel/AcoesPage'
 import { DocumentosPage } from './pages/imovel/DocumentosPage'
@@ -47,10 +50,10 @@ export function Rotas() {
         }
       >
         <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/imoveis" element={<EmConstrucaoPage titulo="Imóveis" />} />
-        <Route path="/imoveis/novo" element={<EmConstrucaoPage titulo="Imóveis" />} />
-        <Route path="/imoveis/:id" element={<EmConstrucaoPage titulo="Imóveis" />} />
-        <Route path="/imoveis/:id/historico" element={<EmConstrucaoPage titulo="Imóveis" />} />
+        <Route path="/imoveis" element={<ImoveisPage />} />
+        <Route path="/imoveis/novo" element={<ImovelFormPage />} />
+        <Route path="/imoveis/:id" element={<ImovelFormPage />} />
+        <Route path="/imoveis/:id/historico" element={<HistoricoPage />} />
         <Route path="/imoveis/:id/acoes" element={<AcoesPage />} />
         <Route path="/imoveis/:id/documentos" element={<DocumentosPage />} />
         <Route path="/loteamentos" element={<EmConstrucaoPage titulo="Loteamentos" />} />
