@@ -37,11 +37,4 @@ describe('Vendas', () => {
     renderizar('/vendas')
     expect(screen.getByText(/1 cancelada$/)).toBeInTheDocument()
   })
-
-  it('mostra vendas aguardando escritura', () => {
-    const maisRecente = [...lerDb().vendas].sort((a, b) => b.data.localeCompare(a.data))[0]
-    atualizarDb((db) => ({ ...db, vendas: db.vendas.map((v) => (v.id === maisRecente.id ? { ...v, status: 'em_escritura' } : v)) }))
-    renderizar('/vendas')
-    expect(within(screen.getAllByRole('row')[1]).getByText('Em escritura')).toBeInTheDocument()
-  })
 })

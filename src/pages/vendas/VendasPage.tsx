@@ -15,7 +15,6 @@ const BOM = '﻿'
 
 const STATUS_VENDA: Record<Venda['status'], { rotulo: string; variante: VarianteBadge }> = {
   ativa: { rotulo: 'Concluída', variante: 'normal' },
-  em_escritura: { rotulo: 'Em escritura', variante: 'escuro' },
   cancelada: { rotulo: 'Cancelada', variante: 'critico' },
 }
 
@@ -83,7 +82,7 @@ export function VendasPage() {
 
   const ano = String(new Date().getFullYear())
   const totalAno = db.vendas
-    .filter((v) => v.status !== 'cancelada' && v.data.startsWith(ano))
+    .filter((v) => v.status === 'ativa' && v.data.startsWith(ano))
     .reduce((soma, v) => soma + v.valor, 0)
   const canceladas = db.vendas.filter((v) => v.status === 'cancelada').length
 
