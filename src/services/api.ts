@@ -111,6 +111,7 @@ export async function aprovarProposta(propostaId: string, autor = 'Administrador
           imovelId,
           clienteId: proposta.clienteId,
           propostaId,
+          corretorId: proposta.corretorId,
           valor: proposta.valor,
           data: agora,
           status: 'ativa',
