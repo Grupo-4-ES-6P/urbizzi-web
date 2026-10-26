@@ -42,4 +42,13 @@ describe('Cadastro de quadra', () => {
     expect(screen.getByText('Informe a rua de frente.')).toBeInTheDocument()
     expect(lerDb().quadras).toHaveLength(quadras)
   })
+
+  it('a página da quadra leva até o cadastro de uma nova quadra', async () => {
+    const lot = universitario()
+    const qd = lerDb().quadras.find((q) => q.loteamento === lot.nome)!
+    const { user } = renderizar(`/loteamentos/${lot.id}/quadras/${qd.id}`)
+
+    await user.click(await screen.findByRole('link', { name: 'Nova quadra' }))
+    expect(screen.getByRole('heading', { name: `Nova quadra — ${lot.nome}` })).toBeInTheDocument()
+  })
 })
