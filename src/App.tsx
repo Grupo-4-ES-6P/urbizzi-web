@@ -14,6 +14,7 @@ import { AcoesPage } from './pages/imovel/AcoesPage'
 import { DocumentosPage } from './pages/imovel/DocumentosPage'
 import { QuadraPage } from './pages/quadra/QuadraPage'
 import { NovaPropostaPage } from './pages/propostas/NovaPropostaPage'
+import { CatalogoPage } from './pages/publico/CatalogoPage'
 import { EmBrevePublicoPage } from './pages/publico/EmBrevePublicoPage'
 import { SiteLayout } from './pages/publico/SiteLayout'
 
@@ -73,7 +74,7 @@ export function Rotas() {
       </Route>
       {/* Site público: não exige login */}
       <Route element={<SiteLayout />}>
-        <Route path="/terrenos" element={<EmBrevePublicoPage titulo="Catálogo" />} />
+        <Route path="/terrenos" element={<CatalogoPage />} />
         <Route path="/terrenos/:id" element={<EmBrevePublicoPage titulo="Terreno" />} />
         <Route path="/empreendimentos" element={<EmBrevePublicoPage titulo="Empreendimentos" />} />
         <Route path="/financiamento" element={<EmBrevePublicoPage titulo="Financiamento" />} />
