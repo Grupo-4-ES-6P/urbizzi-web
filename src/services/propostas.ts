@@ -69,6 +69,7 @@ export function salvarProposta(dados: DadosNovaProposta, status: 'rascunho' | 'p
       criadaEm: anterior?.criadaEm ?? agora.toISOString(),
       status,
       condicao,
+      versao: anterior?.versao ?? 1,
       ...dados,
       expiraEm: expiraEm.toISOString(),
     }
@@ -92,4 +93,43 @@ export function salvarProposta(dados: DadosNovaProposta, status: 'rascunho' | 'p
     }
   })
   return salvoId
+}
+
+export async function registrarContraproposta(id: string, valor: number, justificativa: string, autor: UsuarioPublico) {
+  if (!Number.isFinite(valor) || valor <= 0) throw new Error('Informe um valor válido para a contraproposta.')
+  if (!justificativa.trim()) throw new Error('Informe a justificativa da contraproposta.')
+
+  atualizarDb((db) => {
+    const proposta = db.propostas.find((item) => item.id === id)
+    if (proposta?.status !== 'pendente') throw new Error('Esta proposta não está aguardando análise.')
+    if (proposta.valor === valor) throw new Error('O novo valor deve ser diferente do valor atual.')
+    const agora = new Date().toISOString()
+    const numeroAtual = proposta.versao ?? 1
+    const atualizada: Proposta = {
+      ...proposta,
+      valor,
+      versao: numeroAtual + 1,
+      versoes: [...(proposta.versoes ?? []), {
+        numero: numeroAtual,
+        valor: proposta.valor,
+        condicao: proposta.condicao,
+        registradaEm: agora,
+        autor: autor.nome,
+      }],
+    }
+    return {
+      ...db,
+      propostas: db.propostas.map((item) => item.id === id ? atualizada : item),
+      historico: [...db.historico, {
+        id: `his-${crypto.randomUUID()}`,
+        imovelId: proposta.imovelId,
+        data: agora,
+        tipo: 'Contraproposta',
+        descricao: `Valor alterado de ${proposta.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} para ${valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}. ${justificativa.trim()}`,
+        autor: autor.nome,
+        referencia: proposta.codigo,
+        situacao: { rotulo: 'Em análise', variante: 'escuro' as const },
+      }],
+    }
+  })
 }
