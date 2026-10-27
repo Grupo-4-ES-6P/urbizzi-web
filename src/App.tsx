@@ -12,6 +12,7 @@ import { HistoricoPage } from './pages/imovel/HistoricoPage'
 import { LoginPage } from './pages/LoginPage'
 import { AcoesPage } from './pages/imovel/AcoesPage'
 import { DocumentosPage } from './pages/imovel/DocumentosPage'
+import { NovaQuadraPage } from './pages/quadra/NovaQuadraPage'
 import { QuadraPage } from './pages/quadra/QuadraPage'
 import { NovaPropostaPage } from './pages/propostas/NovaPropostaPage'
 import { EmBrevePublicoPage } from './pages/publico/EmBrevePublicoPage'
@@ -61,7 +62,7 @@ export function Rotas() {
         <Route path="/loteamentos/novo" element={<EmConstrucaoPage titulo="Loteamentos" />} />
         <Route path="/loteamentos/:id" element={<EmConstrucaoPage titulo="Loteamentos" />} />
         <Route path="/loteamentos/:id/mapa" element={<EmConstrucaoPage titulo="Loteamentos" />} />
-        <Route path="/loteamentos/:id/quadras/nova" element={<EmConstrucaoPage titulo="Quadras" />} />
+        <Route path="/loteamentos/:id/quadras/nova" element={<NovaQuadraPage />} />
         <Route path="/loteamentos/:id/quadras/:quadraId" element={<QuadraPage />} />
         <Route path="/clientes" element={<EmConstrucaoPage titulo="Clientes" />} />
         <Route path="/reservas" element={<EmConstrucaoPage titulo="Reservas" />} />

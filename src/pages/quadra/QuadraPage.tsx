@@ -1,4 +1,4 @@
-import { Grid3x3, List } from 'lucide-react'
+import { Grid3x3, List, Plus } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
@@ -90,6 +90,9 @@ export function QuadraPage() {
           </p>
         </div>
         <div className="cabecalho__acoes">
+          <Link to={`/loteamentos/${loteamento.id}/quadras/nova`} className="btn btn--secundario">
+            <Plus size={15} /> Nova quadra
+          </Link>
           <Link to={`/loteamentos/${loteamento.id}/mapa`} className="btn btn--secundario">
             <Grid3x3 size={15} /> Ver mapa do loteamento
           </Link>
