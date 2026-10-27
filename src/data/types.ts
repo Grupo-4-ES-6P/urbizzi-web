@@ -92,6 +92,7 @@ export interface Venda {
   imovelId: string
   clienteId: string
   propostaId?: string
+  corretorId?: string
   valor: number
   data: string
   status: 'ativa' | 'cancelada'
