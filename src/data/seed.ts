@@ -13,7 +13,7 @@ import type {
   Venda,
 } from './types'
 
-export const VERSAO_DB = 2
+export const VERSAO_DB = 3
 
 const HORA = 3_600_000
 const DIA = 24 * HORA
@@ -152,7 +152,7 @@ function dataDaVenda({ rand, agora, agoraMs, inicioMes }: Contexto, i: number) {
 
 // Vendas dos últimos 12 meses.
 function criarVendas(ctx: Contexto, retirar: (i: Imovel) => Imovel, livres: Imovel[]) {
-  const { rand, escolher, ano, agoraMs, clientes } = ctx
+  const { rand, escolher, ano, agoraMs, clientes, corretores } = ctx
 const vendas: Venda[] = []
 for (let i = 0; i < 60; i++) {
   const imovel = retirar(livres[0])
@@ -164,6 +164,7 @@ for (let i = 0; i < 60; i++) {
     status: 'ativa',
     imovelId: imovel.id,
     clienteId: escolher(clientes).id,
+    corretorId: corretores[i % corretores.length].id,
     valor: arredondar(imovel.valores.tabela! * (0.95 + rand() * 0.05)),
     data: new Date(Math.min(data, agoraMs)).toISOString(),
   })

@@ -18,6 +18,7 @@ import { NovaPropostaPage } from './pages/propostas/NovaPropostaPage'
 import { CatalogoPage } from './pages/publico/CatalogoPage'
 import { EmBrevePublicoPage } from './pages/publico/EmBrevePublicoPage'
 import { SiteLayout } from './pages/publico/SiteLayout'
+import { VendasPage } from './pages/vendas/VendasPage'
 
 function Protegida({ children }: Readonly<{ children: ReactNode }>) {
   const { usuario } = useAuth()
@@ -69,7 +70,7 @@ export function Rotas() {
         <Route path="/reservas" element={<EmConstrucaoPage titulo="Reservas" />} />
         <Route path="/propostas" element={<EmConstrucaoPage titulo="Propostas" />} />
         <Route path="/propostas/nova" element={<NovaPropostaPage />} />
-        <Route path="/vendas" element={<EmConstrucaoPage titulo="Vendas" />} />
+        <Route path="/vendas" element={<VendasPage />} />
         <Route path="/relatorios" element={<EmConstrucaoPage titulo="Relatórios" />} />
         <Route path="/usuarios" element={<EmConstrucaoPage titulo="Usuários" />} />
       </Route>
