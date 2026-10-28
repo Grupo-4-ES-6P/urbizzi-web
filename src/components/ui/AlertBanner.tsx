@@ -7,15 +7,15 @@ interface AlertBannerProps {
   action?: ReactNode;
 }
 
-export function AlertBanner({ title, description, action }: AlertBannerProps) {
+export function AlertBanner({ title, description, action }: Readonly<AlertBannerProps>) {
   return (
-    <div className={styles.banner} role="status">
+    <output className={styles.banner}>
       <span className={styles.dot} aria-hidden="true" />
       <div className={styles.text}>
         <p className={styles.title}>{title}</p>
         {description && <p className={styles.description}>{description}</p>}
       </div>
       {action && <div className={styles.action}>{action}</div>}
-    </div>
+    </output>
   );
 }

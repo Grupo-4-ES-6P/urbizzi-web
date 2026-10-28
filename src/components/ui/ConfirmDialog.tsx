@@ -16,7 +16,7 @@ export function ConfirmDialog({
   cancelLabel = 'Cancelar',
   onConfirm,
   onCancel,
-}: ConfirmDialogProps) {
+}: Readonly<ConfirmDialogProps>) {
   const overlayRef = useRef<HTMLDivElement>(null);
 
   // Fecha com Esc (teclado) ou com clique no fundo escurecido (mouse).

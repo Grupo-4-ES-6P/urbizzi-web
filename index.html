@@ -10,9 +10,11 @@
       try {
         var tema = localStorage.getItem('urbizzi:tema')
         if (tema === 'claro' || tema === 'escuro') {
-          document.documentElement.dataset('data-theme', tema === 'escuro' ? 'dark' : 'light')
+          document.documentElement.dataset.theme = tema === 'escuro' ? 'dark' : 'light'
         }
-      } catch (e) {}
+      } catch (e) {
+        // Storage indisponível: o TemaContext aplica a preferência do sistema depois.
+      }
     </script>
   </head>
   <body>

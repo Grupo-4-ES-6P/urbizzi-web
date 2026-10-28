@@ -8,7 +8,7 @@ interface PageHeaderProps {
   actions?: ReactNode;
 }
 
-export function PageHeader({ breadcrumb, title, description, actions }: PageHeaderProps) {
+export function PageHeader({ breadcrumb, title, description, actions }: Readonly<PageHeaderProps>) {
   return (
     <header className={styles.header}>
       <div>

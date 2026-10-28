@@ -8,7 +8,7 @@ interface ReadonlyValueProps {
 }
 
 /** Par rótulo/valor somente leitura com a aparência de um campo; usar dentro de um <dl>. */
-export function ReadonlyValue({ label, children, tone = 'default' }: ReadonlyValueProps) {
+export function ReadonlyValue({ label, children, tone = 'default' }: Readonly<ReadonlyValueProps>) {
   return (
     <div className={styles.item}>
       <dt className={styles.label}>{label}</dt>

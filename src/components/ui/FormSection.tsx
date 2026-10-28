@@ -10,7 +10,7 @@ interface FormSectionProps {
   children: ReactNode;
 }
 
-export function FormSection({ title, description, note, flush = false, children }: FormSectionProps) {
+export function FormSection({ title, description, note, flush = false, children }: Readonly<FormSectionProps>) {
   const titleId = useId();
 
   return (

@@ -7,7 +7,7 @@ interface SwitchProps {
   label?: string;
 }
 
-export function Switch({ id, checked, onChange, label }: SwitchProps) {
+export function Switch({ id, checked, onChange, label }: Readonly<SwitchProps>) {
   return (
     <span className={styles.wrapper}>
       <button

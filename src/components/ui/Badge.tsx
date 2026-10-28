@@ -8,6 +8,6 @@ interface BadgeProps {
   children: ReactNode;
 }
 
-export function Badge({ tone, children }: BadgeProps) {
+export function Badge({ tone, children }: Readonly<BadgeProps>) {
   return <span className={`${styles.badge} ${styles[tone]}`}>{children}</span>;
 }

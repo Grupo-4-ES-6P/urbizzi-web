@@ -6,7 +6,7 @@ interface LayoutProps {
   children: ReactNode;
 }
 
-export function Layout({ children }: LayoutProps) {
+export function Layout({ children }: Readonly<LayoutProps>) {
   return (
     <div className={styles.layout}>
       <Sidebar />

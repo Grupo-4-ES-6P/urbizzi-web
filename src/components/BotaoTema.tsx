@@ -3,7 +3,7 @@ import { Moon, Sun } from 'lucide-react'
 import { useTema } from '../contexts/TemaContext'
 
 /** Alterna entre tema claro e escuro. `sobreEscuro` para fundos sempre escuros (topo do site). */
-export function BotaoTema({ sobreEscuro = false, className = '' }: { sobreEscuro?: boolean; className?: string }) {
+export function BotaoTema({ sobreEscuro = false, className = '' }: Readonly<{ sobreEscuro?: boolean; className?: string }>) {
   const { tema, alternarTema } = useTema()
   const escuro = tema === 'escuro'
   const rotulo = escuro ? 'Usar tema claro' : 'Usar tema escuro'

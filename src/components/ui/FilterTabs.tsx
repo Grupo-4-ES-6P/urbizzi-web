@@ -13,9 +13,9 @@ interface FilterTabsProps<T extends string> {
   onChange: (value: T) => void;
 }
 
-export function FilterTabs<T extends string>({ label, tabs, value, onChange }: FilterTabsProps<T>) {
+export function FilterTabs<T extends string>({ label, tabs, value, onChange }: Readonly<FilterTabsProps<T>>) {
   return (
-    <div className={styles.tabs} role="group" aria-label={label}>
+    <fieldset className={styles.tabs} aria-label={label}>
       {tabs.map((tab) => {
         const ativo = tab.value === value;
         return (
@@ -31,6 +31,6 @@ export function FilterTabs<T extends string>({ label, tabs, value, onChange }: F
           </button>
         );
       })}
-    </div>
+    </fieldset>
   );
 }

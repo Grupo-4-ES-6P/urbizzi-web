@@ -9,7 +9,7 @@ interface FieldProps {
   children: ReactNode;
 }
 
-export function Field({ id, label, error, hint, children }: FieldProps) {
+export function Field({ id, label, error, hint, children }: Readonly<FieldProps>) {
   return (
     <div className={styles.field}>
       <label className={styles.label} htmlFor={id}>
@@ -41,7 +41,7 @@ interface FieldGridProps {
   children: ReactNode;
 }
 
-export function FieldGrid({ columns, as: Tag = 'div', children }: FieldGridProps) {
+export function FieldGrid({ columns, as: Tag = 'div', children }: Readonly<FieldGridProps>) {
   return (
     <Tag className={styles.grid} style={{ '--field-grid-columns': columns } as CSSProperties}>
       {children}

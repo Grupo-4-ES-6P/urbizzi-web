@@ -56,7 +56,7 @@ export function ClienteForm({
   onCancel,
   submitLabel = 'Salvar Cliente',
   submittingLabel = 'Salvando...',
-}: ClienteFormProps) {
+}: Readonly<ClienteFormProps>) {
   const [values, setValues] = useState<ClienteFormValues>(initialValues ?? EMPTY_VALUES);
   const [touched, setTouched] = useState<Record<FieldName, boolean>>({
     nome_completo: false,

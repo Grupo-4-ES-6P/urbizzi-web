@@ -22,12 +22,12 @@ function lerTema(): Tema {
   return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'escuro' : 'claro'
 }
 
-export function TemaProvider({ children }: { children: ReactNode }) {
+export function TemaProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [tema, setTema] = useState<Tema>(lerTema)
 
   // O CSS usa data-theme (light/dark); o mesmo atributo é aplicado no index.html antes do primeiro render.
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', tema === 'escuro' ? 'dark' : 'light')
+    document.documentElement.dataset.theme = tema === 'escuro' ? 'dark' : 'light'
   }, [tema])
 
   const alternarTema = useCallback(() => {

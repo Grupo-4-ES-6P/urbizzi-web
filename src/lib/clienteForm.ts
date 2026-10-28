@@ -95,10 +95,10 @@ export function clienteVazio(): FormCliente {
 }
 
 export function formDeCliente(c: Cliente): FormCliente {
-  const { id: _id, criadoEm: _c, atualizadoEm: _a, ...form } = c
-  void _id
-  void _c
-  void _a
+  const form: Partial<Cliente> & FormCliente = { ...c }
+  delete form.id
+  delete form.criadoEm
+  delete form.atualizadoEm
   return { ...form, endereco: { ...form.endereco }, contatos: [...form.contatos] }
 }
 
