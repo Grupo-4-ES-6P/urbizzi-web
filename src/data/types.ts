@@ -177,6 +177,8 @@ export interface Loteamento {
   numeroRegistro: string
   licencaAmbiental: string
   validadeLicenca: string
+  /** Quantas vezes uma reserva pode ser renovada neste loteamento (RF15). */
+  limiteRenovacoes: number
 }
 
 export interface Quadra {

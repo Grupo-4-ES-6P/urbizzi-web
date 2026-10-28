@@ -13,7 +13,9 @@ import { ImovelFormPage } from './pages/imovel/ImovelFormPage'
 import { ImoveisPage } from './pages/imovel/ImoveisPage'
 import { HistoricoPage } from './pages/imovel/HistoricoPage'
 import { LoginPage } from './pages/LoginPage'
+import { LoteamentoFormPage } from './pages/loteamento/LoteamentoFormPage'
 import { LoteamentosPage } from './pages/loteamento/LoteamentosPage'
+import { MapaLoteamentoPage } from './pages/loteamento/MapaLoteamentoPage'
 import { AcoesPage } from './pages/imovel/AcoesPage'
 import { DocumentosPage } from './pages/imovel/DocumentosPage'
 import { NovaQuadraPage } from './pages/quadra/NovaQuadraPage'
@@ -66,9 +68,9 @@ export function Rotas() {
         <Route path="/imoveis/:id/acoes" element={<AcoesPage />} />
         <Route path="/imoveis/:id/documentos" element={<DocumentosPage />} />
         <Route path="/loteamentos" element={<LoteamentosPage />} />
-        <Route path="/loteamentos/novo" element={<EmConstrucaoPage titulo="Loteamentos" />} />
-        <Route path="/loteamentos/:id" element={<EmConstrucaoPage titulo="Loteamentos" />} />
-        <Route path="/loteamentos/:id/mapa" element={<EmConstrucaoPage titulo="Loteamentos" />} />
+        <Route path="/loteamentos/novo" element={<LoteamentoFormPage />} />
+        <Route path="/loteamentos/:id" element={<LoteamentoFormPage />} />
+        <Route path="/loteamentos/:id/mapa" element={<MapaLoteamentoPage />} />
         <Route path="/loteamentos/:id/quadras/nova" element={<NovaQuadraPage />} />
         <Route path="/loteamentos/:id/quadras/:quadraId" element={<QuadraPage />} />
         <Route path="/clientes" element={<ClientesPage />} />

@@ -19,7 +19,7 @@ import type {
 } from './types'
 
 // Sobe a cada mudança no formato dos dados para descartar o banco antigo salvo no navegador.
-export const VERSAO_DB = 7
+export const VERSAO_DB = 8
 
 const HORA = 3_600_000
 const DIA = 24 * HORA
@@ -291,6 +291,7 @@ const loteamentos: Loteamento[] = LOTEAMENTOS.map((l, i) => ({
   numeroRegistro: `R-${4 + i}/${38771 + i * 1311}`,
   licencaAmbiental: `IAT-${ano - 2}-0${871 + i}`,
   validadeLicenca: `${ano + 1}-06-30`,
+  limiteRenovacoes: l.limiteRenovacoes,
 }))
 const quadras: Quadra[] = []
 for (const i of imoveis) {

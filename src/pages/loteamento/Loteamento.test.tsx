@@ -9,7 +9,7 @@ describe('Loteamentos', () => {
   it('gera uma quadra com lotes em série e matrícula pendente', async () => {
     const lot = universitario()
     const antes = lerDb().imoveis.length
-    const { user } = renderizar(`/imoveis/loteamentos/${lot.id}/quadras/nova`)
+    const { user } = renderizar(`/loteamentos/${lot.id}/quadras/nova`)
 
     await user.type(screen.getByLabelText('Testada para'), 'Rua Guaraní')
     const quantidade = screen.getByLabelText('Quantidade de lotes')
@@ -17,7 +17,7 @@ describe('Loteamentos', () => {
     await user.type(quantidade, '6')
     await user.click(screen.getByRole('button', { name: 'Gerar 6 lotes' }))
 
-    expect(await screen.findByRole('heading', { name: 'Imóveis' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: `Qd. 07 — ${lot.nome}` })).toBeInTheDocument()
     const novos = lerDb().imoveis.slice(antes)
     expect(novos).toHaveLength(6)
     expect(novos.every((i) => i.endereco.quadra === '07' && i.matricula === '')).toBe(true)
@@ -25,7 +25,7 @@ describe('Loteamentos', () => {
   })
 
   it('valida o cadastro de loteamento e salva', async () => {
-    const { user } = renderizar('/imoveis/loteamentos/novo')
+    const { user } = renderizar('/loteamentos/novo')
     await user.click(screen.getByRole('button', { name: /Salvar loteamento/ }))
     expect(screen.getByText('Informe o nome do loteamento.')).toBeInTheDocument()
 
@@ -39,7 +39,7 @@ describe('Loteamentos', () => {
   })
 
   it('mapa mostra os dados do lote clicado', async () => {
-    const { user } = renderizar(`/imoveis/loteamentos/${universitario().id}/mapa`)
+    const { user } = renderizar(`/loteamentos/${universitario().id}/mapa`)
     await user.click(screen.getByRole('button', { name: 'Lote 12, Qd. 04 — Reservado' }))
     const painel = screen.getByRole('heading', { name: 'Lote selecionado — Lote 12, Qd. 04' }).closest('section')!
     expect(within(painel).getByText('Marina Alves')).toBeInTheDocument()
