@@ -2,14 +2,18 @@ import type { ReactNode } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { TemaProvider } from './contexts/TemaContext'
 import { ToastProvider } from './contexts/ToastContext'
 import { AppLayout } from './layouts/AppLayout'
+import { ClienteFormPage } from './pages/clientes/ClienteFormPage'
+import { ClientesPage } from './pages/clientes/ClientesPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { EmConstrucaoPage } from './pages/EmConstrucaoPage'
 import { ImovelFormPage } from './pages/imovel/ImovelFormPage'
 import { ImoveisPage } from './pages/imovel/ImoveisPage'
 import { HistoricoPage } from './pages/imovel/HistoricoPage'
 import { LoginPage } from './pages/LoginPage'
+import { LoteamentosPage } from './pages/loteamento/LoteamentosPage'
 import { AcoesPage } from './pages/imovel/AcoesPage'
 import { DocumentosPage } from './pages/imovel/DocumentosPage'
 import { NovaQuadraPage } from './pages/quadra/NovaQuadraPage'
@@ -61,13 +65,15 @@ export function Rotas() {
         <Route path="/imoveis/:id/historico" element={<HistoricoPage />} />
         <Route path="/imoveis/:id/acoes" element={<AcoesPage />} />
         <Route path="/imoveis/:id/documentos" element={<DocumentosPage />} />
-        <Route path="/loteamentos" element={<EmConstrucaoPage titulo="Loteamentos" />} />
+        <Route path="/loteamentos" element={<LoteamentosPage />} />
         <Route path="/loteamentos/novo" element={<EmConstrucaoPage titulo="Loteamentos" />} />
         <Route path="/loteamentos/:id" element={<EmConstrucaoPage titulo="Loteamentos" />} />
         <Route path="/loteamentos/:id/mapa" element={<EmConstrucaoPage titulo="Loteamentos" />} />
         <Route path="/loteamentos/:id/quadras/nova" element={<NovaQuadraPage />} />
         <Route path="/loteamentos/:id/quadras/:quadraId" element={<QuadraPage />} />
-        <Route path="/clientes" element={<EmConstrucaoPage titulo="Clientes" />} />
+        <Route path="/clientes" element={<ClientesPage />} />
+        <Route path="/clientes/novo" element={<ClienteFormPage />} />
+        <Route path="/clientes/:id" element={<ClienteFormPage />} />
         <Route path="/propostas" element={<EmConstrucaoPage titulo="Propostas" />} />
         <Route path="/propostas/nova" element={<NovaPropostaPage />} />
         <Route path="/propostas/:id" element={<DetalhePropostaPage />} />
@@ -91,10 +97,12 @@ export function Rotas() {
 
 export function App() {
   return (
-    <ToastProvider>
-      <AuthProvider>
-        <Rotas />
-      </AuthProvider>
-    </ToastProvider>
+    <TemaProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <Rotas />
+        </AuthProvider>
+      </ToastProvider>
+    </TemaProvider>
   )
 }

@@ -1,5 +1,9 @@
 import { LOTEAMENTOS, type LoteamentoInicial } from './catalogos'
+import { CANAIS_CONTATO, ORIGENS_CLIENTE, ordenarContatos } from '../lib/clientes'
+import { dataCalendario } from '../lib/format'
 import type {
+  Cliente,
+  ContatoComercial,
   Db,
   Documento,
   EventoHistorico,
@@ -10,10 +14,12 @@ import type {
   Proposta,
   Quadra,
   Reserva,
+  ResultadoContato,
   Venda,
 } from './types'
 
-export const VERSAO_DB = 3
+// Sobe a cada mudança no formato dos dados para descartar o banco antigo salvo no navegador.
+export const VERSAO_DB = 7
 
 const HORA = 3_600_000
 const DIA = 24 * HORA
@@ -25,6 +31,15 @@ const NOMES_CLIENTES = [
   'Gustavo Weber', 'Larissa Schmitt', 'Diego Hoffmann', 'Renata Prado', 'Marcos Vieira',
   'Tatiane Zanella', 'André Castilho', 'Sílvia Menegatti', 'Paulo Rinaldi', 'Beatriz Fontana',
 ]
+
+const NOMES_COMPRADORES = ['Silvana Costa', 'Marcos Antunes', 'Incorp. Vertice', 'Priscila Damo', 'Eduardo Reck', 'Fernanda Luz', 'Ricardo Sesc']
+const PREFIXOS_JURIDICA = ['Construtora', 'Incorp.']
+
+const PROFISSOES = ['Engenheira civil', 'Professor', 'Médica', 'Advogado', 'Comerciante', 'Agricultor', 'Analista de sistemas', 'Enfermeira', 'Contador', 'Arquiteta']
+const ESTADOS_CIVIS = ['Solteiro(a)', 'Casado(a)', 'Casado(a)', 'Divorciado(a)', 'União estável']
+const RUAS_CLIENTES = ['Rua Barão do Rio Branco', 'Av. Parigot de Souza', 'Rua Sarandi', 'Rua Guarani', 'Av. Maripá', 'Rua São João', 'Rua Rui Barbosa']
+const BAIRROS_CLIENTES = ['Centro', 'Jardim Gisela', 'Vila Industrial', 'Jardim La Salle', 'Vila Becker', 'Jardim Porto Alegre']
+const CLIENTES_INATIVOS = new Set(['Sílvia Menegatti', 'Paulo Rinaldi'])
 
 const NOMES_CORRETORES = ['J. Biló', 'D. Krüger', 'M. Oening', 'A. Pacheco', 'G. Lima']
 
@@ -49,11 +64,80 @@ function mulberry32(semente: number) {
   }
 }
 
+/** Acrescenta os dois dígitos verificadores (CPF/CNPJ) para gerar documentos válidos na demonstração. */
+function comDigitos(base: number[], peso: (i: number, tamanho: number) => number, digito: (soma: number) => number) {
+  const digitos = [...base]
+  for (let k = 0; k < 2; k++) {
+    const soma = digitos.reduce((s, d, i) => s + d * peso(i, digitos.length), 0)
+    digitos.push(digito(soma))
+  }
+  return digitos.join('')
+}
+
+function gerarCpf(rand: () => number) {
+  const base = Array.from({ length: 9 }, () => Math.floor(rand() * 10))
+  const d = comDigitos(base, (i, n) => n + 1 - i, (s) => ((s * 10) % 11) % 10)
+  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`
+}
+
+const PESOS_CNPJ = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
+
+function gerarCnpj(rand: () => number) {
+  const base = [...Array.from({ length: 8 }, () => Math.floor(rand() * 10)), 0, 0, 0, 1]
+  const d = comDigitos(base, (i, n) => PESOS_CNPJ[i + 13 - n], (s) => (s % 11 < 2 ? 0 : 11 - (s % 11)))
+  return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`
+}
+
 const pad = (n: number) => String(n).padStart(2, '0')
 const pad4 = (n: number) => String(n).padStart(4, '0')
 const arredondar = (v: number, passo = 500) => Math.round(v / passo) * passo
 
 type Aleatorio = () => number
+
+function montarCliente(nome: string, i: number, rnd: () => number, agoraMs: number): Cliente {
+  const sortear = <T,>(lista: T[]) => lista[Math.floor(rnd() * lista.length)]
+  const juridica = PREFIXOS_JURIDICA.some((p) => nome.startsWith(p))
+  const usuarioEmail = nome
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f.]/g, '')
+    .toLowerCase()
+    .replaceAll(/\s+/g, '.')
+  const criadoEm = new Date(agoraMs - (400 + Math.floor(rnd() * 400)) * DIA).toISOString()
+  return {
+    id: `cli-${i + 1}`,
+    nome,
+    tipoPessoa: juridica ? 'juridica' : 'fisica',
+    cpfCnpj: juridica ? gerarCnpj(rnd) : gerarCpf(rnd),
+    rg: '',
+    dataNascimento: juridica
+      ? ''
+      : `${1960 + Math.floor(rnd() * 40)}-${pad(1 + Math.floor(rnd() * 12))}-${pad(1 + Math.floor(rnd() * 28))}`,
+    estadoCivil: juridica ? '' : sortear(ESTADOS_CIVIS),
+    profissao: juridica ? '' : sortear(PROFISSOES),
+    telefone: `(45) 9${8800 + Math.floor(rnd() * 1199)}-${pad4(Math.floor(rnd() * 10000))}`,
+    celular: '',
+    email: `${usuarioEmail}@email.com`,
+    ativo: !CLIENTES_INATIVOS.has(nome),
+    endereco: {
+      cep: `859${pad(Math.floor(rnd() * 100))}-${String(Math.floor(rnd() * 1000)).padStart(3, '0')}`,
+      logradouro: sortear(RUAS_CLIENTES),
+      numero: String(100 + Math.floor(rnd() * 2900)),
+      complemento: rnd() < 0.2 ? `Apto ${10 + Math.floor(rnd() * 90)}` : '',
+      bairro: sortear(BAIRROS_CLIENTES),
+      cidade: 'Toledo',
+      uf: 'PR',
+      pais: 'Brasil',
+    },
+    // Origem, responsável e contatos são preenchidos no fim, com gerador próprio.
+    origem: '',
+    responsavel: '',
+    imovelInteresseId: '',
+    contatos: [],
+    criadoEm,
+    atualizadoEm: criadoEm,
+  }
+}
+
 
 const PLANOS: { lot: LoteamentoInicial; quadras: number; lotes: number }[] = [
   { lot: LOTEAMENTOS[0], quadras: 6, lotes: 12 },
@@ -136,7 +220,7 @@ interface Contexto {
   inicioMes: number
   ano: number
   imoveis: Imovel[]
-  clientes: Pessoa[]
+  clientes: Cliente[]
   corretores: Pessoa[]
 }
 
@@ -338,13 +422,74 @@ for (const imovel of imoveis) {
   return documentos
 }
 
+const ASSUNTOS_CONTATO = [
+  'Pediu simulação de parcelamento em 120x',
+  'Visita ao lote com a família',
+  'Apresentou opções de lotes de esquina',
+  'Envio do catálogo do loteamento',
+  'Formulário de interesse recebido',
+  'Retorno sobre a documentação do lote',
+  'Dúvidas sobre financiamento direto',
+]
+const RESULTADOS_SEED: ResultadoContato[] = ['em_andamento', 'positivo', 'positivo', 'sem_retorno', 'novo']
+
+interface ContextoCadastroComercial {
+  reservas: Reserva[]
+  imoveis: Imovel[]
+  nomeCorretor: (id: string) => string
+  responsaveis: string[]
+  agoraMs: number
+}
+
+/** RG ou inscrição estadual com formato plausível. */
+function documentoSecundario(juridica: boolean, rnd: () => number) {
+  const digitos = (n: number) => String(Math.floor(rnd() * 10 ** n)).padStart(n, '0')
+  if (juridica) return `${digitos(2)}${digitos(6)}-${digitos(2)}`
+  return `${pad(10 + Math.floor(rnd() * 90))}.${digitos(3)}.${digitos(3)}-${digitos(1)}`
+}
+
+/**
+ * Origem, responsável, imóvel de interesse e contatos comerciais (RF11, RF12).
+ * Usa gerador próprio para não alterar a sequência dos demais dados.
+ */
+function completarCadastroComercial(clientes: Cliente[], { reservas, imoveis, nomeCorretor, responsaveis, agoraMs }: ContextoCadastroComercial) {
+  const rnd = mulberry32(20261016)
+  const sortear = <T,>(lista: T[]) => lista[Math.floor(rnd() * lista.length)]
+  const chance = (p: number) => rnd() < p
+  const origensComuns = ORIGENS_CLIENTE.filter((o) => o !== 'Parceiro')
+  for (const c of clientes) {
+    const reservaCliente = reservas.find((r) => r.clienteId === c.id)
+    const juridica = c.tipoPessoa === 'juridica'
+    c.rg = documentoSecundario(juridica, rnd)
+    c.celular = c.telefone
+    c.telefone = chance(0.4) ? `(45) 3${pad(Math.floor(rnd() * 100))}${Math.floor(rnd() * 10)}-${pad4(Math.floor(rnd() * 10000))}` : ''
+    c.origem = juridica && chance(0.5) ? 'Parceiro' : sortear(origensComuns)
+    c.responsavel = reservaCliente ? nomeCorretor(reservaCliente.corretorId) : sortear(responsaveis)
+    c.imovelInteresseId = reservaCliente?.imovelId ?? (chance(0.7) ? sortear(imoveis).id : '')
+    const qtd = Math.floor(rnd() * 5)
+    c.contatos = ordenarContatos(
+      Array.from({ length: qtd }, (_, k): ContatoComercial => ({
+        id: `ctt-${c.id}-${k + 1}`,
+        data: dataCalendario(new Date(agoraMs - (1 + Math.floor(rnd() * 90)) * DIA)),
+        canal: sortear(CANAIS_CONTATO),
+        responsavel: k === 0 ? c.responsavel : sortear(responsaveis),
+        imovelId: chance(0.8) ? c.imovelInteresseId : '',
+        assunto: sortear(ASSUNTOS_CONTATO),
+        resultado: sortear(RESULTADOS_SEED),
+      })),
+    )
+  }
+}
+
 export function criarSeed(agora: Date): Db {
   const rand = mulberry32(20260824)
   const escolher = <T,>(lista: T[]) => lista[Math.floor(rand() * lista.length)]
   const agoraMs = agora.getTime()
   const inicioMes = new Date(agora.getFullYear(), agora.getMonth(), 1).getTime()
 
-  const clientes: Pessoa[] = NOMES_CLIENTES.map((nome, i) => ({ id: `cli-${i + 1}`, nome }))
+  // Gerador separado para os dados cadastrais dos clientes: assim os demais dados não mudam.
+  const rand2 = mulberry32(20261003)
+  const clientes: Cliente[] = NOMES_CLIENTES.map((nome, i) => montarCliente(nome, i, rand2, agoraMs))
   const corretores: Pessoa[] = NOMES_CORRETORES.map((nome, i) => ({ id: `cor-${i + 1}`, nome }))
   const cliente = (nome: string) => clientes.find((c) => c.nome === nome)!.id
   const corretor = (nome: string) => corretores.find((c) => c.nome === nome)!.id
@@ -445,6 +590,13 @@ export function criarSeed(agora: Date): Db {
   const interesses = criarInteresses(ctx, lote12)
   const historico = criarHistorico({ ...ctx, reservas, propostas, vendas }, { loteamentos, interesses, lote12 })
   const documentos = criarDocumentos(ctx, lote12, { reservas, propostas })
+
+  // ===== Cadastro comercial dos clientes (RF11, RF12) =====
+  // Compradores entram depois do sorteio das vendas para não mudar a distribuição dos dados acima.
+  const rand3 = mulberry32(20260812)
+  for (const nome of NOMES_COMPRADORES) clientes.push(montarCliente(nome, clientes.length, rand3, agoraMs))
+  const nomeCorretor = (id: string) => corretores.find((c) => c.id === id)?.nome ?? 'Sistema'
+  completarCadastroComercial(clientes, { reservas, imoveis, nomeCorretor, responsaveis: ['Ayran Bade', ...AUTORES], agoraMs })
 
   return {
     versao: VERSAO_DB,

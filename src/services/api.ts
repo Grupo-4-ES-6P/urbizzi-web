@@ -1,5 +1,6 @@
 import { atualizarDb, lerDb } from '../data/db'
 import type {
+  Cliente,
   Db,
   Documento,
   EventoHistorico,
@@ -10,6 +11,7 @@ import type {
   Usuario,
   UsuarioPublico,
 } from '../data/types'
+import type { FormCliente } from '../lib/clienteForm'
 import { formatarMoedaInteira } from '../lib/format'
 
 /**
@@ -17,17 +19,17 @@ import { formatarMoedaInteira } from '../lib/format'
  * simulada; quando o backend existir, basta trocar o corpo destas funções.
  */
 const LATENCIA = import.meta.env.MODE === 'test' ? 0 : 450
-const esperar = (ms = LATENCIA) => new Promise((r) => setTimeout(r, ms))
+export const esperar = (ms = LATENCIA) => new Promise((r) => setTimeout(r, ms))
 
 // IDs aleatórios com o gerador criptográfico do navegador (não previsíveis).
-const novoId = (prefixo: string) => `${prefixo}-${crypto.randomUUID()}`
+export const novoId = (prefixo: string) => `${prefixo}-${crypto.randomUUID()}`
 
 /** Dados do usuário sem a senha, para guardar na sessão. */
 export function paraUsuarioPublico({ id, nome, email, papel }: Usuario): UsuarioPublico {
   return { id, nome, email, papel }
 }
 
-const ROTULO_SITUACAO: Record<Situacao, EventoHistorico['situacao']> = {
+export const ROTULO_SITUACAO: Record<Situacao, EventoHistorico['situacao']> = {
   disponivel: { rotulo: 'Disponível', variante: 'normal' },
   reservado: { rotulo: 'Reservado', variante: 'atencao' },
   vendido: { rotulo: 'Vendido', variante: 'laranja' },
@@ -35,20 +37,20 @@ const ROTULO_SITUACAO: Record<Situacao, EventoHistorico['situacao']> = {
 }
 
 /** Toda ação relevante vira um registro imutável no histórico do imóvel (RF32/RF33). */
-function comEvento(db: Db, e: Omit<EventoHistorico, 'id' | 'data'> & { data?: string }): Db {
+export function comEvento(db: Db, e: Omit<EventoHistorico, 'id' | 'data'> & { data?: string }): Db {
   return {
     ...db,
     historico: [...db.historico, { id: novoId('his'), data: new Date().toISOString(), ...e }],
   }
 }
 
-function acharImovel(db: Db, id: string) {
+export function acharImovel(db: Db, id: string) {
   const imovel = db.imoveis.find((i) => i.id === id)
   if (!imovel) throw new Error('Imóvel não encontrado.')
   return imovel
 }
 
-function proximoCodigo(prefixo: string, existentes: string[]) {
+export function proximoCodigo(prefixo: string, existentes: string[]) {
   const ano = new Date().getFullYear()
   const maior = existentes
     .filter((c) => c.startsWith(`${prefixo}-${ano}-`))
@@ -587,4 +589,87 @@ export async function buscarCep(cep: string, signal?: AbortSignal): Promise<Ende
   const json = await resposta.json()
   if (json.erro) return null
   return { logradouro: json.logradouro, bairro: json.bairro, cidade: json.localidade, uf: json.uf }
+}
+
+// ===== Clientes =====
+
+function apenasDigitos(texto: string) {
+  return texto.replace(/\D/g, '')
+}
+
+export async function salvarCliente(dados: FormCliente & { id?: string }) {
+  await esperar()
+  const agora = new Date().toISOString()
+  let salvo!: Cliente
+  atualizarDb((db) => {
+    const documento = apenasDigitos(dados.cpfCnpj)
+    if (db.clientes.some((c) => c.id !== dados.id && apenasDigitos(c.cpfCnpj) === documento)) {
+      throw new Error(`Já existe um cliente com o ${dados.tipoPessoa === 'fisica' ? 'CPF' : 'CNPJ'} ${dados.cpfCnpj}.`)
+    }
+    const existente = dados.id ? db.clientes.find((c) => c.id === dados.id) : undefined
+    if (dados.id && !existente) throw new Error('Cliente não encontrado.')
+    const fisica = dados.tipoPessoa === 'fisica'
+    salvo = {
+      ...dados,
+      id: existente?.id ?? novoId('cli'),
+      nome: dados.nome.trim(),
+      cpfCnpj: dados.cpfCnpj.trim(),
+      rg: dados.rg.trim(),
+      telefone: dados.telefone.trim(),
+      celular: dados.celular.trim(),
+      email: dados.email.trim(),
+      estadoCivil: fisica ? dados.estadoCivil : '',
+      profissao: fisica ? dados.profissao.trim() : '',
+      endereco: {
+        ...dados.endereco,
+        logradouro: dados.endereco.logradouro.trim(),
+        numero: dados.endereco.numero.trim(),
+        complemento: dados.endereco.complemento.trim(),
+        bairro: dados.endereco.bairro.trim(),
+        cidade: dados.endereco.cidade.trim(),
+        uf: dados.endereco.uf.trim().toUpperCase(),
+        pais: dados.endereco.pais.trim(),
+      },
+      contatos: dados.contatos.map((c) => ({ ...c, assunto: c.assunto.trim() })),
+      criadoEm: existente?.criadoEm ?? agora,
+      atualizadoEm: agora,
+    }
+    return {
+      ...db,
+      clientes: existente ? db.clientes.map((c) => (c.id === salvo.id ? salvo : c)) : [...db.clientes, salvo],
+    }
+  })
+  return salvo
+}
+
+export async function alterarStatusClientes(ids: string[], ativo: boolean) {
+  await esperar()
+  const agora = new Date().toISOString()
+  const selecionados = new Set(ids)
+  atualizarDb((db) => ({
+    ...db,
+    clientes: db.clientes.map((c) => (selecionados.has(c.id) ? { ...c, ativo, atualizadoEm: agora } : c)),
+  }))
+}
+
+/** Clientes com reserva, proposta ou venda ficam no cadastro para não quebrar o histórico (RF32). */
+export async function excluirClientes(ids: string[]) {
+  await esperar()
+  const selecionados = new Set(ids)
+  atualizarDb((db) => {
+    const vinculados = db.clientes.filter(
+      (c) =>
+        selecionados.has(c.id) &&
+        (db.reservas.some((r) => r.clienteId === c.id) ||
+          db.propostas.some((p) => p.clienteId === c.id) ||
+          db.vendas.some((v) => v.clienteId === c.id)),
+    )
+    if (vinculados.length > 0) {
+      const nomes = vinculados.map((c) => c.nome).join(', ')
+      throw new Error(
+        `${nomes} ${vinculados.length === 1 ? 'tem' : 'têm'} reservas, propostas ou vendas registradas e não ${vinculados.length === 1 ? 'pode' : 'podem'} ser excluído${vinculados.length === 1 ? '' : 's'}. Desative o cadastro em vez de excluir.`,
+      )
+    }
+    return { ...db, clientes: db.clientes.filter((c) => !selecionados.has(c.id)) }
+  })
 }

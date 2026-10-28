@@ -2,6 +2,7 @@ import { Plus } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
+import { BotaoTema } from '../components/BotaoTema'
 import { BuscaGlobal } from '../components/BuscaGlobal'
 import { Dialogo } from '../components/Dialogo'
 import { BadgeUrgencia, Campo, Spinner } from '../components/ui'
@@ -111,6 +112,7 @@ export function DashboardPage() {
           <button type="button" className="btn btn--primario" onClick={() => navigate('/imoveis/novo')}>
             <Plus size={16} /> Novo imóvel
           </button>
+          <BotaoTema />
         </div>
       </header>
 

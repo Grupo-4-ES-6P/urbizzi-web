@@ -41,6 +41,62 @@ export interface Pessoa {
   nome: string
 }
 
+export type TipoPessoa = 'fisica' | 'juridica'
+
+export interface EnderecoCliente {
+  cep: string
+  logradouro: string
+  numero: string
+  complemento: string
+  bairro: string
+  cidade: string
+  uf: string
+  pais: string
+}
+
+export type CanalContato = 'WhatsApp' | 'Telefone' | 'E-mail' | 'Visita presencial' | 'Catálogo público'
+
+export type ResultadoContato = 'em_andamento' | 'positivo' | 'sem_retorno' | 'negativo' | 'novo'
+
+/** Interação comercial registrada no cadastro do cliente (RF12). */
+export interface ContatoComercial {
+  id: string
+  /** YYYY-MM-DD */
+  data: string
+  canal: CanalContato
+  responsavel: string
+  /** Vazio quando o contato não envolveu um imóvel específico. */
+  imovelId: string
+  assunto: string
+  resultado: ResultadoContato
+}
+
+export interface Cliente extends Pessoa {
+  tipoPessoa: TipoPessoa
+  /** Com máscara, ex.: 048.912.330-27 */
+  cpfCnpj: string
+  /** RG (pessoa física) ou inscrição estadual (pessoa jurídica). */
+  rg: string
+  /** YYYY-MM-DD; vazio quando não informado. */
+  dataNascimento: string
+  estadoCivil: string
+  profissao: string
+  telefone: string
+  celular: string
+  email: string
+  ativo: boolean
+  endereco: EnderecoCliente
+  /** Como o cliente chegou até a empresa, ex.: Catálogo público. */
+  origem: string
+  /** Nome de quem responde comercialmente pelo cliente. */
+  responsavel: string
+  imovelInteresseId: string
+  /** Do mais recente para o mais antigo. */
+  contatos: ContatoComercial[]
+  criadoEm: string
+  atualizadoEm: string
+}
+
 export type StatusReserva = 'ativa' | 'convertida' | 'cancelada'
 
 export interface Reserva {
@@ -188,7 +244,7 @@ export type UsuarioPublico = Omit<Usuario, 'senha'>
 export interface Db {
   versao: number
   imoveis: Imovel[]
-  clientes: Pessoa[]
+  clientes: Cliente[]
   corretores: Pessoa[]
   reservas: Reserva[]
   propostas: Proposta[]
