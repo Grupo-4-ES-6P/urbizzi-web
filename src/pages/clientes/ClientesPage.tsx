@@ -7,8 +7,9 @@ import { Badge } from '../../components/ui'
 import { useToast } from '../../contexts/ToastContext'
 import { useDb } from '../../data/db'
 import type { Cliente } from '../../data/types'
+import { SITUACAO_CLIENTE, situacaoCliente, ultimoContato, vinculosClientes } from '../../lib/clientes'
 import { baixarCsv, gerarCsv } from '../../lib/csv'
-import { normalizar } from '../../lib/format'
+import { formatarData, normalizar } from '../../lib/format'
 import { useAgora } from '../../lib/useAgora'
 import { alterarStatusClientes, excluirClientes } from '../../services/api'
 
@@ -41,6 +42,8 @@ export function ClientesPage() {
     setParams(novo, { replace: true })
   }
 
+  const vinculos = useMemo(() => vinculosClientes(db, agora), [db, agora])
+
   const filtrados = useMemo(() => {
     const termo = normalizar(q.trim())
     const digitos = q.replace(/\D/g, '')
@@ -59,6 +62,8 @@ export function ClientesPage() {
   const paginaAtual = Math.min(pagina, totalPaginas)
   const visiveis = filtrados.slice((paginaAtual - 1) * POR_PAGINA, paginaAtual * POR_PAGINA)
   const todosVisiveisMarcados = visiveis.length > 0 && visiveis.every((c) => selecionados.has(c.id))
+  const comReservaAtiva = db.clientes.filter((c) => vinculos.comReservaAtiva.has(c.id)).length
+  const comPropostaEmAnalise = db.clientes.filter((c) => vinculos.comPropostaEmAndamento.has(c.id)).length
   // Sem nenhum cadastro, a lista filtrada também fica vazia.
   const mensagemVazia = db.clientes.length === 0 ? 'Nenhum cliente cadastrado ainda.' : 'Nenhum cliente encontrado com esses filtros.'
   const contatoPrincipal = (c: Cliente) => c.celular || c.telefone || c.email
@@ -67,7 +72,7 @@ export function ClientesPage() {
     const csv = gerarCsv(
       ['Cliente', 'CPF / CNPJ', 'Celular', 'Telefone', 'E-mail', 'Responsável', 'Último contato', 'Situação'],
       filtrados.map((c) => {
-        const ultimo = '10/10/10'
+        const ultimo = ultimoContato(c)
         return [
           c.nome,
           c.cpfCnpj,
@@ -75,7 +80,8 @@ export function ClientesPage() {
           c.telefone,
           c.email,
           c.responsavel,
-          ultimo ? "10/10/10" : '',
+          ultimo ? formatarData(ultimo.data) : '',
+          SITUACAO_CLIENTE[situacaoCliente(c, vinculos)].rotulo,
         ]
       }),
     )
@@ -123,7 +129,7 @@ export function ClientesPage() {
         <div>
           <h1 className="cabecalho__titulo">Clientes</h1>
           <p className="cabecalho__subtitulo">
-            {db.clientes.length} cadastrados · a1 com reserva ativa · a2 com proposta em análise
+            {db.clientes.length} cadastrados · {comReservaAtiva} com reserva ativa · {comPropostaEmAnalise} com proposta em análise
           </p>
         </div>
         <div className="cabecalho__acoes">
@@ -169,7 +175,7 @@ export function ClientesPage() {
               ))}
             </select>
             {quantidade > 0 && (
-              <div className="acoes-lote" role="group" aria-label="Ações para os selecionados">
+              <fieldset className="acoes-lote" aria-label="Ações para os selecionados">
                 <span>{plural(quantidade, 'selecionado', 'selecionados')}</span>
                 <button
                   type="button"
@@ -190,7 +196,7 @@ export function ClientesPage() {
                 <button type="button" className="btn btn--fantasma-perigo btn--pequeno" disabled={processando} onClick={() => setConfirmarExclusao(true)}>
                   Excluir
                 </button>
-              </div>
+              </fieldset>
             )}
           </div>
 
@@ -214,8 +220,8 @@ export function ClientesPage() {
                 </thead>
                 <tbody>
                   {visiveis.map((c) => {
-                    const ultimo = "10/10/10"
-                    const situacao = "inadimplente"
+                    const ultimo = ultimoContato(c)
+                    const situacao = SITUACAO_CLIENTE[situacaoCliente(c, vinculos)]
                     return (
                       <tr key={c.id} onClick={() => navigate(`/clientes/${c.id}`)}>
                         <td className="tabela__selecao" onClick={(e) => e.stopPropagation()}>
@@ -229,9 +235,9 @@ export function ClientesPage() {
                         <td>{c.cpfCnpj || '—'}</td>
                         <td>{contatoPrincipal(c) || '—'}</td>
                         <td>{c.responsavel || '—'}</td>
-                        <td>{ultimo ? '10/10/10' : '—'}</td>
+                        <td>{ultimo ? formatarData(ultimo.data) : '—'}</td>
                         <td>
-                          <Badge variante={situacao}>{situacao}</Badge>
+                          <Badge variante={situacao.variante}>{situacao.rotulo}</Badge>
                         </td>
                       </tr>
                     )

@@ -2,25 +2,25 @@ import { Crosshair, MapPin } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 
-import { AbasImovel } from '../components/AbasImovel'
-import { Dialogo } from '../components/Dialogo'
-import { FotosImovel } from '../components/FotosImovel'
-import { InputNumerico } from '../components/InputNumerico'
-import { MapaLote } from '../components/MapaLote'
-import { Campo, Spinner, Toggle } from '../components/ui'
-import { useAuth } from '../contexts/AuthContext'
-import { useToast } from '../contexts/ToastContext'
+import { AbasImovel } from '../../components/AbasImovel'
+import { Dialogo } from '../../components/Dialogo'
+import { FotosImovel } from '../../components/FotosImovel'
+import { InputNumerico } from '../../components/InputNumerico'
+import { MapaLote } from '../../components/MapaLote'
+import { Campo, Spinner, Toggle } from '../../components/ui'
+import { useAuth } from '../../contexts/AuthContext'
+import { useToast } from '../../contexts/ToastContext'
 import {
   PRAZOS_RESERVA,
   SITUACOES,
   TIPOS_IMOVEL,
   TOPOGRAFIAS,
   UFS,
-} from '../data/catalogos'
-import { lerDb, useDb } from '../data/db'
-import { proximoCodigo } from '../data/selectors'
-import type { Imovel, Situacao } from '../data/types'
-import { mascaraCep } from '../lib/format'
+} from '../../data/catalogos'
+import { lerDb, useDb } from '../../data/db'
+import { proximoCodigo } from '../../data/selectors'
+import type { Imovel, Situacao } from '../../data/types'
+import { mascaraCep } from '../../lib/format'
 import {
   formDeImovel,
   formVazio,
@@ -30,8 +30,8 @@ import {
   validarPublicacao,
   type ErrosForm,
   type FormImovel,
-} from '../lib/imovelForm'
-import { buscarCep, excluirImovel, salvarImovel } from '../services/api'
+} from '../../lib/imovelForm'
+import { buscarCep, excluirImovel, salvarImovel } from '../../services/api'
 
 const TOLEDO = { lat: -24.7246, lng: -53.7412 }
 

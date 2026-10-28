@@ -97,23 +97,7 @@ export interface Cliente extends Pessoa {
   atualizadoEm: string
 }
 
-export type StatusReserva = 'ativa' | 'expirada' | 'cancelada' | 'convertida'
-
-/** Situação exibida: reservas ativas são classificadas pelo tempo restante. */
-export type SituacaoReserva = 'ativa' | 'atencao' | 'critico' | 'expirada' | 'cancelada' | 'convertida'
-
-export type TipoEventoReserva = 'criacao' | 'renovacao' | 'aviso' | 'expiracao' | 'cancelamento' | 'conversao'
-
-/** Registro de auditoria da reserva (RF32). */
-export interface EventoReserva {
-  id: string
-  tipo: TipoEventoReserva
-  data: string
-  titulo: string
-  autor: string
-  detalhe: string
-  situacao: SituacaoReserva
-}
+export type StatusReserva = 'ativa' | 'convertida' | 'cancelada'
 
 export interface Reserva {
   id: string
@@ -123,167 +107,38 @@ export interface Reserva {
   clienteId: string
   corretorId: string
   criadaEm: string
-  /** Data inicial de calendário (YYYY-MM-DD). */
-  dataInicio: string
-  validadeDias: number
-  /** Instante em que a reserva vence (fim do dia da expiração). */
   expiraEm: string
   status: StatusReserva
-  renovacoesUsadas: number
-  /** Limite herdado do loteamento no momento da criação (RF15). */
-  renovacoesPermitidas: number
-  avisarHorasAntes: number
-  valorTabela: number | null
-  sinal: number | null
-  formaPagamento: string
-  descontoPercentual: number | null
-  origemInteresse: string
-  contatoRecente: string
-  observacoes: string
-  atualizadaEm: string
-  historico: EventoReserva[]
 }
 
-/**
- * Situação persistida da proposta. "Expirada" também é derivada da data em
- * `situacaoProposta` (lib/propostas), já que não há backend para gravá-la (RF21).
- */
-export type SituacaoProposta =
-  | 'rascunho'
-  | 'enviada'
-  | 'em_analise'
-  | 'aguardando_diretoria'
-  | 'aprovada'
-  | 'recusada'
-  | 'contraproposta'
-  | 'expirada'
-
-/**
- * Situação de cada versão, independente da situação da proposta (RF18).
- * "Expirada" só aparece na exibição, derivada da proposta.
- */
-export type SituacaoVersao = 'rascunho' | 'em_analise' | 'aprovada' | 'recusada' | 'contraproposta' | 'substituida' | 'expirada'
-
-/** Condições comerciais informadas; os valores derivados saem de `calcularCondicoes`. */
-export interface CondicoesProposta {
-  valorTabela: number
-  /** Percentual sobre o valor de tabela, ex.: 3 para 3%. */
-  descontoPercentual: number
-  entrada: number
-  parcelas: number
-  indiceCorrecao: string
-  /** YYYY-MM-DD */
-  primeiroVencimento: string
-  formaPagamento: string
-  /** Validade em dias úteis contados a partir do envio. */
-  validadeDias: number
-  escritura: string
-  garantia: string
-}
-
-export interface VersaoProposta {
-  /** 1, 2, 3… — nunca reaproveitado nem sobrescrito depois do envio. */
-  numero: number
-  criadaEm: string
-  autor: string
-  enviadaEm?: string
-  condicoes: CondicoesProposta
-  /** Desconto acima da alçada do vendedor no momento do envio. */
-  acimaDaAlcada: boolean
-  aprovadorId: string
-  observacoes: string
-  /** Só os nomes: o upload real de anexos ainda não existe. */
-  anexos: string[]
-  /** Gerado comparando com a versão anterior. */
-  oQueMudou: string
-  comentario: string
-  situacao: SituacaoVersao
-}
-
-export type TipoEtapa = 'envio' | 'analise_comercial' | 'diretoria' | 'contrato'
-export type EstadoEtapa = 'concluida' | 'aguardando' | 'pendente' | 'recusada'
-
-/** Etapa do fluxo de aprovação (RF19). */
-export interface EtapaAprovacao {
-  tipo: TipoEtapa
-  titulo: string
-  /** Usuário que decide a etapa; vazio nas etapas automáticas. */
-  responsavelId: string
-  responsavelNome: string
-  cargo: string
-  estado: EstadoEtapa
-  automatica: boolean
-  concluidaEm?: string
-}
-
-export type TipoEventoProposta =
-  | 'criacao'
-  | 'rascunho'
-  | 'envio'
-  | 'nova_versao'
-  | 'analise'
-  | 'aprovacao_etapa'
-  | 'aprovacao'
-  | 'recusa'
-  | 'contraproposta'
-
-/** Registro imutável de auditoria da proposta (RF32). */
-export interface EventoProposta {
-  id: string
-  tipo: TipoEventoProposta
-  data: string
-  titulo: string
-  autor: string
-  detalhe: string
-  versao: number
-}
+export type StatusProposta = 'rascunho' | 'pendente' | 'aprovada' | 'recusada'
 
 export interface Proposta {
   id: string
-  /** Código de exibição no padrão PROP-AAAA-NNNN. */
+  /** Código de exibição, ex.: PROP-2026-0311 */
   codigo: string
-  /** Reserva ativa que originou a proposta (RF17). */
-  reservaId: string
   imovelId: string
   clienteId: string
   corretorId: string
-  situacao: SituacaoProposta
-  criadaEm: string
-  atualizadaEm: string
-  /** Fim do prazo da versão enviada; vazio em rascunho (RF21). */
+  valor: number
+  /** Condição de pagamento, ex.: "Entrada 30% + 24x". */
+  condicao?: string
+  versao?: number
+  versoes?: { numero: number; valor: number; condicao?: string; registradaEm: string; autor: string }[]
+  entrada?: number
+  parcelas?: number
+  indiceCorrecao?: string
+  primeiroVencimento?: string
+  formaPagamento?: string
+  validadeDias?: number
   expiraEm?: string
+  aprovador?: string
+  observacoes?: string
+  anexos?: string[]
+  status: StatusProposta
+  criadaEm: string
   decididaEm?: string
   motivoRecusa?: string
-  versoes: VersaoProposta[]
-  etapas: EtapaAprovacao[]
-  historico: EventoProposta[]
-}
-
-/** "Cancelada" é final: a venda não pode ser reaberta nem editada. */
-export type StatusVenda = 'em_escritura' | 'concluida' | 'cancelada'
-
-export type TipoEventoVenda = 'registro' | 'conclusao' | 'cancelamento'
-
-/** Registro imutável de auditoria da venda (RF32); a lista só recebe novos itens. */
-export interface EventoVenda {
-  id: string
-  tipo: TipoEventoVenda
-  data: string
-  autor: string
-  /** Vazio no registro da venda. */
-  statusAnterior: StatusVenda | null
-  status: StatusVenda
-  detalhe: string
-}
-
-export interface CancelamentoVenda {
-  justificativa: string
-  /** Categoria e dados do distrato, informados quando o cancelamento é feito pelas ações do imóvel. */
-  motivo?: string
-  dataDistrato?: string
-  devolucao?: number
-  em: string
-  autor: string
 }
 
 export interface Venda {
@@ -292,16 +147,12 @@ export interface Venda {
   codigo: string
   imovelId: string
   clienteId: string
-  corretorId: string
-  /** Proposta aprovada e reserva convertida que originaram a venda, quando houver. */
   propostaId?: string
-  reservaId?: string
+  corretorId?: string
   valor: number
-  /** Instante ISO da venda. */
   data: string
-  status: StatusVenda
-  cancelamento?: CancelamentoVenda
-  historico: EventoVenda[]
+  status: 'ativa' | 'cancelada'
+  cancelamento?: { motivo: string; dataDistrato: string; devolucao: number; em: string }
 }
 
 export type SituacaoLoteamento = 'em_aprovacao' | 'em_registro' | 'em_comercializacao' | 'esgotado'
@@ -326,8 +177,6 @@ export interface Loteamento {
   numeroRegistro: string
   licencaAmbiental: string
   validadeLicenca: string
-  /** Quantas vezes uma reserva pode ser renovada neste loteamento (RF15). */
-  limiteRenovacoes: number
 }
 
 export interface Quadra {
@@ -397,6 +246,9 @@ export interface Db {
   imoveis: Imovel[]
   clientes: Cliente[]
   corretores: Pessoa[]
+  reservas: Reserva[]
+  propostas: Proposta[]
+  vendas: Venda[]
   usuarios: Usuario[]
   loteamentos: Loteamento[]
   quadras: Quadra[]

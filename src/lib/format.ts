@@ -67,6 +67,19 @@ export function urgenciaReserva(ms: number): Urgencia {
   return 'normal'
 }
 
+export function dataCalendario(d: Date) {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
+/** Formata YYYY-MM-DD ou um instante ISO como DD/MM/AAAA. */
+export function formatarData(valor: string) {
+  const calendario = /^(\d{4})-(\d{2})-(\d{2})$/.exec(valor)
+  const d = calendario
+    ? new Date(Number(calendario[1]), Number(calendario[2]) - 1, Number(calendario[3]))
+    : new Date(valor)
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('pt-BR')
+}
+
 export function mascaraCep(valor: string) {
   const d = valor.replace(/\D/g, '').slice(0, 8)
   return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d

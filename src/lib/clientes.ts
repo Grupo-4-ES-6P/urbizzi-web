@@ -1,5 +1,6 @@
 import { reservaAtiva } from '../data/selectors'
-import type { CanalContato, Cliente, ContatoComercial, Db, ResultadoContato, VarianteBadge } from '../data/types'
+import type { CanalContato, Cliente, ContatoComercial, Db, Reserva, ResultadoContato, VarianteBadge } from '../data/types'
+import { urgenciaReserva } from './format'
 
 // ===== Catálogos do cadastro comercial (RF11, RF12) =====
 
@@ -66,6 +67,15 @@ export interface VinculosClientes {
   comPropostaEmAndamento: Set<string>
 }
 
+/** Calculado uma vez para a lista inteira, em vez de varrer o banco por cliente. */
+export function vinculosClientes(db: Pick<Db, 'vendas' | 'reservas' | 'propostas'>, agora: number): VinculosClientes {
+  return {
+    comVenda: new Set(db.vendas.filter((v) => v.status === 'ativa').map((v) => v.clienteId)),
+    comReservaAtiva: new Set(db.reservas.filter((r) => reservaAtiva(r, agora)).map((r) => r.clienteId)),
+    comPropostaEmAndamento: new Set(db.propostas.filter((p) => p.status === 'pendente').map((p) => p.clienteId)),
+  }
+}
+
 /**
  * Situação comercial do cliente. Os vínculos com venda, reserva e proposta
  * pesam mais que o último contato registrado.
@@ -81,4 +91,19 @@ export function situacaoCliente(cliente: Cliente, vinculos: VinculosClientes): S
   if (ultimo.resultado === 'em_andamento') return 'em_negociacao'
   if (ultimo.resultado === 'sem_retorno') return 'sem_retorno'
   return 'cliente_ativo'
+}
+
+const SITUACAO_RESERVA_ATIVA: Record<ReturnType<typeof urgenciaReserva>, { rotulo: string; variante: VarianteBadge }> = {
+  normal: { rotulo: 'Ativa', variante: 'normal' },
+  atencao: { rotulo: 'Atenção', variante: 'atencao' },
+  critico: { rotulo: 'Crítico', variante: 'critico' },
+}
+
+/** Situação exibida da reserva: as ativas são classificadas pelo tempo restante. */
+export function situacaoReserva(r: Pick<Reserva, 'status' | 'expiraEm'>, agora: number): { rotulo: string; variante: VarianteBadge } {
+  if (r.status === 'convertida') return { rotulo: 'Vendida', variante: 'laranja' }
+  if (r.status === 'cancelada') return { rotulo: 'Cancelada', variante: 'neutro' }
+  const restante = new Date(r.expiraEm).getTime() - agora
+  if (restante <= 0) return { rotulo: 'Expirada', variante: 'neutro' }
+  return SITUACAO_RESERVA_ATIVA[urgenciaReserva(restante)]
 }

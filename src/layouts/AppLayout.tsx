@@ -24,8 +24,6 @@ import { useTema } from '../contexts/TemaContext'
 import { useToast } from '../contexts/ToastContext'
 import { restaurarDemo } from '../data/db'
 import { iniciais } from '../lib/format'
-import { useAgora } from '../lib/useAgora'
-import { sincronizarReservas } from '../services/api'
 
 const MENU = [
   { para: '/dashboard', rotulo: 'Dashboard', icone: LayoutDashboard },
@@ -48,10 +46,6 @@ export function AppLayout() {
   const [contaAberta, setContaAberta] = useState(false)
   const [confirmarReset, setConfirmarReset] = useState(false)
   const contaRef = useRef<HTMLDivElement>(null)
-  const agora = useAgora()
-
-  // Reservas vencidas expiram e liberam o imóvel mesmo sem ninguém abrir a tela de reservas (RF16).
-  useEffect(() => sincronizarReservas(agora), [agora])
 
   // Fecha o menu lateral (mobile) ao trocar de página.
   useEffect(() => setMenuAberto(false), [pathname])

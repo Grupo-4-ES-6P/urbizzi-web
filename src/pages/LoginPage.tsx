@@ -6,6 +6,7 @@ import { Logo } from '../components/Logo'
 import { Campo, Spinner } from '../components/ui'
 import { useAuth } from '../contexts/AuthContext'
 import { useDb } from '../data/db'
+import { resumoGeral } from '../data/selectors'
 import { formatarMoedaCompacta } from '../lib/format'
 import { solicitarRecuperacaoSenha } from '../services/api'
 
@@ -16,6 +17,7 @@ type Modo = 'entrar' | 'recuperar' | 'enviado'
 
 export function LoginPage() {
   const db = useDb()
+  const resumo = useMemo(() => resumoGeral(db, Date.now()), [db])
   const [modo, setModo] = useState<Modo>('entrar')
   const [email, setEmail] = useState('')
 
@@ -30,15 +32,15 @@ export function LoginPage() {
         <dl className="login__numeros">
           <div>
             <dt>Imóveis cadastrados</dt>
-            <dd>{2}</dd>
+            <dd>{resumo.imoveisCadastrados}</dd>
           </div>
           <div>
             <dt>Reservas ativas</dt>
-            <dd>{4}</dd>
+            <dd>{resumo.reservasAtivas}</dd>
           </div>
           <div>
             <dt>Vendas no ano</dt>
-            <dd>{formatarMoedaCompacta(8)}</dd>
+            <dd>{formatarMoedaCompacta(resumo.vendasNoAno)}</dd>
           </div>
         </dl>
       </aside>

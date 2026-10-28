@@ -9,7 +9,7 @@ import { UFS } from '../../data/catalogos'
 import { useDb } from '../../data/db'
 import { indexar, rotuloImovel } from '../../data/selectors'
 import type { CanalContato, Cliente, ContatoComercial, EnderecoCliente, Imovel, ResultadoContato, TipoPessoa } from '../../data/types'
-import { CANAIS_CONTATO, ordenarContatos, ORIGENS_CLIENTE, RESULTADO_CONTATO, RESULTADOS_CONTATO } from '../../lib/clientes'
+import { CANAIS_CONTATO, ordenarContatos, ORIGENS_CLIENTE, RESULTADO_CONTATO, RESULTADOS_CONTATO, situacaoReserva } from '../../lib/clientes'
 import {
   clienteVazio,
   ESTADOS_CIVIS,
@@ -20,7 +20,7 @@ import {
   type ErrosCliente,
   type FormCliente,
 } from '../../lib/clienteForm'
-import { mascaraCep } from '../../lib/format'
+import { dataCalendario, formatarData, mascaraCep } from '../../lib/format'
 import { useAgora } from '../../lib/useAgora'
 import { buscarCep, novoId, salvarCliente } from '../../services/api'
 
@@ -44,7 +44,7 @@ export function ClienteFormPage() {
   return <FormularioCliente key={id ?? 'novo'} cliente={cliente} />
 }
 
-function FormularioCliente({ cliente }: { cliente?: Cliente }) {
+function FormularioCliente({ cliente }: Readonly<{ cliente?: Cliente }>) {
   const navigate = useNavigate()
   const notificar = useToast()
   const db = useDb()
@@ -375,10 +375,11 @@ function FormularioCliente({ cliente }: { cliente?: Cliente }) {
   )
 }
 
-function ReservasDoCliente({ clienteId }: { clienteId: string }) {
+function ReservasDoCliente({ clienteId }: Readonly<{ clienteId: string }>) {
   const db = useDb()
   const agora = useAgora()
   const imoveis = indexar(db.imoveis)
+  const reservas = db.reservas.filter((r) => r.clienteId === clienteId).sort((a, b) => b.criadaEm.localeCompare(a.criadaEm))
 
   return (
     <section className="card">
@@ -391,7 +392,7 @@ function ReservasDoCliente({ clienteId }: { clienteId: string }) {
           Nova reserva
         </Link>
       </div>
-      {0 === 0 ? (
+      {reservas.length === 0 ? (
         <p className="card__vazio">Nenhuma reserva para este cliente.</p>
       ) : (
         <div className="tabela-wrap">
@@ -406,6 +407,23 @@ function ReservasDoCliente({ clienteId }: { clienteId: string }) {
               </tr>
             </thead>
             <tbody>
+              {reservas.map((r) => {
+                const imovel = imoveis.get(r.imovelId)
+                const s = situacaoReserva(r, agora)
+                return (
+                  <tr key={r.id}>
+                    <td className="tabela__destaque">
+                      <Link to={`/reservas/${r.id}`}>{r.codigo}</Link>
+                    </td>
+                    <td>{imovel ? rotuloImovel(imovel) : '—'}</td>
+                    <td>{formatarData(r.criadaEm)}</td>
+                    <td>{formatarData(r.expiraEm)}</td>
+                    <td>
+                      <Badge variante={s.variante}>{s.rotulo}</Badge>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
@@ -459,7 +477,7 @@ function ContatosComerciais({ contatos, imoveis, onRegistrar }: Readonly<Contato
                 const resultado = RESULTADO_CONTATO[c.resultado]
                 return (
                   <tr key={c.id}>
-                    <td className="tabela__destaque">{'10/10/10'}</td>
+                    <td className="tabela__destaque">{formatarData(c.data)}</td>
                     <td>{c.canal}</td>
                     <td>{c.responsavel || '—'}</td>
                     <td>{nomeImovel(c.imovelId)}</td>
@@ -487,7 +505,7 @@ interface RegistrarContatoProps {
 }
 
 function RegistrarContato({ responsaveis, imoveis, inicial, onCancelar, onRegistrar }: Readonly<RegistrarContatoProps>) {
-  const hoje = '10/10/10'
+  const hoje = dataCalendario(new Date())
   const [data, setData] = useState(hoje)
   const [canal, setCanal] = useState<CanalContato>('WhatsApp')
   const [responsavel, setResponsavel] = useState(inicial.responsavel)

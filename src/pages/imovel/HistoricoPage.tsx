@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 
 import { Badge } from '../../components/ui'
 import { useDb } from '../../data/db'
-import { situacaoExibida } from '../../data/selectors'
+import { imoveisComPropostaPendente, situacaoExibida } from '../../data/selectors'
 import { formatarMoedaInteira } from '../../lib/format'
 import { CabecalhoLote } from './CabecalhoLote'
 import { nomeCurtoLote, useImovelDaRota } from './lote'
@@ -27,9 +27,9 @@ export function HistoricoPage() {
         .sort((a, b) => a.data.localeCompare(b.data)),
     [db.historico, imovel?.id, de, ate],
   )
-  
+
   if (!imovel) return <>{naoEncontrado}</>
-  const situacao = situacaoExibida(imovel, new Set<string>('a') )
+  const situacao = situacaoExibida(imovel, imoveisComPropostaPendente(db))
   const filtrando = Boolean(de || ate)
 
   return (

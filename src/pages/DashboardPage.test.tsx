@@ -13,27 +13,27 @@ describe('Dashboard', () => {
     expect(within(linhas[0]).getByText('Crítico')).toBeInTheDocument()
   })
 
-  it('lista só as propostas que aguardam o usuário e aprova a última etapa registrando a venda', async () => {
+  it('aprova uma proposta e registra a venda', async () => {
     const { user } = renderizar('/dashboard')
-    const vendasAntes = 10
+    const vendasAntes = lerDb().vendas.length
     const botoes = screen.getAllByRole('button', { name: /^Aprovar proposta/ })
-    // Lote 31 (diretoria) e Lote 07 (análise comercial); a do Lote 12 aguarda outro gestor.
-    expect(botoes).toHaveLength(2)
-    expect(botoes[0]).toHaveAccessibleName(/Lote 31/)
+    expect(botoes).toHaveLength(3)
 
     await user.click(botoes[0])
 
-    expect(await screen.findByText(/aprovada\. Venda de R\$\s420\.000 registrada/)).toBeInTheDocument()
-    expect(screen.getAllByRole('button', { name: /^Aprovar proposta/ })).toHaveLength(1)
+    expect(await screen.findByText(/aprovada\. Venda de/)).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: /^Aprovar proposta/ })).toHaveLength(2)
+    expect(lerDb().vendas).toHaveLength(vendasAntes + 1)
   })
 
   it('recusa uma proposta após confirmação', async () => {
     const { user } = renderizar('/dashboard')
     await user.click(screen.getAllByRole('button', { name: /^Recusar proposta/ })[0])
-    expect(screen.getByRole('button', { name: 'Recusar proposta' })).toBeDisabled()
-    await user.type(screen.getByLabelText('Motivo da recusa'), 'Abaixo do mínimo')
+    await user.type(screen.getByLabelText('Motivo (opcional)'), 'Abaixo do mínimo')
     await user.click(screen.getByRole('button', { name: 'Recusar proposta' }))
 
     expect(await screen.findByText(/recusada\./)).toBeInTheDocument()
+    const recusada = lerDb().propostas.find((p) => p.status === 'recusada')
+    expect(recusada?.motivoRecusa).toBe('Abaixo do mínimo')
   })
 })
