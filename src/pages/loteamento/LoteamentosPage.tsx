@@ -33,7 +33,7 @@ export function LoteamentosPage() {
           <p className="cabecalho__subtitulo">{db.loteamentos.length} empreendimentos cadastrados</p>
         </div>
         <div className="cabecalho__acoes">
-          <Link to="/loteamentos/novo" className="btn btn--primario">
+          <Link to="/imoveis/loteamentos/novo" className="btn btn--primario">
             <Plus size={16} /> Novo loteamento
           </Link>
         </div>
@@ -58,9 +58,9 @@ export function LoteamentosPage() {
                 {db.loteamentos.map((l) => {
                   const lotes = db.imoveis.filter((i) => i.loteamento === l.nome)
                   return (
-                    <tr key={l.id} onClick={() => navigate(`/loteamentos/${l.id}`)}>
+                    <tr key={l.id} onClick={() => navigate(`/imoveis/loteamentos/${l.id}`)}>
                       <td>
-                        <Link to={`/loteamentos/${l.id}`} className="tabela__destaque" onClick={(e) => e.stopPropagation()}>
+                        <Link to={`/imoveis/loteamentos/${l.id}`} className="tabela__destaque" onClick={(e) => e.stopPropagation()}>
                           {l.nome}
                         </Link>
                       </td>
@@ -72,10 +72,10 @@ export function LoteamentosPage() {
                       <td><Badge variante={VARIANTE_LOTEAMENTO[l.situacao]}>{rotuloSituacaoLoteamento(l.situacao)}</Badge></td>
                       <td onClick={(e) => e.stopPropagation()}>
                         <div className="acoes-linha">
-                          <Link to={`/loteamentos/${l.id}/mapa`} className="btn btn--secundario btn--pequeno">
+                          <Link to={`/imoveis/loteamentos/${l.id}/mapa`} className="btn btn--secundario btn--pequeno">
                             <Grid3x3 size={13} /> Mapa
                           </Link>
-                          <Link to={`/loteamentos/${l.id}/quadras/nova`} className="btn btn--secundario btn--pequeno">
+                          <Link to={`/imoveis/loteamentos/${l.id}/quadras/nova`} className="btn btn--secundario btn--pequeno">
                             <SquarePlus size={13} /> Nova quadra
                           </Link>
                         </div>

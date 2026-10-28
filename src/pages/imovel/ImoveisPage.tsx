@@ -108,7 +108,7 @@ export function ImoveisPage() {
           </p>
         </div>
         <div className="cabecalho__acoes">
-          <Link to="/loteamentos" className="btn btn--secundario">
+          <Link to="/imoveis/loteamentos" className="btn btn--secundario">
             <MapIcon size={15} /> Loteamentos
           </Link>
           <button type="button" className="btn btn--secundario" onClick={() => setImportando(true)}>
