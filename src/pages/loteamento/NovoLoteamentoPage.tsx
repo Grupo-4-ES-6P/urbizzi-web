@@ -59,7 +59,7 @@ function validar(f: Form) {
   return e
 }
 
-export function LoteamentoPage() {
+export function NovoLoteamentoPage() {
   const { id } = useParams()
   const db = useDb()
   const loteamento = id ? db.loteamentos.find((l) => l.id === id) : undefined

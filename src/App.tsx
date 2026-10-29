@@ -12,6 +12,8 @@ import { HistoricoPage } from './pages/imovel/HistoricoPage'
 import { LoginPage } from './pages/LoginPage'
 import { AcoesPage } from './pages/imovel/AcoesPage'
 import { DocumentosPage } from './pages/imovel/DocumentosPage'
+import { NovoLoteamentoPage } from './pages/loteamento/NovoLoteamentoPage'
+import { MapaLoteamentoPage } from './pages/loteamento/MapaLoteamentoPage'
 import { NovaQuadraPage } from './pages/quadra/NovaQuadraPage'
 import { QuadraPage } from './pages/quadra/QuadraPage'
 import { DetalhePropostaPage } from './pages/propostas/DetalhePropostaPage'
@@ -55,24 +57,30 @@ export function Rotas() {
         }
       >
         <Route path="/dashboard" element={<DashboardPage />} />
+        {/*Links de Páginas de Imóveis*/}
         <Route path="/imoveis" element={<ImoveisPage />} />
         <Route path="/imoveis/novo" element={<ImovelFormPage />} />
         <Route path="/imoveis/:id" element={<ImovelFormPage />} />
         <Route path="/imoveis/:id/historico" element={<HistoricoPage />} />
         <Route path="/imoveis/:id/acoes" element={<AcoesPage />} />
         <Route path="/imoveis/:id/documentos" element={<DocumentosPage />} />
+        {/*Links de Páginas de Loteamentos*/}
         <Route path="/loteamentos" element={<EmConstrucaoPage titulo="Loteamentos" />} />
-        <Route path="/loteamentos/novo" element={<EmConstrucaoPage titulo="Loteamentos" />} />
+        <Route path="/loteamentos/novo" element={<NovoLoteamentoPage />} />
         <Route path="/loteamentos/:id" element={<EmConstrucaoPage titulo="Loteamentos" />} />
-        <Route path="/loteamentos/:id/mapa" element={<EmConstrucaoPage titulo="Loteamentos" />} />
+        <Route path="/loteamentos/:id/mapa" element={<MapaLoteamentoPage />} />
+        {/*Links de Páginas de Quadras*/}
         <Route path="/loteamentos/:id/quadras/nova" element={<NovaQuadraPage />} />
         <Route path="/loteamentos/:id/quadras/:quadraId" element={<QuadraPage />} />
-        <Route path="/clientes" element={<EmConstrucaoPage titulo="Clientes" />} />
+        {/*Links de Páginas de Propostas*/}
         <Route path="/propostas" element={<EmConstrucaoPage titulo="Propostas" />} />
         <Route path="/propostas/nova" element={<NovaPropostaPage />} />
         <Route path="/propostas/:id" element={<DetalhePropostaPage />} />
+        {/*Links de Páginas de Vendas e Relatórios*/}
         <Route path="/vendas" element={<VendasPage />} />
         <Route path="/relatorios" element={<EmConstrucaoPage titulo="Relatórios" />} />
+        {/*Links de Páginas de Clientes e Usuários*/}
+        <Route path="/clientes" element={<EmConstrucaoPage titulo="Clientes" />} />
         <Route path="/usuarios" element={<EmConstrucaoPage titulo="Usuários" />} />
       </Route>
       {/* Site público: não exige login */}
@@ -84,6 +92,7 @@ export function Rotas() {
         <Route path="/contato" element={<EmBrevePublicoPage titulo="Contato" />} />
         <Route path="/inicio" element={<EmBrevePublicoPage titulo="Inicio" />} />
       </Route>
+      {/*Failsafe: redireciona qualquer link errado devolta para a dashbaord*/}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   )
