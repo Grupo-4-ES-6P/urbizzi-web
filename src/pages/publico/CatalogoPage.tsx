@@ -4,7 +4,6 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { Badge } from '../../components/ui'
 import { useDb } from '../../data/db'
-import { rotuloImovel } from '../../data/selectors'
 import type { Imovel } from '../../data/types'
 import { formatarMoedaInteira, normalizar } from '../../lib/format'
 import { InteresseDialogo } from './InteresseDialogo'
@@ -23,7 +22,8 @@ const ORDENS = [
 ] as const
 const POR_PAGINA = 10
 
-const nomeLote = (i: Imovel) => rotuloImovel(i, false)
+const nomeLote = (i: Imovel) =>
+  i.endereco.quadra ? `Lote ${i.endereco.lote} — Qd. ${i.endereco.quadra}` : `Lote ${i.endereco.lote}`
 
 export function CatalogoPage() {
   const db = useDb()
@@ -215,7 +215,7 @@ interface MapaProps {
 }
 
 /** Mapa esquemático: posiciona os pinos pelas coordenadas reais dos lotes. */
-function MapaCatalogo({ imoveis, destacado, onEscolher, onAbrir }: Readonly<MapaProps>) {
+function MapaCatalogo({ imoveis, destacado, onEscolher, onAbrir }: MapaProps) {
   const pontos = imoveis.filter((i) => i.geo.lat !== null && i.geo.lng !== null)
   const lats = pontos.map((i) => i.geo.lat!)
   const lngs = pontos.map((i) => i.geo.lng!)
@@ -229,10 +229,10 @@ function MapaCatalogo({ imoveis, destacado, onEscolher, onAbrir }: Readonly<Mapa
   return (
     <aside className="catalogo__mapa" aria-label="Mapa dos terrenos">
       <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
-        <rect width="100" height="100" fill="#f8f2ee" />
-        <line x1="0" y1="20" x2="100" y2="34" stroke="#cfcfcb" strokeWidth="1.2" />
-        <line x1="62" y1="0" x2="62" y2="100" stroke="#cfcfcb" strokeWidth="1.2" />
-        <line x1="0" y1="70" x2="100" y2="66" stroke="#dededa" strokeWidth="0.8" />
+        <rect width="100" height="100" className="catalogo__mapa-fundo" />
+        <line x1="0" y1="20" x2="100" y2="34" className="catalogo__mapa-via" strokeWidth="1.2" />
+        <line x1="62" y1="0" x2="62" y2="100" className="catalogo__mapa-via" strokeWidth="1.2" />
+        <line x1="0" y1="70" x2="100" y2="66" className="catalogo__mapa-divisa" strokeWidth="0.8" />
       </svg>
       {pontos.map((i) => (
         <button

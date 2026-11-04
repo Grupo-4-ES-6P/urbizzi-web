@@ -35,11 +35,11 @@ const ouvintes = new Set<() => void>()
 function persistir(db: Db) {
   try {
     localStorage.setItem(CHAVE, JSON.stringify(db))
-  } catch (error_) {
-    if (error_ instanceof DOMException && error_.name === 'QuotaExceededError') {
+  } catch (erro) {
+    if (erro instanceof DOMException && erro.name === 'QuotaExceededError') {
       throw new Error('O armazenamento local está cheio. Remova algumas fotos e tente novamente.')
     }
-    throw error_
+    throw erro
   }
 }
 

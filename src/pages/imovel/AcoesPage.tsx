@@ -41,7 +41,7 @@ export function AcoesPage() {
   const [confirmar, setConfirmar] = useState(false)
   const [executando, setExecutando] = useState(false)
 
-  if (!imovel) return <>{naoEncontrado}</>
+  if (!imovel) return naoEncontrado
   const vendaId = cancelamento.vendaId || vendasAtivas[0]?.id || ''
   const venda = vendasAtivas.find((v) => v.id === vendaId)
 
@@ -77,8 +77,8 @@ export function AcoesPage() {
       }
       setConfirmar(false)
       navigate(`/imoveis/${imovel.id}/historico`)
-    } catch (error_) {
-      notificar(error_ instanceof Error ? error_.message : 'Não foi possível concluir a ação.', 'erro')
+    } catch (e) {
+      notificar(e instanceof Error ? e.message : 'Não foi possível concluir a ação.', 'erro')
       setConfirmar(false)
     } finally {
       setExecutando(false)
@@ -234,11 +234,11 @@ interface SecaoAcaoProps {
   children: ReactNode
 }
 
-function SecaoAcao({ id, titulo, subtitulo, ativa, habilitada, motivoDesabilitada, regra, onEscolher, children }: Readonly<SecaoAcaoProps>) {
+function SecaoAcao({ id, titulo, subtitulo, ativa, habilitada, motivoDesabilitada, regra, onEscolher, children }: SecaoAcaoProps) {
   return (
     <section className={`card secao acao ${ativa ? 'acao--ativa' : ''} ${habilitada ? '' : 'acao--desabilitada'}`}>
       <label className="acao__cabecalho">
-        <input type="radio" name="acao" value={id} aria-label={titulo} checked={ativa} disabled={!habilitada} onChange={onEscolher} />
+        <input type="radio" name="acao" value={id} checked={ativa} disabled={!habilitada} onChange={onEscolher} />
         <span>
           <span className="card__titulo">{titulo}</span>
           <span className="card__subtitulo">{habilitada ? subtitulo : motivoDesabilitada}</span>

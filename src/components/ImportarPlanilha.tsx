@@ -11,7 +11,7 @@ import { Dialogo } from './Dialogo'
 const COLUNAS = ['loteamento', 'quadra', 'lote', 'matricula', 'area', 'frente', 'fundo', 'valor_tabela', 'situacao']
 const EXEMPLO = ['Lot. Universitário', '07', '01', '', '420', '14', '30', '178000', 'disponivel']
 // Marca de ordem de bytes: faz o Excel abrir o CSV como UTF-8.
-const BOM = String.fromCodePoint(0xfeff)
+const BOM = String.fromCharCode(0xfeff)
 const BOM_INICIAL = new RegExp(`^${BOM}`)
 
 type Novo = Omit<Imovel, 'id' | 'codigo' | 'criadoEm' | 'atualizadoEm'>
@@ -25,9 +25,9 @@ interface Resultado {
 function numero(texto: string) {
   const t = texto.trim()
   if (!t) return null
-  const normalizado = t.includes(',') ? t.replaceAll('.', '').replace(',', '.') : t
+  const normalizado = t.includes(',') ? t.replace(/\./g, '').replace(',', '.') : t
   const n = Number(normalizado.replace(/[^\d.-]/g, ''))
-  return Number.isFinite(n) ? n : Number.NaN
+  return Number.isFinite(n) ? n : NaN
 }
 
 function lerCsv(texto: string) {
@@ -98,12 +98,6 @@ function validar(texto: string, db: Db): Resultado {
   return { validos, erros }
 }
 
-function textoImportar(importando: boolean, qtd: number) {
-  if (importando) return 'Importando…'
-  if (!qtd) return 'Importar'
-  return qtd === 1 ? 'Importar 1 lote' : `Importar ${qtd} lotes`
-}
-
 function baixarModelo() {
   const conteudo = `${BOM}${COLUNAS.join(';')}\n${EXEMPLO.join(';')}\n`
   const url = URL.createObjectURL(new Blob([conteudo], { type: 'text/csv;charset=utf-8' }))
@@ -114,7 +108,7 @@ function baixarModelo() {
   URL.revokeObjectURL(url)
 }
 
-export function ImportarPlanilha({ aberto, onFechar }: Readonly<{ aberto: boolean; onFechar: () => void }>) {
+export function ImportarPlanilha({ aberto, onFechar }: { aberto: boolean; onFechar: () => void }) {
   const db = useDb()
   const { usuario } = useAuth()
   const notificar = useToast()
@@ -145,8 +139,8 @@ export function ImportarPlanilha({ aberto, onFechar }: Readonly<{ aberto: boolea
       const n = await importarImoveis(resultado.validos, usuario?.nome ?? 'Administrador')
       notificar(`${n} ${n === 1 ? 'lote importado' : 'lotes importados'}. Eles entram fora do catálogo até receberem fotos.`)
       fechar()
-    } catch (error_) {
-      notificar(error_ instanceof Error ? error_.message : 'Não foi possível importar.', 'erro')
+    } catch (e) {
+      notificar(e instanceof Error ? e.message : 'Não foi possível importar.', 'erro')
     } finally {
       setImportando(false)
     }
@@ -159,7 +153,7 @@ export function ImportarPlanilha({ aberto, onFechar }: Readonly<{ aberto: boolea
       largo
       titulo="Importar planilha de lotes"
       descricao="Cadastre vários lotes de uma vez a partir de um arquivo CSV. Lotes com erro são ignorados."
-      textoConfirmar={textoImportar(importando, qtd)}
+      textoConfirmar={importando ? 'Importando…' : qtd ? `Importar ${qtd} ${qtd === 1 ? 'lote' : 'lotes'}` : 'Importar'}
       confirmarDesabilitado={!qtd}
       carregando={importando}
       onCancelar={fechar}
@@ -179,7 +173,7 @@ export function ImportarPlanilha({ aberto, onFechar }: Readonly<{ aberto: boolea
           aria-label="Selecionar planilha"
           onChange={(e) => {
             const f = e.target.files?.[0]
-            if (f) ler(f).catch(() => setResultado({ validos: [], erros: ['Não foi possível ler o arquivo.'] }))
+            if (f) ler(f)
             e.target.value = ''
           }}
         />
@@ -187,8 +181,8 @@ export function ImportarPlanilha({ aberto, onFechar }: Readonly<{ aberto: boolea
           <Download size={13} /> Baixar planilha modelo
         </button>
         {resultado && (
-          <div className="importar__resultado">
-            <output>
+          <div className="importar__resultado" role="status">
+            <p>
               <strong>{qtd}</strong> {qtd === 1 ? 'lote pronto' : 'lotes prontos'} para importar
               {resultado.erros.length > 0 && (
                 <>
@@ -196,7 +190,7 @@ export function ImportarPlanilha({ aberto, onFechar }: Readonly<{ aberto: boolea
                   <strong>{resultado.erros.length}</strong> com erro
                 </>
               )}
-            </output>
+            </p>
             {resultado.erros.length > 0 && (
               <ul className="importar__erros">
                 {resultado.erros.slice(0, 8).map((e) => (

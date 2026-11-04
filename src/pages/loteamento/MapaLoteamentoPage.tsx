@@ -5,11 +5,17 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Badge } from '../../components/ui'
 import { useToast } from '../../contexts/ToastContext'
 import { useDb } from '../../data/db'
-import { CORES_SITUACAO, indexar, nomeLote, reservaAtiva, SITUACAO_EXIBICAO } from '../../data/selectors'
+import { indexar, reservaAtiva, SITUACAO_EXIBICAO } from '../../data/selectors'
 import type { Imovel, Situacao } from '../../data/types'
 import { formatarMoedaInteira } from '../../lib/format'
+import { emAndamento, SITUACAO_PROPOSTA, situacaoProposta } from '../../lib/propostas'
 
-const CORES = CORES_SITUACAO
+const CORES: Record<Situacao, string> = {
+  disponivel: '#2f8a55',
+  reservado: '#e0922a',
+  vendido: '#f0641e',
+  bloqueado: '#8e8e93',
+}
 
 /** Gera um PNG da planta a partir dos dados (não depende de print da tela). */
 async function exportarPng(nome: string, linhas: { quadra: string; lotes: Imovel[] }[]) {
@@ -22,8 +28,7 @@ async function exportarPng(nome: string, linhas: { quadra: string; lotes: Imovel
   const altura = topo + linhas.length * (T + G) + 50
   const blocos = linhas
     .map((linha, y) => {
-      const nomeQuadra = linha.quadra ? `Qd. ${linha.quadra}` : 'Lotes'
-      const rotulo = `<text x="10" y="${topo + y * (T + G) + T / 2 + 4}" font-size="12" fill="#62626a">${nomeQuadra}</text>`
+      const rotulo = `<text x="10" y="${topo + y * (T + G) + T / 2 + 4}" font-size="12" fill="#62626a">${linha.quadra ? `Qd. ${linha.quadra}` : 'Lotes'}</text>`
       const lotes = linha.lotes
         .map(
           (l, x) =>
@@ -70,7 +75,7 @@ export function MapaLoteamentoPage() {
   const linhas = useMemo(() => {
     if (!loteamento) return []
     const lotes = db.imoveis.filter((i) => i.loteamento === loteamento.nome && i.status === 'publicado')
-    const quadras = [...new Set(lotes.map((i) => i.endereco.quadra))].sort((a, b) => a.localeCompare(b, 'pt-BR', { numeric: true }))
+    const quadras = [...new Set(lotes.map((i) => i.endereco.quadra))].sort()
     return quadras.map((quadra) => ({
       quadra,
       lotes: lotes.filter((i) => i.endereco.quadra === quadra).sort((a, b) => a.endereco.lote.localeCompare(b.endereco.lote, 'pt-BR', { numeric: true })),
@@ -82,7 +87,7 @@ export function MapaLoteamentoPage() {
       <main className="conteudo">
         <section className="card vazio">
           <h2>Loteamento não encontrado</h2>
-          <Link to="/loteamentos" className="btn btn--secundario">Voltar</Link>
+          <Link to="/imoveis/loteamentos" className="btn btn--secundario">Voltar</Link>
         </section>
       </main>
     )
@@ -95,9 +100,8 @@ export function MapaLoteamentoPage() {
   const reserva = selecionado && db.reservas.find((r) => r.imovelId === selecionado.id && reservaAtiva(r, agora))
   const proposta = selecionado && db.propostas.filter((p) => p.imovelId === selecionado.id).sort((a, b) => b.criadaEm.localeCompare(a.criadaEm))[0]
   const venda = selecionado && db.vendas.find((v) => v.imovelId === selecionado.id && v.status === 'ativa')
-  const clienteId = reserva?.clienteId ?? venda?.clienteId ?? (proposta?.status === 'pendente' ? proposta.clienteId : undefined)
+  const clienteId = reserva?.clienteId ?? venda?.clienteId ?? (proposta && emAndamento(situacaoProposta(proposta, agora)) ? proposta.clienteId : undefined)
   const responsavelId = reserva?.corretorId ?? proposta?.corretorId
-  const statusProposta = { pendente: 'em análise', aprovada: 'aprovada', recusada: 'recusada' }
 
   return (
     <>
@@ -106,7 +110,7 @@ export function MapaLoteamentoPage() {
           <nav className="migalhas" aria-label="Você está em">
             <Link to="/imoveis">Imóveis</Link>
             <span aria-hidden>›</span>
-            <Link to={`/loteamentos/${loteamento.id}`}>{loteamento.nome}</Link>
+            <Link to={`/imoveis/loteamentos/${loteamento.id}`}>{loteamento.nome}</Link>
             <span aria-hidden>›</span>
             <span>Mapa</span>
           </nav>
@@ -131,7 +135,7 @@ export function MapaLoteamentoPage() {
         <section className="card secao">
           <div className="secao__cabecalho">
             <h2 className="card__titulo">Planta do loteamento</h2>
-            <p className="card__subtitulo">Cada retângulo é um lote; a cor mostra a situação atual. Clique no nome da quadra para ver os detalhes dela.</p>
+            <p className="card__subtitulo">Cada retângulo é um lote; a cor mostra a situação atual.</p>
           </div>
           <ul className="legenda">
             {(Object.keys(CORES) as Situacao[]).map((s) => (
@@ -145,40 +149,27 @@ export function MapaLoteamentoPage() {
             <p className="card__vazio">Nenhum lote cadastrado. Gere uma quadra para começar.</p>
           ) : (
             <div className="planta">
-              {linhas.map((linha) => {
-                const quadra = linha.quadra ? db.quadras.find((q) => q.loteamento === loteamento.nome && q.identificacao === linha.quadra) : undefined
-                return (
-                  <div key={linha.quadra} className="planta__linha">
-                    {quadra ? (
-                      <Link
-                        to={`/loteamentos/${loteamento.id}/quadras/${quadra.id}`}
-                        className="link planta__quadra planta__quadra--link"
-                        title={`Ver detalhes da Qd. ${linha.quadra}`}
+              {linhas.map((linha) => (
+                <div key={linha.quadra} className="planta__linha">
+                  <span className="planta__quadra">{linha.quadra ? `Qd. ${linha.quadra}` : 'Lotes'}</span>
+                  <div className="planta__lotes">
+                    {linha.lotes.map((l) => (
+                      <button
+                        key={l.id}
+                        type="button"
+                        className={`planta__lote ${l.id === selecionadoId ? 'planta__lote--ativo' : ''}`}
+                        style={{ background: CORES[l.situacao] }}
+                        aria-pressed={l.id === selecionadoId}
+                        aria-label={`Lote ${l.endereco.lote}${linha.quadra ? `, Qd. ${linha.quadra}` : ''} — ${SITUACAO_EXIBICAO[l.situacao].rotulo}`}
+                        title={`Lote ${l.endereco.lote} · ${SITUACAO_EXIBICAO[l.situacao].rotulo}`}
+                        onClick={() => setSelecionadoId(l.id)}
                       >
-                        Qd. {linha.quadra}
-                      </Link>
-                    ) : (
-                      <span className="planta__quadra">{linha.quadra ? `Qd. ${linha.quadra}` : 'Lotes'}</span>
-                    )}
-                    <div className="planta__lotes">
-                      {linha.lotes.map((l) => (
-                        <button
-                          key={l.id}
-                          type="button"
-                          className={`planta__lote ${l.id === selecionadoId ? 'planta__lote--ativo' : ''}`}
-                          style={{ background: CORES[l.situacao] }}
-                          aria-pressed={l.id === selecionadoId}
-                          aria-label={`${nomeLote(l.endereco.lote, linha.quadra, ', ')} — ${SITUACAO_EXIBICAO[l.situacao].rotulo}`}
-                          title={`Lote ${l.endereco.lote} · ${SITUACAO_EXIBICAO[l.situacao].rotulo}`}
-                          onClick={() => setSelecionadoId(l.id)}
-                        >
-                          {l.endereco.lote}
-                        </button>
-                      ))}
-                    </div>
+                        {l.endereco.lote}
+                      </button>
+                    ))}
                   </div>
-                )
-              })}
+                </div>
+              ))}
             </div>
           )}
         </section>
@@ -188,7 +179,7 @@ export function MapaLoteamentoPage() {
             <div>
               <h2 className="card__titulo">
                 {selecionado
-                  ? `Lote selecionado — ${nomeLote(selecionado.endereco.lote, selecionado.endereco.quadra, ', ')}`
+                  ? `Lote selecionado — Lote ${selecionado.endereco.lote}${selecionado.endereco.quadra ? `, Qd. ${selecionado.endereco.quadra}` : ''}`
                   : 'Nenhum lote selecionado'}
               </h2>
               <p className="card__subtitulo">{selecionado ? 'Dados do lote destacado na planta.' : 'Clique em um lote da planta.'}</p>
@@ -208,7 +199,7 @@ export function MapaLoteamentoPage() {
               <div><dt>Valor de tabela</dt><dd>{selecionado.valores.tabela ? formatarMoedaInteira(selecionado.valores.tabela) : '—'}</dd></div>
               <div><dt>Cliente</dt><dd>{clienteId ? pessoas.get(clienteId)?.nome : '—'}</dd></div>
               <div><dt>Reserva</dt><dd>{reserva ? `${reserva.codigo} · expira em ${new Date(reserva.expiraEm).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}` : '—'}</dd></div>
-              <div><dt>Proposta</dt><dd>{proposta ? `${proposta.codigo} · ${statusProposta[proposta.status]}` : '—'}</dd></div>
+              <div><dt>Proposta</dt><dd>{proposta ? `${proposta.codigo} · ${SITUACAO_PROPOSTA[situacaoProposta(proposta, agora)].rotulo.toLowerCase()}` : '—'}</dd></div>
               <div><dt>Responsável</dt><dd>{responsavelId ? pessoas.get(responsavelId)?.nome : '—'}</dd></div>
               {selecionado.bloqueio && <div><dt>Bloqueio</dt><dd>{selecionado.bloqueio.motivo}</dd></div>}
             </dl>

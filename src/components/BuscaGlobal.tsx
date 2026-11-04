@@ -45,7 +45,7 @@ export function BuscaGlobal() {
         id: c.id,
         titulo: c.nome,
         subtitulo: 'Cliente',
-        destino: `/clientes?q=${encodeURIComponent(c.nome)}`,
+        destino: `/clientes/${c.id}`,
       }))
     return [...imoveis, ...clientes]
   }, [db, termo])

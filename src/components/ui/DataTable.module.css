@@ -1,0 +1,87 @@
+/* Estilos de tabela compartilhados: usar com <table className={styles.table}> dentro de .wrapper (card) ou .flush (dentro de outro card). */
+.wrapper,
+.flush {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.wrapper {
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 12px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.table th {
+  padding: 14px 24px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  background: var(--color-table-header-bg);
+  border-bottom: 1px solid var(--color-border-subtle);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 18px 24px;
+  color: var(--color-text-secondary);
+  border-bottom: 1px solid var(--color-border-subtle);
+  white-space: nowrap;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table tbody tr:hover {
+  background: var(--color-bg-hover);
+}
+
+.strong {
+  color: var(--color-text-primary) !important;
+  font-weight: 600;
+}
+
+.danger {
+  color: var(--color-danger) !important;
+  font-weight: 700;
+}
+
+.rowAction {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-neutral-bg);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.rowAction:hover {
+  color: var(--color-text-primary);
+  border-color: var(--color-text-tertiary);
+}
+
+.rowAction:focus-visible {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-soft);
+}
+
+.empty {
+  padding: 32px 24px !important;
+  text-align: center;
+  color: var(--color-text-tertiary) !important;
+}
