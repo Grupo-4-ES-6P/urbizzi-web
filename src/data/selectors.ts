@@ -1,4 +1,5 @@
-import type { Db, Imovel, Loteamento, Proposta, Reserva, Situacao, VarianteBadge } from './types'
+import { emAndamento, situacaoProposta } from '../lib/propostas'
+import type { Db, Imovel, Loteamento, Reserva, Situacao, VarianteBadge } from './types'
 
 export function rotuloImovel(imovel: Imovel, comLoteamento = true) {
   const { lote, quadra } = imovel.endereco
@@ -8,29 +9,12 @@ export function rotuloImovel(imovel: Imovel, comLoteamento = true) {
   return quadra ? `${base} · ${imovel.loteamento}` : `${base} — ${imovel.loteamento}`
 }
 
-/** "Lote 12 — Qd. 04" (o separador muda conforme o contexto). */
-export function nomeLote(lote: string, quadra: string, separador = ' — ') {
-  const base = `Lote ${lote}`
-  return quadra ? base + separador + `Qd. ${quadra}` : base
-}
-
 export function indexar<T extends { id: string }>(lista: T[]) {
   return new Map(lista.map((x) => [x.id, x]))
 }
 
 export function reservaAtiva(r: Reserva, agora: number) {
   return r.status === 'ativa' && new Date(r.expiraEm).getTime() > agora
-}
-
-/** Propostas abaixo do valor de tabela precisam do aval do administrador. */
-export function exigeAprovacao(p: Proposta, imovel: Imovel | undefined) {
-  return p.status === 'pendente' && !!imovel?.valores.tabela && p.valor < imovel.valores.tabela
-}
-
-export function descontoSobreTabela(p: Proposta, imovel: Imovel | undefined) {
-  const tabela = imovel?.valores.tabela
-  if (!tabela) return 0
-  return Math.round(((tabela - p.valor) / tabela) * 100)
 }
 
 export function proximoCodigo(db: Db) {
@@ -56,14 +40,6 @@ export const SITUACAO_EXIBICAO: Record<Situacao, { rotulo: string; variante: Var
   bloqueado: { rotulo: 'Bloqueado', variante: 'escuro' },
 }
 
-/** Cor de preenchimento por situação, usada nas plantas (mapa do loteamento e da quadra). */
-export const CORES_SITUACAO: Record<Situacao, string> = {
-  disponivel: '#2f8a55',
-  reservado: '#e0922a',
-  vendido: '#f0641e',
-  bloqueado: '#8e8e93',
-}
-
 /** Situação mostrada nas listas: proposta pendente aparece como "Em aprovação". */
 export function situacaoExibida(imovel: Imovel, propostasPendentes: Set<string>) {
   if (imovel.status === 'rascunho') return { rotulo: 'Rascunho', variante: 'rascunho' as VarianteBadge }
@@ -73,8 +49,8 @@ export function situacaoExibida(imovel: Imovel, propostasPendentes: Set<string>)
   return SITUACAO_EXIBICAO[imovel.situacao]
 }
 
-export function imoveisComPropostaPendente(db: Db) {
-  return new Set(db.propostas.filter((p) => p.status === 'pendente').map((p) => p.imovelId))
+export function imoveisComPropostaPendente(db: Db, agora = Date.now()) {
+  return new Set(db.propostas.filter((p) => emAndamento(situacaoProposta(p, agora))).map((p) => p.imovelId))
 }
 
 /** Identificador completo do lote: <código do loteamento>-<quadra>-<lote>, ex.: UNI-I-04-12. */
@@ -111,12 +87,6 @@ export interface ResumoQuadra {
   situacao: { rotulo: string; variante: VarianteBadge }
 }
 
-function situacaoQuadra(lotes: Imovel[], vendidos: number): { rotulo: string; variante: VarianteBadge } {
-  if (lotes.length > 0 && vendidos === lotes.length) return { rotulo: 'Esgotada', variante: 'escuro' }
-  if (lotes.some((i) => !i.matricula)) return { rotulo: 'Em registro', variante: 'atencao' }
-  return { rotulo: 'Ativa', variante: 'normal' }
-}
-
 /** Números de cada quadra de um loteamento, calculados a partir dos lotes. */
 export function resumoQuadras(db: Db, loteamento: string): ResumoQuadra[] {
   return db.quadras
@@ -127,7 +97,12 @@ export function resumoQuadras(db: Db, loteamento: string): ResumoQuadra[] {
       const areas = lotes.map((i) => i.dimensoes.areaTotal).filter((a): a is number => !!a)
       const precos = lotes.map((i) => i.valores.tabela).filter((v): v is number => !!v)
       const vendidos = conta('vendido')
-      const situacao = situacaoQuadra(lotes, vendidos)
+      const situacao =
+        lotes.length > 0 && vendidos === lotes.length
+          ? { rotulo: 'Esgotada', variante: 'escuro' as VarianteBadge }
+          : lotes.some((i) => !i.matricula)
+            ? { rotulo: 'Em registro', variante: 'atencao' as VarianteBadge }
+            : { rotulo: 'Ativa', variante: 'normal' as VarianteBadge }
       return {
         id: q.id,
         identificacao: q.identificacao,

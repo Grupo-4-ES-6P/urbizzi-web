@@ -10,11 +10,13 @@ export interface LoteamentoInicial {
   precoM2: number
   codigo: string
   endereco: string
+  limiteRenovacoes: number
 }
 
 export const LOTEAMENTOS: LoteamentoInicial[] = [
   {
     nome: 'Lot. Universitário',
+    limiteRenovacoes: 2,
     codigo: 'UNI-I',
     endereco: 'Rod. PR-317, km 12',
     bairro: 'Jardim Universitário',
@@ -26,6 +28,7 @@ export const LOTEAMENTOS: LoteamentoInicial[] = [
   },
   {
     nome: 'Jd. Europa',
+    limiteRenovacoes: 1,
     codigo: 'EUR',
     endereco: 'Av. Europa, 1500',
     bairro: 'Jardim Europa',
@@ -37,6 +40,7 @@ export const LOTEAMENTOS: LoteamentoInicial[] = [
   },
   {
     nome: 'Biopark Toledo',
+    limiteRenovacoes: 3,
     codigo: 'BIO',
     endereco: 'Av. Max Planck, 3796',
     bairro: 'Vila Becker',
@@ -48,6 +52,7 @@ export const LOTEAMENTOS: LoteamentoInicial[] = [
   },
   {
     nome: 'Jd. Porto Alegre',
+    limiteRenovacoes: 2,
     codigo: 'POA',
     endereco: 'Rua Guaíba, 800',
     bairro: 'Jardim Porto Alegre',

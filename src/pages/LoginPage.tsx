@@ -1,6 +1,7 @@
 import { ArrowLeft, Eye, EyeOff, MailCheck } from 'lucide-react'
 import { useMemo, useState, type FormEvent } from 'react'
 
+import { BotaoTema } from '../components/BotaoTema'
 import { Logo } from '../components/Logo'
 import { Campo, Spinner } from '../components/ui'
 import { useAuth } from '../contexts/AuthContext'
@@ -9,8 +10,7 @@ import { resumoGeral } from '../data/selectors'
 import { formatarMoedaCompacta } from '../lib/format'
 import { solicitarRecuperacaoSenha } from '../services/api'
 
-// Partes separadas por pontos sem sobreposição: evita retrocesso exponencial na regex.
-const EMAIL_VALIDO = /^[^\s@]+@[^\s@.]+(?:\.[^\s@.]+)+$/
+const EMAIL_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 type Modo = 'entrar' | 'recuperar' | 'enviado'
 
@@ -45,6 +45,7 @@ export function LoginPage() {
       </aside>
 
       <main className="login__area">
+        <BotaoTema className="login__tema" />
         <div className="login__form-wrap">
           <div className="login__logo-mobile">
             <Logo comSlogan />
@@ -61,14 +62,13 @@ export function LoginPage() {
             />
           )}
           {modo === 'enviado' && (
-            <div className="login__enviado">
+            <div className="login__enviado" role="status">
               <MailCheck size={32} aria-hidden />
               <h2 className="login__titulo">Verifique seu e-mail</h2>
-              {/* <output> anuncia a confirmação para leitores de tela. */}
-              <output className="login__subtitulo">
+              <p className="login__subtitulo">
                 Se <strong>{email}</strong> estiver cadastrado, você receberá um link para redefinir a senha em
                 alguns minutos.
-              </output>
+              </p>
               <button type="button" className="btn btn--primario btn--bloco" onClick={() => setModo('entrar')}>
                 Voltar para o login
               </button>
@@ -86,7 +86,7 @@ interface FormEntrarProps {
   onEsqueci: () => void
 }
 
-function FormEntrar({ email, setEmail, onEsqueci }: Readonly<FormEntrarProps>) {
+function FormEntrar({ email, setEmail, onEsqueci }: FormEntrarProps) {
   const { entrar } = useAuth()
   const [senha, setSenha] = useState('')
   const [manter, setManter] = useState(true)
@@ -109,8 +109,8 @@ function FormEntrar({ email, setEmail, onEsqueci }: Readonly<FormEntrarProps>) {
     try {
       await entrar(email, senha, manter)
       // O redirecionamento acontece em <SomenteVisitante> assim que houver usuário.
-    } catch (error_) {
-      setErroGeral(error_ instanceof Error ? error_.message : 'Não foi possível entrar.')
+    } catch (erro) {
+      setErroGeral(erro instanceof Error ? erro.message : 'Não foi possível entrar.')
       setEnviando(false)
     }
   }
@@ -134,6 +134,7 @@ function FormEntrar({ email, setEmail, onEsqueci }: Readonly<FormEntrarProps>) {
             className="input input--suave"
             placeholder="seunome@urbizzi.com.br"
             autoComplete="email"
+            autoFocus
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
@@ -167,7 +168,7 @@ function FormEntrar({ email, setEmail, onEsqueci }: Readonly<FormEntrarProps>) {
       <div className="login__linha">
         <label className="checkbox">
           <input type="checkbox" checked={manter} onChange={(e) => setManter(e.target.checked)} />
-          <span>Manter conectado</span>
+          Manter conectado
         </label>
         <button type="button" className="link" onClick={onEsqueci}>
           Esqueci minha senha
@@ -201,7 +202,7 @@ interface FormRecuperarProps {
   onEnviado: () => void
 }
 
-function FormRecuperar({ email, setEmail, onVoltar, onEnviado }: Readonly<FormRecuperarProps>) {
+function FormRecuperar({ email, setEmail, onVoltar, onEnviado }: FormRecuperarProps) {
   const [erro, setErro] = useState('')
   const [enviando, setEnviando] = useState(false)
 
@@ -232,6 +233,7 @@ function FormRecuperar({ email, setEmail, onVoltar, onEnviado }: Readonly<FormRe
             className="input input--suave"
             placeholder="seunome@urbizzi.com.br"
             autoComplete="email"
+            autoFocus
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
