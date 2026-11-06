@@ -21,6 +21,7 @@ import { DocumentosPage } from './pages/imovel/DocumentosPage'
 import { LoteamentosPage } from './pages/loteamento/LoteamentosPage'
 import { NovoLoteamentoPage } from './pages/loteamento/NovoLoteamentoPage'
 import { MapaLoteamentoPage } from './pages/loteamento/MapaLoteamentoPage'
+import { EditarLoteamentoPage } from './pages/loteamento/EditarLoteamentoPage'
 /*Quadras*/
 import { NovaQuadraPage } from './pages/quadra/NovaQuadraPage'
 import { QuadraPage } from './pages/quadra/QuadraPage'
@@ -29,6 +30,8 @@ import { NovaPropostaPage } from './pages/propostas/NovaPropostaPage'
 import { DetalhePropostaPage } from './pages/propostas/DetalhePropostaPage'
 /*Vendas*/
 import { VendasPage } from './pages/vendas/VendasPage'
+/*Relatórios*/
+import { DivulgacaoPage } from './pages/relatorios/DivulgacaoPage'
 /*Clientes*/
 import { ClienteFormPage } from './pages/clientes/ClienteFormPage'
 import { ClientesPage } from './pages/clientes/ClientesPage'
@@ -79,11 +82,18 @@ export function Rotas() {
         {/*Links de Páginas de Loteamentos*/}
         <Route path="/loteamentos" element={<LoteamentosPage />} />
         <Route path="/loteamentos/novo" element={<NovoLoteamentoPage />} />
-        <Route path="/loteamentos/:id" element={<EmConstrucaoPage titulo="Loteamentos" />} />
+        <Route path="/loteamentos/:id" element={<EditarLoteamentoPage />} />
         <Route path="/loteamentos/:id/mapa" element={<MapaLoteamentoPage />} />
         {/*Links de Páginas de Quadras*/}
         <Route path="/loteamentos/:id/quadras/nova" element={<NovaQuadraPage />} />
         <Route path="/loteamentos/:id/quadras/:quadraId" element={<QuadraPage />} />
+        {/*Mesmas telas de loteamento acessadas a partir de Imóveis (links da listagem)*/}
+        <Route path="/imoveis/loteamentos" element={<LoteamentosPage />} />
+        <Route path="/imoveis/loteamentos/novo" element={<NovoLoteamentoPage />} />
+        <Route path="/imoveis/loteamentos/:id" element={<EditarLoteamentoPage />} />
+        <Route path="/imoveis/loteamentos/:id/mapa" element={<MapaLoteamentoPage />} />
+        <Route path="/imoveis/loteamentos/:id/quadras/nova" element={<NovaQuadraPage />} />
+        <Route path="/imoveis/loteamentos/:id/quadras/:quadraId" element={<QuadraPage />} />
         {/*Links de Páginas de Propostas*/}
         <Route path="/propostas" element={<EmConstrucaoPage titulo="Propostas" />} />
         <Route path="/propostas/nova" element={<NovaPropostaPage />} />
@@ -91,6 +101,7 @@ export function Rotas() {
         {/*Links de Páginas de Vendas e Relatórios*/}
         <Route path="/vendas" element={<VendasPage />} />
         <Route path="/relatorios" element={<EmConstrucaoPage titulo="Relatórios" />} />
+        <Route path="/relatorios/divulgacao" element={<DivulgacaoPage />} />
         {/*Links de Páginas de Clientes*/}
         <Route path="/clientes" element={<ClientesPage />} />
         <Route path="/clientes/novo" element={<ClienteFormPage />} />

@@ -76,7 +76,7 @@ export function NovoLoteamentoPage() {
   return <FormLoteamento key={id ?? 'novo'} loteamento={loteamento} />
 }
 
-function FormLoteamento({ loteamento }: Readonly<{ loteamento?: Loteamento }>) {
+export function FormLoteamento({ loteamento }: Readonly<{ loteamento?: Loteamento }>) {
   const db = useDb()
   const navigate = useNavigate()
   const notificar = useToast()
@@ -171,7 +171,7 @@ function FormLoteamento({ loteamento }: Readonly<{ loteamento?: Loteamento }>) {
             Cancelar
           </button>
           <button type="button" className="btn btn--primario" onClick={salvar} disabled={salvando}>
-            {salvando && <Spinner />} Salvar loteamento
+            {salvando && <Spinner />} {loteamento ? 'Salvar alterações' : 'Salvar loteamento'}
           </button>
         </div>
       </header>
