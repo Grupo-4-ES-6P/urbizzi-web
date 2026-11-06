@@ -1016,6 +1016,9 @@ textarea {
 .kpi__detalhe--neutro {
   color: var(--texto-2);
 }
+.kpi__detalhe--laranja {
+  color: var(--laranja);
+}
 .dashboard__grade {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);

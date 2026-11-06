@@ -32,6 +32,7 @@ import { DetalhePropostaPage } from './pages/propostas/DetalhePropostaPage'
 import { VendasPage } from './pages/vendas/VendasPage'
 /*Relatórios*/
 import { DivulgacaoPage } from './pages/relatorios/DivulgacaoPage'
+import { RelatoriosExportacaoPage } from './pages/relatorios/RelatoriosExportacaoPage'
 /*Clientes*/
 import { ClienteFormPage } from './pages/clientes/ClienteFormPage'
 import { ClientesPage } from './pages/clientes/ClientesPage'
@@ -100,7 +101,7 @@ export function Rotas() {
         <Route path="/propostas/:id" element={<DetalhePropostaPage />} />
         {/*Links de Páginas de Vendas e Relatórios*/}
         <Route path="/vendas" element={<VendasPage />} />
-        <Route path="/relatorios" element={<EmConstrucaoPage titulo="Relatórios" />} />
+        <Route path="/relatorios" element={<RelatoriosExportacaoPage />} />
         <Route path="/relatorios/divulgacao" element={<DivulgacaoPage />} />
         {/*Links de Páginas de Clientes*/}
         <Route path="/clientes" element={<ClientesPage />} />
