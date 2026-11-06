@@ -1,29 +1,39 @@
+/*Geral*/
 import type { ReactNode } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
-
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { TemaProvider } from './contexts/TemaContext'
 import { ToastProvider } from './contexts/ToastContext'
 import { AppLayout } from './layouts/AppLayout'
-import { ClienteFormPage } from './pages/clientes/ClienteFormPage'
-import { ClientesPage } from './pages/clientes/ClientesPage'
-import { DashboardPage } from './pages/DashboardPage'
+import { SiteLayout } from './pages/publico/SiteLayout'
 import { EmConstrucaoPage } from './pages/EmConstrucaoPage'
-import { ImovelFormPage } from './pages/imovel/ImovelFormPage'
-import { ImoveisPage } from './pages/imovel/ImoveisPage'
-import { HistoricoPage } from './pages/imovel/HistoricoPage'
+import { EmBrevePublicoPage } from './pages/publico/EmBrevePublicoPage'
+/*Login e Dashboard*/
 import { LoginPage } from './pages/LoginPage'
-import { LoteamentosPage } from './pages/loteamento/LoteamentosPage'
+import { DashboardPage } from './pages/DashboardPage'
+/*Imóveis*/
+import { ImoveisPage } from './pages/imovel/ImoveisPage'
+import { ImovelFormPage } from './pages/imovel/ImovelFormPage'
+import { HistoricoPage } from './pages/imovel/HistoricoPage'
 import { AcoesPage } from './pages/imovel/AcoesPage'
 import { DocumentosPage } from './pages/imovel/DocumentosPage'
+/*Loteamentos*/
+import { LoteamentosPage } from './pages/loteamento/LoteamentosPage'
+import { NovoLoteamentoPage } from './pages/loteamento/NovoLoteamentoPage'
+import { MapaLoteamentoPage } from './pages/loteamento/MapaLoteamentoPage'
+/*Quadras*/
 import { NovaQuadraPage } from './pages/quadra/NovaQuadraPage'
 import { QuadraPage } from './pages/quadra/QuadraPage'
-import { DetalhePropostaPage } from './pages/propostas/DetalhePropostaPage'
+/*Propostas*/
 import { NovaPropostaPage } from './pages/propostas/NovaPropostaPage'
-import { CatalogoPage } from './pages/publico/CatalogoPage'
-import { EmBrevePublicoPage } from './pages/publico/EmBrevePublicoPage'
-import { SiteLayout } from './pages/publico/SiteLayout'
+import { DetalhePropostaPage } from './pages/propostas/DetalhePropostaPage'
+/*Vendas*/
 import { VendasPage } from './pages/vendas/VendasPage'
+/*Clientes*/
+import { ClienteFormPage } from './pages/clientes/ClienteFormPage'
+import { ClientesPage } from './pages/clientes/ClientesPage'
+/*Catálogo Público*/
+import { CatalogoPage } from './pages/publico/CatalogoPage'
 
 function Protegida({ children }: Readonly<{ children: ReactNode }>) {
   const { usuario } = useAuth()
@@ -59,37 +69,43 @@ export function Rotas() {
         }
       >
         <Route path="/dashboard" element={<DashboardPage />} />
+        {/*Links de Páginas de Imóveis*/}
         <Route path="/imoveis" element={<ImoveisPage />} />
         <Route path="/imoveis/novo" element={<ImovelFormPage />} />
         <Route path="/imoveis/:id" element={<ImovelFormPage />} />
         <Route path="/imoveis/:id/historico" element={<HistoricoPage />} />
         <Route path="/imoveis/:id/acoes" element={<AcoesPage />} />
         <Route path="/imoveis/:id/documentos" element={<DocumentosPage />} />
+        {/*Links de Páginas de Loteamentos*/}
         <Route path="/loteamentos" element={<LoteamentosPage />} />
-        <Route path="/loteamentos/novo" element={<EmConstrucaoPage titulo="Loteamentos" />} />
+        <Route path="/loteamentos/novo" element={<NovoLoteamentoPage />} />
         <Route path="/loteamentos/:id" element={<EmConstrucaoPage titulo="Loteamentos" />} />
-        <Route path="/loteamentos/:id/mapa" element={<EmConstrucaoPage titulo="Loteamentos" />} />
+        <Route path="/loteamentos/:id/mapa" element={<MapaLoteamentoPage />} />
+        {/*Links de Páginas de Quadras*/}
         <Route path="/loteamentos/:id/quadras/nova" element={<NovaQuadraPage />} />
         <Route path="/loteamentos/:id/quadras/:quadraId" element={<QuadraPage />} />
-        <Route path="/clientes" element={<ClientesPage />} />
-        <Route path="/clientes/novo" element={<ClienteFormPage />} />
-        <Route path="/clientes/:id" element={<ClienteFormPage />} />
+        {/*Links de Páginas de Propostas*/}
         <Route path="/propostas" element={<EmConstrucaoPage titulo="Propostas" />} />
         <Route path="/propostas/nova" element={<NovaPropostaPage />} />
         <Route path="/propostas/:id" element={<DetalhePropostaPage />} />
+        {/*Links de Páginas de Vendas e Relatórios*/}
         <Route path="/vendas" element={<VendasPage />} />
         <Route path="/relatorios" element={<EmConstrucaoPage titulo="Relatórios" />} />
+        {/*Links de Páginas de Clientes*/}
+        <Route path="/clientes" element={<ClientesPage />} />
+        <Route path="/clientes/novo" element={<ClienteFormPage />} />
+        <Route path="/clientes/:id" element={<ClienteFormPage />} />
+        {/*Links de Páginas de Usuários*/}
         <Route path="/usuarios" element={<EmConstrucaoPage titulo="Usuários" />} />
+        <Route path="/usuarios/novo" element={<EmConstrucaoPage titulo="Usuários" />} />
+        <Route path="/usuarios/:id" element={<EmConstrucaoPage titulo="Usuários" />} />
       </Route>
-      {/* Site público: não exige login */}
+      {/* Site público: não exige login*/}
       <Route element={<SiteLayout />}>
         <Route path="/terrenos" element={<CatalogoPage />} />
         <Route path="/terrenos/:id" element={<EmBrevePublicoPage titulo="Terreno" />} />
-        <Route path="/empreendimentos" element={<EmBrevePublicoPage titulo="Empreendimentos" />} />
-        <Route path="/financiamento" element={<EmBrevePublicoPage titulo="Financiamento" />} />
-        <Route path="/contato" element={<EmBrevePublicoPage titulo="Contato" />} />
-        <Route path="/inicio" element={<EmBrevePublicoPage titulo="Inicio" />} />
       </Route>
+      {/*Failsafe: redireciona qualquer link errado devolta para a dashbaord*/}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   )
