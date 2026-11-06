@@ -3186,3 +3186,13 @@ textarea {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+/* Badge clicável (ex.: ativar/desativar alerta de prazo) */
+button.badge {
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
+}
+button.badge:focus-visible {
+  outline: 2px solid var(--laranja);
+  outline-offset: 2px;
+}
