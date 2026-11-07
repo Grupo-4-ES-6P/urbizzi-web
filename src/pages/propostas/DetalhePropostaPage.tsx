@@ -191,6 +191,7 @@ export function DetalhePropostaPage() {
             <Dado rotulo="Expira em" valor={proposta.expiraEm ? dataHora(proposta.expiraEm) : undefined} />
             <Dado rotulo="Versão" valor={String(proposta.versao ?? 1)} />
           </dl>
+          <Link to={`/propostas/${proposta.id}/versoes`} className="link">Ver histórico de versões</Link>
         </section>
 
         <section className="card secao" aria-labelledby="titulo-cliente-imovel">

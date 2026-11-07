@@ -5,6 +5,17 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Urbizzi — Painel</title>
+    <script>
+      // Aplica o tema salvo antes do primeiro render para não piscar (ver TemaContext).
+      try {
+        var tema = localStorage.getItem('urbizzi:tema')
+        if (tema === 'claro' || tema === 'escuro') {
+          document.documentElement.dataset.theme = tema === 'escuro' ? 'dark' : 'light'
+        }
+      } catch (e) {
+        // Storage indisponível: o TemaContext aplica a preferência do sistema depois.
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

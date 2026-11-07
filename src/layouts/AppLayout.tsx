@@ -2,12 +2,14 @@ import {
   BadgeDollarSign,
   BarChart3,
   Building2,
-  CalendarClock,
   FileText,
+  LandPlot,
   LayoutDashboard,
   LogOut,
   Menu,
+  Moon,
   RotateCcw,
+  Sun,
   UserCog,
   Users,
   X,
@@ -18,6 +20,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { Dialogo } from '../components/Dialogo'
 import { Logo } from '../components/Logo'
 import { useAuth } from '../contexts/AuthContext'
+import { useTema } from '../contexts/TemaContext'
 import { useToast } from '../contexts/ToastContext'
 import { restaurarDemo } from '../data/db'
 import { iniciais } from '../lib/format'
@@ -25,17 +28,18 @@ import { iniciais } from '../lib/format'
 const MENU = [
   { para: '/dashboard', rotulo: 'Dashboard', icone: LayoutDashboard },
   { para: '/imoveis', rotulo: 'Imóveis', icone: Building2 },
-  { para: '/clientes', rotulo: 'Clientes', icone: Users },
-  { para: '/reservas', rotulo: 'Reservas', icone: CalendarClock },
+  { para: '/loteamentos', rotulo: 'Loteamentos', icone: LandPlot },
   { para: '/propostas', rotulo: 'Propostas', icone: FileText },
   { para: '/vendas', rotulo: 'Vendas', icone: BadgeDollarSign },
   { para: '/relatorios', rotulo: 'Relatórios', icone: BarChart3 },
+  { para: '/clientes', rotulo: 'Clientes', icone: Users },
   { para: '/usuarios', rotulo: 'Usuários', icone: UserCog },
 ]
 
 export function AppLayout() {
   const { usuario, sair } = useAuth()
   const notificar = useToast()
+  const { tema, alternarTema } = useTema()
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const [menuAberto, setMenuAberto] = useState(false)
@@ -85,6 +89,16 @@ export function AppLayout() {
                 role="menuitem"
                 onClick={() => {
                   setContaAberta(false)
+                  alternarTema()
+                }}
+              >
+                {tema === 'escuro' ? <Sun size={15} /> : <Moon size={15} />} {tema === 'escuro' ? 'Tema claro' : 'Tema escuro'}
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setContaAberta(false)
                   setConfirmarReset(true)
                 }}
               >
@@ -127,7 +141,7 @@ export function AppLayout() {
       <Dialogo
         aberto={confirmarReset}
         titulo="Restaurar dados de demonstração?"
-        descricao="Todos os imóveis, reservas e propostas voltam ao estado inicial. Cadastros e rascunhos feitos por você serão apagados."
+        descricao="Todos os imóveis, clientes, reservas e propostas voltam ao estado inicial. Cadastros e rascunhos feitos por você serão apagados."
         textoConfirmar="Restaurar"
         perigoso
         onCancelar={() => setConfirmarReset(false)}

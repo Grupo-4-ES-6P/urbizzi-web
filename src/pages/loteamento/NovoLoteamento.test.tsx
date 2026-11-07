@@ -17,7 +17,7 @@ describe('Loteamentos', () => {
     await user.type(quantidade, '6')
     await user.click(screen.getByRole('button', { name: 'Gerar 6 lotes' }))
 
-    expect(await screen.findByRole('heading', { name: 'Imóveis' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: `Qd. 07 — ${lot.nome}` })).toBeInTheDocument()
     const novos = lerDb().imoveis.slice(antes)
     expect(novos).toHaveLength(6)
     expect(novos.every((i) => i.endereco.quadra === '07' && i.matricula === '')).toBe(true)

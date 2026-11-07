@@ -17,6 +17,19 @@ export const formatarMoedaInteira = (v: number) => moedaInteira.format(v)
 export const formatarMoedaCompacta = (v: number) => moedaCompacta.format(v)
 export const formatarDecimal = (v: number) => decimal.format(v)
 
+const umaCasa = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 })
+
+/** Espaço não separável, o mesmo que o Intl usa entre "R$" e o número. */
+const NBSP = String.fromCodePoint(160)
+
+/** "R$ 4,2M" / "R$ 850 mil": o compacto do Intl em pt-BR escreve "mi", diferente do protótipo. */
+export function formatarMoedaAbreviada(v: number) {
+  const abs = Math.abs(v)
+  if (abs >= 999_950) return `R$${NBSP}${umaCasa.format(v / 1_000_000)}M`
+  if (abs >= 1_000) return `R$${NBSP}${umaCasa.format(v / 1_000)}${NBSP}mil`
+  return formatarMoedaInteira(v)
+}
+
 export function formatarDataExtensa(data: Date) {
   const texto = data.toLocaleDateString('pt-BR', {
     weekday: 'long',
@@ -52,6 +65,19 @@ export function urgenciaReserva(ms: number): Urgencia {
   if (ms < 24 * HORA) return 'critico'
   if (ms < 72 * HORA) return 'atencao'
   return 'normal'
+}
+
+export function dataCalendario(d: Date) {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
+/** Formata YYYY-MM-DD ou um instante ISO como DD/MM/AAAA. */
+export function formatarData(valor: string) {
+  const calendario = /^(\d{4})-(\d{2})-(\d{2})$/.exec(valor)
+  const d = calendario
+    ? new Date(Number(calendario[1]), Number(calendario[2]) - 1, Number(calendario[3]))
+    : new Date(valor)
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('pt-BR')
 }
 
 export function mascaraCep(valor: string) {

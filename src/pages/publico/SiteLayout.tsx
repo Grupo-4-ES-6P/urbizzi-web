@@ -2,6 +2,7 @@ import { Menu, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 
+import { BotaoTema } from '../../components/BotaoTema'
 import { Logo } from '../../components/Logo'
 
 const LINKS = [
@@ -34,6 +35,7 @@ export function SiteLayout() {
             </NavLink>
           ))}
         </nav>
+        <BotaoTema sobreEscuro />
         <Link to="/login" className="site__acesso">
           Área restrita
         </Link>
