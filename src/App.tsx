@@ -7,7 +7,6 @@ import { ToastProvider } from './contexts/ToastContext'
 import { AppLayout } from './layouts/AppLayout'
 import { SiteLayout } from './pages/publico/SiteLayout'
 import { EmConstrucaoPage } from './pages/EmConstrucaoPage'
-import { EmBrevePublicoPage } from './pages/publico/EmBrevePublicoPage'
 /*Login e Dashboard*/
 import { LoginPage } from './pages/LoginPage'
 import { DashboardPage } from './pages/DashboardPage'
@@ -28,6 +27,7 @@ import { QuadraPage } from './pages/quadra/QuadraPage'
 /*Propostas*/
 import { NovaPropostaPage } from './pages/propostas/NovaPropostaPage'
 import { DetalhePropostaPage } from './pages/propostas/DetalhePropostaPage'
+import { PropostaVersoesPage } from './pages/propostas/PropostaVersoesPage'
 /*Vendas*/
 import { VendasPage } from './pages/vendas/VendasPage'
 /*Relatórios*/
@@ -38,6 +38,10 @@ import { ClienteFormPage } from './pages/clientes/ClienteFormPage'
 import { ClientesPage } from './pages/clientes/ClientesPage'
 /*Catálogo Público*/
 import { CatalogoPage } from './pages/publico/CatalogoPage'
+import { TerrenoDetalhePage } from './pages/publico/TerrenoDetalhePage'
+/*Usuários*/
+import { UsuariosPermissoesPage } from './pages/usuarios/UsuariosPermissoesPage'
+import { UsuarioFormPage } from './pages/usuarios/UsuarioFormPage'
 
 function Protegida({ children }: Readonly<{ children: ReactNode }>) {
   const { usuario } = useAuth()
@@ -99,6 +103,7 @@ export function Rotas() {
         <Route path="/propostas" element={<EmConstrucaoPage titulo="Propostas" />} />
         <Route path="/propostas/nova" element={<NovaPropostaPage />} />
         <Route path="/propostas/:id" element={<DetalhePropostaPage />} />
+        <Route path="/propostas/:id/versoes" element={<PropostaVersoesPage />} />
         {/*Links de Páginas de Vendas e Relatórios*/}
         <Route path="/vendas" element={<VendasPage />} />
         <Route path="/relatorios" element={<RelatoriosExportacaoPage />} />
@@ -108,14 +113,14 @@ export function Rotas() {
         <Route path="/clientes/novo" element={<ClienteFormPage />} />
         <Route path="/clientes/:id" element={<ClienteFormPage />} />
         {/*Links de Páginas de Usuários*/}
-        <Route path="/usuarios" element={<EmConstrucaoPage titulo="Usuários" />} />
-        <Route path="/usuarios/novo" element={<EmConstrucaoPage titulo="Usuários" />} />
-        <Route path="/usuarios/:id" element={<EmConstrucaoPage titulo="Usuários" />} />
+        <Route path="/usuarios" element={<UsuariosPermissoesPage />} />
+        <Route path="/usuarios/novo" element={<UsuarioFormPage />} />
+        <Route path="/usuarios/:id" element={<UsuarioFormPage />} />
       </Route>
       {/* Site público: não exige login*/}
       <Route element={<SiteLayout />}>
         <Route path="/terrenos" element={<CatalogoPage />} />
-        <Route path="/terrenos/:id" element={<EmBrevePublicoPage titulo="Terreno" />} />
+        <Route path="/terrenos/:id" element={<TerrenoDetalhePage />} />
       </Route>
       {/*Failsafe: redireciona qualquer link errado devolta para a dashbaord*/}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

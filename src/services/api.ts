@@ -64,6 +64,14 @@ export async function autenticar(email: string, senha: string): Promise<UsuarioP
   if (usuario?.senha !== senha) {
     throw new Error('E-mail ou senha incorretos.')
   }
+  if (usuario.ativo === false) {
+    throw new Error('Usuário inativo. Fale com o administrador.')
+  }
+  const agora = new Date().toISOString()
+  atualizarDb((db) => ({
+    ...db,
+    usuarios: db.usuarios.map((u) => (u.id === usuario.id ? { ...u, ultimoAcesso: agora } : u)),
+  }))
   return paraUsuarioPublico(usuario)
 }
 

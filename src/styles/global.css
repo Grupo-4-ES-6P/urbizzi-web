@@ -3199,3 +3199,202 @@ button.badge:focus-visible {
   outline: 2px solid var(--laranja);
   outline-offset: 2px;
 }
+
+/* ============ Usuários e permissões ============ */
+.kpis--sem-margem {
+  margin-bottom: 0;
+}
+.perfil-resumo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+}
+.perfil-resumo__topo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+.perfil-resumo__total {
+  font-family: var(--fonte-titulo);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--laranja);
+}
+.perfil-resumo__descricao {
+  font-size: 11px;
+  color: var(--texto-3);
+}
+.usuario-celula {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.usuario-celula .avatar {
+  width: 26px;
+  height: 26px;
+  font-size: 10px;
+  color: #fff;
+}
+.badge--perfil-admin,
+.badge--perfil-gerente {
+  background: var(--laranja-suave);
+  color: var(--laranja-forte);
+}
+.badge--perfil-corretor,
+.badge--perfil-coletor {
+  background: var(--laranja-suave);
+  color: var(--texto);
+}
+.matriz-permissoes__perfil {
+  width: 90px;
+  text-align: center;
+}
+.matriz-permissoes__celula {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--texto-3);
+  font: inherit;
+  cursor: pointer;
+}
+.matriz-permissoes__celula:hover:not(:disabled) {
+  background: var(--superficie-2);
+}
+.matriz-permissoes__celula:focus-visible {
+  outline: 2px solid var(--laranja);
+}
+.matriz-permissoes__celula:disabled {
+  cursor: not-allowed;
+}
+.matriz-permissoes__ponto {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--texto);
+}
+
+/* ============ Versões da proposta ============ */
+.versao-atual {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 0 10px;
+}
+.versao-atual > div {
+  padding: 8px 10px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-sm);
+  min-width: 0;
+}
+.versao-atual dt {
+  font-size: 11px;
+  color: var(--texto-3);
+}
+.versao-atual dd {
+  margin: 2px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* ============ Detalhe público do terreno ============ */
+.terreno-detalhe__titulo {
+  margin: 8px 0 16px;
+  font-family: var(--fonte-titulo);
+  font-size: 22px;
+  font-weight: 800;
+}
+.terreno-detalhe__grade {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 16px;
+  align-items: start;
+}
+.terreno-detalhe__galeria {
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 1fr);
+  grid-template-rows: repeat(3, 90px);
+  gap: 8px;
+}
+.terreno-detalhe__foto {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: var(--raio-sm);
+  background: var(--vazio-2);
+  color: var(--vazio-texto);
+}
+.terreno-detalhe__foto--capa {
+  grid-row: 1 / span 3;
+}
+.terreno-detalhe__foto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.terreno-detalhe__ficha {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0;
+}
+.terreno-detalhe__ficha dt {
+  font-size: 11px;
+  color: var(--texto-3);
+}
+.terreno-detalhe__ficha dd {
+  margin: 2px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.terreno-detalhe__oferta {
+  position: sticky;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding: 16px;
+}
+.terreno-detalhe__oferta .badge {
+  align-self: flex-start;
+}
+.terreno-detalhe__preco {
+  font-family: var(--fonte-titulo);
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--laranja);
+}
+.terreno-detalhe__aviso {
+  font-size: 13px;
+  color: var(--texto-2);
+}
+
+@media (max-width: 900px) {
+  .versao-atual {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .terreno-detalhe__grade {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .terreno-detalhe__oferta {
+    position: static;
+  }
+}
+@media (max-width: 560px) {
+  .versao-atual,
+  .terreno-detalhe__ficha {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .terreno-detalhe__galeria {
+    grid-template-rows: repeat(3, 60px);
+  }
+}

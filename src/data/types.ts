@@ -237,6 +237,9 @@ export interface Usuario {
   email: string
   senha: string
   papel: string
+  /** Ausente nos cadastros antigos: conta como ativo. */
+  ativo?: boolean
+  ultimoAcesso?: string
 }
 
 export type UsuarioPublico = Omit<Usuario, 'senha'>
@@ -255,4 +258,6 @@ export interface Db {
   interesses: Interesse[]
   historico: EventoHistorico[]
   documentos: Documento[]
+  /** Perfis liberados por permissão; ausente usa a matriz padrão. */
+  permissoes?: Record<string, string[]>
 }

@@ -19,10 +19,20 @@ import type {
 } from './types'
 
 // Sobe a cada mudança no formato dos dados para descartar o banco antigo salvo no navegador.
-export const VERSAO_DB = 7
+export const VERSAO_DB = 8
 
 const HORA = 3_600_000
 const DIA = 24 * HORA
+
+/** Equipe de demonstração da tela de usuários e permissões. */
+const EQUIPE = [
+  { nome: 'Arthur Pacheco', email: 'arthur@urbizzi.com.br', papel: 'Gerente comercial', ativo: true, horasSemAcesso: 3 },
+  { nome: 'Gabriela Krüger', email: 'gabriela@urbizzi.com.br', papel: 'Gerente comercial', ativo: true, horasSemAcesso: 20 },
+  { nome: 'João Victor Billó', email: 'joao@urbizzi.com.br', papel: 'Corretor', ativo: true, horasSemAcesso: 2 },
+  { nome: 'Matheus Oening', email: 'matheus@urbizzi.com.br', papel: 'Corretor', ativo: true, horasSemAcesso: 5 },
+  { nome: 'Gustavo M. Lima', email: 'gustavo@urbizzi.com.br', papel: 'Coletor', ativo: true, horasSemAcesso: 72 },
+  { nome: 'Renata Foscarini', email: 'renata@urbizzi.com.br', papel: 'Corretor', ativo: false, horasSemAcesso: 18 * 24 },
+]
 
 const NOMES_CLIENTES = [
   'Marina Alves', 'Rafael Nunes', 'Construtora ML', 'Ana Paula S.', 'Tiago Ferraz',
@@ -567,6 +577,14 @@ export function criarSeed(agora: Date): Db {
   novaProposta(r31, cliente('Construtora ML'), corretor('M. Oening'), arredondar(r31.valores.tabela! * 0.92, 1000))
   novaProposta(r07, cliente('Rafael Nunes'), corretor('D. Krüger'), arredondar(r07.valores.tabela! * 0.95, 500), 'Entrada 30% + 24x')
   novaProposta(r44, cliente('Tiago Ferraz'), corretor('G. Lima'), arredondar(r44.valores.tabela! * 0.97, 1000), 'À vista')
+  // Proposta com histórico de versões para a tela de versões (RF18): nada é sobrescrito.
+  const comVersoes = propostas[1]
+  const criadaMs = new Date(comVersoes.criadaEm).getTime()
+  comVersoes.versao = 3
+  comVersoes.versoes = [
+    { numero: 1, valor: r07.valores.tabela!, condicao: 'Entrada 20% + 18x', registradaEm: new Date(criadaMs + 3 * HORA).toISOString(), autor: 'D. Krüger' },
+    { numero: 2, valor: r07.valores.tabela!, condicao: 'Entrada 30% + 24x', registradaEm: new Date(criadaMs + 6 * HORA).toISOString(), autor: 'D. Krüger' },
+  ]
   const reservadosRestantes = reservas.slice(5, 13)
   for (const r of reservadosRestantes) {
     const imovel = imoveis.find((i) => i.id === r.imovelId)!
@@ -613,7 +631,18 @@ export function criarSeed(agora: Date): Db {
         email: 'admin@urbizzi.com.br',
         senha: 'urbizzi123',
         papel: 'Administrador',
+        ativo: true,
+        ultimoAcesso: new Date(agoraMs).toISOString(),
       },
+      ...EQUIPE.map((u, i) => ({
+        id: `usr-${i + 2}`,
+        nome: u.nome,
+        email: u.email,
+        senha: 'urbizzi123',
+        papel: u.papel,
+        ativo: u.ativo,
+        ultimoAcesso: new Date(agoraMs - u.horasSemAcesso * HORA).toISOString(),
+      })),
     ],
     loteamentos,
     quadras,
