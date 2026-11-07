@@ -6,7 +6,6 @@ import { TemaProvider } from './contexts/TemaContext'
 import { ToastProvider } from './contexts/ToastContext'
 import { AppLayout } from './layouts/AppLayout'
 import { SiteLayout } from './pages/publico/SiteLayout'
-import { EmConstrucaoPage } from './pages/EmConstrucaoPage'
 /*Login e Dashboard*/
 import { LoginPage } from './pages/LoginPage'
 import { DashboardPage } from './pages/DashboardPage'
@@ -28,6 +27,7 @@ import { QuadraPage } from './pages/quadra/QuadraPage'
 import { NovaPropostaPage } from './pages/propostas/NovaPropostaPage'
 import { DetalhePropostaPage } from './pages/propostas/DetalhePropostaPage'
 import { PropostaVersoesPage } from './pages/propostas/PropostaVersoesPage'
+import { PropostasListaPage } from './pages/propostas/PropostasListaPage'
 /*Vendas*/
 import { VendasPage } from './pages/vendas/VendasPage'
 /*Relatórios*/
@@ -100,7 +100,7 @@ export function Rotas() {
         <Route path="/imoveis/loteamentos/:id/quadras/nova" element={<NovaQuadraPage />} />
         <Route path="/imoveis/loteamentos/:id/quadras/:quadraId" element={<QuadraPage />} />
         {/*Links de Páginas de Propostas*/}
-        <Route path="/propostas" element={<EmConstrucaoPage titulo="Propostas" />} />
+        <Route path="/propostas" element={<PropostasListaPage />} />
         <Route path="/propostas/nova" element={<NovaPropostaPage />} />
         <Route path="/propostas/:id" element={<DetalhePropostaPage />} />
         <Route path="/propostas/:id/versoes" element={<PropostaVersoesPage />} />
@@ -121,6 +121,11 @@ export function Rotas() {
       <Route element={<SiteLayout />}>
         <Route path="/terrenos" element={<CatalogoPage />} />
         <Route path="/terrenos/:id" element={<TerrenoDetalhePage />} />
+        {/* Páginas institucionais ainda sem protótipo: abrem o catálogo */}
+        <Route path="/inicio" element={<Navigate to="/terrenos" replace />} />
+        <Route path="/empreendimentos" element={<Navigate to="/terrenos" replace />} />
+        <Route path="/financiamento" element={<Navigate to="/terrenos" replace />} />
+        <Route path="/contato" element={<Navigate to="/terrenos" replace />} />
       </Route>
       {/*Failsafe: redireciona qualquer link errado devolta para a dashbaord*/}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
