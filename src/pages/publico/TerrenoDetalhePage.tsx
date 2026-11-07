@@ -37,7 +37,7 @@ export function TerrenoDetalhePage() {
   const [interesse, setInteresse] = useState<{ mensagem: string } | null>(null)
   const imovel = db.imoveis.find((i) => i.id === id)
 
-  if (!imovel || imovel.status !== 'publicado') {
+  if (imovel?.status !== 'publicado') {
     return (
       <main className="site__conteudo">
         <section className="card vazio">
