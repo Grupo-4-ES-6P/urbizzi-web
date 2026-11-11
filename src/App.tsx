@@ -37,6 +37,7 @@ import { ClienteFormPage } from './pages/clientes/ClienteFormPage'
 import { ClientesPage } from './pages/clientes/ClientesPage'
 /*Catálogo Público*/
 import { CatalogoPage } from './pages/publico/CatalogoPage'
+import { TerrenoDetalhePage } from './pages/publico/TerrenoDetalhePage'
 /*Usuários*/
 import { UsuariosPermissoesPage } from './pages/usuarios/UsuariosPermissoesPage'
 import { UsuarioFormPage } from './pages/usuarios/UsuarioFormPage'
@@ -120,7 +121,7 @@ export function Rotas() {
       {/* Site público: não exige login*/}
       <Route element={<SiteLayout />}>
         <Route path="/terrenos" element={<CatalogoPage />} />
-        <Route path="/terrenos/:id" element={<EmBrevePublicoPage titulo='terreno'/>} />
+        <Route path="/terrenos/:id" element={<TerrenoDetalhePage />} />
         {/* Páginas institucionais ainda sem protótipo: abrem o catálogo */}
         <Route path="/inicio" element={<Navigate to="/terrenos" replace />} />
         <Route path="/empreendimentos" element={<Navigate to="/terrenos" replace />} />
