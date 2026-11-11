@@ -27,6 +27,7 @@ import { QuadraPage } from './pages/quadra/QuadraPage'
 import { NovaPropostaPage } from './pages/propostas/NovaPropostaPage'
 import { DetalhePropostaPage } from './pages/propostas/DetalhePropostaPage'
 import { PropostasListaPage } from './pages/propostas/PropostasListaPage'
+import { PropostaVersoesPage } from './pages/propostas/PropostaVersoesPage'
 /*Vendas*/
 import { VendasPage } from './pages/vendas/VendasPage'
 /*Relatórios*/
@@ -103,7 +104,7 @@ export function Rotas() {
         <Route path="/propostas" element={<PropostasListaPage />} />
         <Route path="/propostas/nova" element={<NovaPropostaPage />} />
         <Route path="/propostas/:id" element={<DetalhePropostaPage />} />
-        <Route path="/propostas/:id/versoes" element={<EmConstrucaoPage titulo='propostas' />} />
+        <Route path="/propostas/:id/versoes" element={<PropostaVersoesPage />} />
         {/*Links de Páginas de Vendas e Relatórios*/}
         <Route path="/vendas" element={<VendasPage />} />
         <Route path="/relatorios" element={<RelatoriosExportacaoPage />} />
