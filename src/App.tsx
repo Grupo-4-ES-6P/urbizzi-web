@@ -26,7 +26,6 @@ import { QuadraPage } from './pages/quadra/QuadraPage'
 /*Propostas*/
 import { NovaPropostaPage } from './pages/propostas/NovaPropostaPage'
 import { DetalhePropostaPage } from './pages/propostas/DetalhePropostaPage'
-import { PropostaVersoesPage } from './pages/propostas/PropostaVersoesPage'
 import { PropostasListaPage } from './pages/propostas/PropostasListaPage'
 /*Vendas*/
 import { VendasPage } from './pages/vendas/VendasPage'
@@ -38,10 +37,11 @@ import { ClienteFormPage } from './pages/clientes/ClienteFormPage'
 import { ClientesPage } from './pages/clientes/ClientesPage'
 /*Catálogo Público*/
 import { CatalogoPage } from './pages/publico/CatalogoPage'
-import { TerrenoDetalhePage } from './pages/publico/TerrenoDetalhePage'
 /*Usuários*/
 import { UsuariosPermissoesPage } from './pages/usuarios/UsuariosPermissoesPage'
 import { UsuarioFormPage } from './pages/usuarios/UsuarioFormPage'
+import { EmConstrucaoPage } from './pages/EmConstrucaoPage'
+import { EmBrevePublicoPage } from './pages/publico/EmBrevePublicoPage'
 
 function Protegida({ children }: Readonly<{ children: ReactNode }>) {
   const { usuario } = useAuth()
@@ -103,7 +103,7 @@ export function Rotas() {
         <Route path="/propostas" element={<PropostasListaPage />} />
         <Route path="/propostas/nova" element={<NovaPropostaPage />} />
         <Route path="/propostas/:id" element={<DetalhePropostaPage />} />
-        <Route path="/propostas/:id/versoes" element={<PropostaVersoesPage />} />
+        <Route path="/propostas/:id/versoes" element={<EmConstrucaoPage titulo='propostas' />} />
         {/*Links de Páginas de Vendas e Relatórios*/}
         <Route path="/vendas" element={<VendasPage />} />
         <Route path="/relatorios" element={<RelatoriosExportacaoPage />} />
@@ -120,7 +120,7 @@ export function Rotas() {
       {/* Site público: não exige login*/}
       <Route element={<SiteLayout />}>
         <Route path="/terrenos" element={<CatalogoPage />} />
-        <Route path="/terrenos/:id" element={<TerrenoDetalhePage />} />
+        <Route path="/terrenos/:id" element={<EmBrevePublicoPage titulo='terreno'/>} />
         {/* Páginas institucionais ainda sem protótipo: abrem o catálogo */}
         <Route path="/inicio" element={<Navigate to="/terrenos" replace />} />
         <Route path="/empreendimentos" element={<Navigate to="/terrenos" replace />} />

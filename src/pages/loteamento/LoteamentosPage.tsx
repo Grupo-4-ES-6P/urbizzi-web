@@ -25,15 +25,13 @@ export function LoteamentosPage() {
       <header className="cabecalho">
         <div>
           <nav className="migalhas" aria-label="Você está em">
-            <Link to="/imoveis">Imóveis</Link>
-            <span aria-hidden>›</span>
             <span>Loteamentos</span>
           </nav>
           <h1 className="cabecalho__titulo">Loteamentos</h1>
           <p className="cabecalho__subtitulo">{db.loteamentos.length} empreendimentos cadastrados</p>
         </div>
         <div className="cabecalho__acoes">
-          <Link to="/imoveis/loteamentos/novo" className="btn btn--primario">
+          <Link to="/loteamentos/novo" className="btn btn--primario">
             <Plus size={16} /> Novo loteamento
           </Link>
         </div>
@@ -60,7 +58,7 @@ export function LoteamentosPage() {
                   return (
                     <tr key={l.id} onClick={() => navigate(`/imoveis/loteamentos/${l.id}`)}>
                       <td>
-                        <Link to={`/imoveis/loteamentos/${l.id}`} className="tabela__destaque" onClick={(e) => e.stopPropagation()}>
+                        <Link to={`/loteamentos/${l.id}`} className="tabela__destaque" onClick={(e) => e.stopPropagation()}>
                           {l.nome}
                         </Link>
                       </td>
@@ -72,10 +70,10 @@ export function LoteamentosPage() {
                       <td><Badge variante={VARIANTE_LOTEAMENTO[l.situacao]}>{rotuloSituacaoLoteamento(l.situacao)}</Badge></td>
                       <td onClick={(e) => e.stopPropagation()}>
                         <div className="acoes-linha">
-                          <Link to={`/imoveis/loteamentos/${l.id}/mapa`} className="btn btn--secundario btn--pequeno">
+                          <Link to={`/loteamentos/${l.id}/mapa`} className="btn btn--secundario btn--pequeno">
                             <Grid3x3 size={13} /> Mapa
                           </Link>
-                          <Link to={`/imoveis/loteamentos/${l.id}/quadras/nova`} className="btn btn--secundario btn--pequeno">
+                          <Link to={`/loteamentos/${l.id}/quadras/nova`} className="btn btn--secundario btn--pequeno">
                             <SquarePlus size={13} /> Nova quadra
                           </Link>
                         </div>
