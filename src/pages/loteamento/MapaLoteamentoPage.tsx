@@ -97,7 +97,7 @@ export function MapaLoteamentoPage() {
   const venda = selecionado && db.vendas.find((v) => v.imovelId === selecionado.id && v.status === 'ativa')
   const clienteId = reserva?.clienteId ?? venda?.clienteId ?? (proposta?.status === 'pendente' ? proposta.clienteId : undefined)
   const responsavelId = reserva?.corretorId ?? proposta?.corretorId
-  const statusProposta = { pendente: 'em análise', aprovada: 'aprovada', recusada: 'recusada' }
+  const statusProposta = { rascunho: 'rascunho', pendente: 'em análise', aprovada: 'aprovada', recusada: 'recusada' }
 
   return (
     <>
