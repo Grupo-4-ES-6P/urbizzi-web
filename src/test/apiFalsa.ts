@@ -94,6 +94,27 @@ function loteamentoDoCorpo(corpo: Record<string, unknown>, atual?: Record<string
   }
 }
 
+let quadras: Record<string, unknown>[] = []
+
+export function quadrasDaApiFalsa() {
+  return quadras
+}
+
+function rotearQuadras(metodo: string, caminho: string, corpo: Record<string, unknown>): Response | null {
+  if (caminho === '/quadras' && metodo === 'GET') return json(quadras)
+  if (caminho === '/quadras' && metodo === 'POST') {
+    const idLoteamento = String(corpo.idLoteamento)
+    if (!loteamentos.some((l) => l.idLoteamento === idLoteamento)) return erro('Loteamento não encontrado.', 400)
+    if (quadras.some((q) => q.idLoteamento === idLoteamento && q.identificacao === corpo.identificacao)) {
+      return erro(`Já existe a quadra ${String(corpo.identificacao)} neste loteamento.`, 409)
+    }
+    const nova = { ...corpo, id: `qua-api-${quadras.length + 1}`, idLoteamento, criadaEm: new Date().toISOString() }
+    quadras = [...quadras, nova]
+    return json(nova, 201)
+  }
+  return null
+}
+
 function rotearLoteamentos(metodo: string, caminho: string, corpo: Record<string, unknown>): Response | null {
   if (caminho === '/loteamentos' && metodo === 'GET') return json(loteamentos)
   if (caminho === '/loteamentos' && metodo === 'POST') {
@@ -121,6 +142,8 @@ function rotearLoteamentos(metodo: string, caminho: string, corpo: Record<string
 export function reiniciarApiFalsa() {
   proximoCliente = 1
   proximoLoteamento = 1
+  const idPorNome = new Map(lerDb().loteamentos.map((l) => [l.nome, l.id]))
+  quadras = lerDb().quadras.map(({ loteamento, ...q }) => ({ ...q, idLoteamento: idPorNome.get(loteamento) ?? '' }))
   loteamentos = lerDb().loteamentos.map(({ id, centro, ...l }) =>
     loteamentoDoCorpo({ ...l, latitude: centro?.lat ?? null, longitude: centro?.lng ?? null }, { idLoteamento: id }),
   )
@@ -245,7 +268,10 @@ function rotear(metodo: string, caminho: string, corpo: Record<string, unknown>)
     return json({ matriz })
   }
 
-  const respostaCliente = rotearClientes(metodo, caminho, corpo) ?? rotearLoteamentos(metodo, caminho, corpo)
+  const respostaCliente =
+    rotearClientes(metodo, caminho, corpo) ??
+    rotearLoteamentos(metodo, caminho, corpo) ??
+    rotearQuadras(metodo, caminho, corpo)
   if (respostaCliente) return respostaCliente
 
   return erro(`Rota não simulada: ${metodo} ${caminho}`, 404)

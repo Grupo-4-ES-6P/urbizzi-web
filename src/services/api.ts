@@ -448,14 +448,15 @@ export async function gerarQuadra(
   quadra: Omit<Quadra, 'id' | 'criadaEm'>,
   lotes: LotePrevia[],
   autor: string,
+  salva?: Pick<Quadra, 'id' | 'criadaEm'>,
 ) {
-  await esperar()
+  if (!salva) await esperar()
   let criados = 0
   atualizarDb((db) => {
     const loteamento = db.loteamentos.find((l) => l.nome === quadra.loteamento)
     if (!loteamento) throw new Error('Loteamento não encontrado.')
     const identificacao = quadra.identificacao.trim()
-    if (db.quadras.some((q) => q.loteamento === quadra.loteamento && q.identificacao === identificacao)) {
+    if (!salva && db.quadras.some((q) => q.loteamento === quadra.loteamento && q.identificacao === identificacao)) {
       throw new Error(`A Qd. ${identificacao} já existe em ${quadra.loteamento}.`)
     }
     const agora = new Date().toISOString()
@@ -505,7 +506,10 @@ export async function gerarQuadra(
     criados = novos.length
     let atualizado: Db = {
       ...db,
-      quadras: [...db.quadras, { ...quadra, identificacao, id: novoId('qua'), criadaEm: agora }],
+      quadras: [
+        ...db.quadras.filter((q) => q.id !== salva?.id),
+        { ...quadra, identificacao, id: salva?.id ?? novoId('qua'), criadaEm: salva?.criadaEm ?? agora },
+      ],
       imoveis: [...db.imoveis, ...novos],
     }
     for (const n of novos) {

@@ -8,7 +8,8 @@ import { useToast } from '../../contexts/ToastContext'
 import { lerDb, useDb } from '../../data/db'
 import type { Situacao } from '../../data/types'
 import { formatarDecimal, formatarMoedaInteira } from '../../lib/format'
-import { gerarQuadra, type LotePrevia } from '../../services/api'
+import type { LotePrevia } from '../../services/api'
+import { gerarQuadra } from '../../services/quadras'
 
 const MAX_LOTES = 60
 const pad = (n: number) => String(n).padStart(2, '0')

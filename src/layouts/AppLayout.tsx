@@ -25,10 +25,12 @@ import { useToast } from '../contexts/ToastContext'
 import { restaurarDemo } from '../data/db'
 import { iniciais } from '../lib/format'
 import { sincronizarLoteamentos } from '../services/loteamentos'
+import { sincronizarQuadras } from '../services/quadras'
 
 /** Espelha na base local os cadastros que já vêm da API. */
-function sincronizarComApi(signal?: AbortSignal) {
-  return Promise.all([sincronizarLoteamentos(signal)])
+async function sincronizarComApi(signal?: AbortSignal) {
+  await sincronizarLoteamentos(signal)
+  await sincronizarQuadras(signal)
 }
 
 const MENU = [

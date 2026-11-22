@@ -1,7 +1,7 @@
 import { screen, within } from '@testing-library/react'
 
 import { lerDb } from '../../data/db'
-import { loteamentosDaApiFalsa } from '../../test/apiFalsa'
+import { loteamentosDaApiFalsa, quadrasDaApiFalsa } from '../../test/apiFalsa'
 import { renderizar } from '../../test/utils'
 
 const universitario = () => lerDb().loteamentos.find((l) => l.nome === 'Lot. Universitário')!
@@ -23,6 +23,7 @@ describe('Loteamentos', () => {
     expect(novos).toHaveLength(6)
     expect(novos.every((i) => i.endereco.quadra === '07' && i.matricula === '')).toBe(true)
     expect(lerDb().quadras.some((q) => q.loteamento === lot.nome && q.identificacao === '07')).toBe(true)
+    expect(quadrasDaApiFalsa().some((q) => q.idLoteamento === lot.id && q.identificacao === '07')).toBe(true)
   })
 
   it('valida o cadastro de loteamento e salva', async () => {
