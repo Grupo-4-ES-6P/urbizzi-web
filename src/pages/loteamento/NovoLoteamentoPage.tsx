@@ -11,7 +11,8 @@ import { useDb } from '../../data/db'
 import { resumoQuadras, type ResumoQuadra } from '../../data/selectors'
 import type { Loteamento, SituacaoLoteamento } from '../../data/types'
 import { formatarMoedaCompacta, mascaraCep } from '../../lib/format'
-import { buscarCep, salvarLoteamento } from '../../services/api'
+import { buscarCep } from '../../services/api'
+import { salvarLoteamento } from '../../services/loteamentos'
 
 type Form = Omit<Loteamento, 'id' | 'centro'> & { coordenadas: string }
 

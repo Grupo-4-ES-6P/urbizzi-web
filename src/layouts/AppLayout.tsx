@@ -24,6 +24,12 @@ import { useTema } from '../contexts/TemaContext'
 import { useToast } from '../contexts/ToastContext'
 import { restaurarDemo } from '../data/db'
 import { iniciais } from '../lib/format'
+import { sincronizarLoteamentos } from '../services/loteamentos'
+
+/** Espelha na base local os cadastros que já vêm da API. */
+function sincronizarComApi(signal?: AbortSignal) {
+  return Promise.all([sincronizarLoteamentos(signal)])
+}
 
 const MENU = [
   { para: '/dashboard', rotulo: 'Dashboard', icone: LayoutDashboard },
@@ -49,6 +55,15 @@ export function AppLayout() {
 
   // Fecha o menu lateral (mobile) ao trocar de página.
   useEffect(() => setMenuAberto(false), [pathname])
+
+  useEffect(() => {
+    const controle = new AbortController()
+    sincronizarComApi(controle.signal).catch((error_: unknown) => {
+      if (controle.signal.aborted) return
+      notificar(error_ instanceof Error ? error_.message : 'Não foi possível sincronizar com o servidor.', 'erro')
+    })
+    return () => controle.abort()
+  }, [notificar])
 
   useEffect(() => {
     if (!contaAberta) return
@@ -149,6 +164,7 @@ export function AppLayout() {
           restaurarDemo()
           setConfirmarReset(false)
           notificar('Dados de demonstração restaurados.')
+          void sincronizarComApi().catch(() => undefined)
         }}
       />
     </div>

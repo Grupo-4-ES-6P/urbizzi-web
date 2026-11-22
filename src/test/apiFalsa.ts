@@ -75,8 +75,55 @@ export function clientesDaApiFalsa() {
   return clientes
 }
 
+let loteamentos: Record<string, unknown>[] = []
+let proximoLoteamento = 1
+
+export function loteamentosDaApiFalsa() {
+  return loteamentos
+}
+
+function loteamentoDoCorpo(corpo: Record<string, unknown>, atual?: Record<string, unknown>) {
+  return {
+    descricao: '',
+    publicado: false,
+    idBairro: null,
+    ...atual,
+    ...Object.fromEntries(Object.entries(corpo).map(([k, v]) => [k, v === '' ? null : v])),
+    cep: corpo.cep === undefined ? (atual?.cep ?? null) : digitos(corpo.cep),
+    idLoteamento: atual?.idLoteamento ?? `lot-api-${proximoLoteamento++}`,
+  }
+}
+
+function rotearLoteamentos(metodo: string, caminho: string, corpo: Record<string, unknown>): Response | null {
+  if (caminho === '/loteamentos' && metodo === 'GET') return json(loteamentos)
+  if (caminho === '/loteamentos' && metodo === 'POST') {
+    const novo = loteamentoDoCorpo(corpo)
+    loteamentos = [...loteamentos, novo]
+    return json(novo, 201)
+  }
+  const rota = /^\/loteamentos\/([^/]+)$/.exec(caminho)
+  if (!rota) return null
+  const atual = loteamentos.find((l) => l.idLoteamento === rota[1])
+  if (!atual) return erro('Loteamento não encontrado.', 404)
+  if (metodo === 'GET') return json(atual)
+  if (metodo === 'PATCH') {
+    const salvo = loteamentoDoCorpo(corpo, atual)
+    loteamentos = loteamentos.map((l) => (l === atual ? salvo : l))
+    return json(salvo)
+  }
+  if (metodo === 'DELETE') {
+    loteamentos = loteamentos.filter((l) => l !== atual)
+    return new Response(null, { status: 204 })
+  }
+  return null
+}
+
 export function reiniciarApiFalsa() {
   proximoCliente = 1
+  proximoLoteamento = 1
+  loteamentos = lerDb().loteamentos.map(({ id, centro, ...l }) =>
+    loteamentoDoCorpo({ ...l, latitude: centro?.lat ?? null, longitude: centro?.lng ?? null }, { idLoteamento: id }),
+  )
   clientes = lerDb().clientes.map((c) => ({
     ...clienteDoCorpo({
       ...c,
@@ -198,7 +245,7 @@ function rotear(metodo: string, caminho: string, corpo: Record<string, unknown>)
     return json({ matriz })
   }
 
-  const respostaCliente = rotearClientes(metodo, caminho, corpo)
+  const respostaCliente = rotearClientes(metodo, caminho, corpo) ?? rotearLoteamentos(metodo, caminho, corpo)
   if (respostaCliente) return respostaCliente
 
   return erro(`Rota não simulada: ${metodo} ${caminho}`, 404)

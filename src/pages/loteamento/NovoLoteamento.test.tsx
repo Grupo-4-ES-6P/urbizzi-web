@@ -1,6 +1,7 @@
 import { screen, within } from '@testing-library/react'
 
 import { lerDb } from '../../data/db'
+import { loteamentosDaApiFalsa } from '../../test/apiFalsa'
 import { renderizar } from '../../test/utils'
 
 const universitario = () => lerDb().loteamentos.find((l) => l.nome === 'Lot. Universitário')!
@@ -36,6 +37,21 @@ describe('Loteamentos', () => {
     await user.type(screen.getByLabelText('Cidade'), 'Toledo')
     await user.click(screen.getByRole('button', { name: /Salvar loteamento/ }))
     expect(screen.getByText('CEP deve ter 8 dígitos.')).toBeInTheDocument()
+  })
+
+  it('grava o loteamento na API e no espelho local', async () => {
+    const { user } = renderizar('/loteamentos/novo')
+    await user.type(await screen.findByLabelText('Nome do loteamento'), 'Residencial Aurora')
+    await user.type(screen.getByLabelText('Código'), 'aur')
+    await user.type(screen.getByLabelText('CEP'), '85900010')
+    await user.type(screen.getByLabelText('Endereço'), 'Rua das Flores, 100')
+    await user.clear(screen.getByLabelText('Cidade'))
+    await user.type(screen.getByLabelText('Cidade'), 'Toledo')
+    await user.click(screen.getByRole('button', { name: /Salvar loteamento/ }))
+
+    expect(await screen.findByText('Loteamento cadastrado. Agora cadastre as quadras.')).toBeInTheDocument()
+    expect(loteamentosDaApiFalsa().at(-1)).toMatchObject({ nome: 'Residencial Aurora', codigo: 'AUR', cep: '85900010' })
+    expect(lerDb().loteamentos.some((l) => l.nome === 'Residencial Aurora')).toBe(true)
   })
 
   it('mapa mostra os dados do lote clicado', async () => {
