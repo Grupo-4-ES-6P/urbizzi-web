@@ -4,10 +4,16 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Dialogo } from '../../components/Dialogo'
 import { Campo, Spinner, Toggle } from '../../components/ui'
 import { useToast } from '../../contexts/ToastContext'
-import { useDb } from '../../data/db'
 import { DESCRICAO_PERFIL, PERFIS, type Perfil } from '../../data/permissoes'
-import type { Usuario } from '../../data/types'
-import { salvarUsuario, validarUsuario, type ErrosUsuario, type FormUsuario } from '../../services/usuariosPermissoes'
+import type { UsuarioPublico } from '../../data/types'
+import { useRecurso } from '../../hooks/useRecurso'
+import {
+  listarUsuarios,
+  salvarUsuario,
+  validarUsuario,
+  type ErrosUsuario,
+  type FormUsuario,
+} from '../../services/usuariosPermissoes'
 import { formatarUltimoAcesso } from '../../lib/ultimoAcesso'
 
 const vazio: FormUsuario = { nome: '', email: '', papel: 'Corretor', ativo: true, senha: '' }
@@ -15,8 +21,27 @@ const vazio: FormUsuario = { nome: '', email: '', papel: 'Corretor', ativo: true
 /** Cadastro (/usuarios/novo) e edição (/usuarios/:id) de usuários do painel. */
 export function UsuarioFormPage() {
   const { id } = useParams()
-  const db = useDb()
-  const usuario = id ? db.usuarios.find((u) => u.id === id) : undefined
+  const { dados: usuarios, erro, recarregar } = useRecurso('usuarios', listarUsuarios)
+
+  if (erro || !usuarios) {
+    return (
+      <main className="conteudo">
+        <section className="card vazio">
+          {erro ? (
+            <>
+              <h1>Não foi possível carregar o usuário</h1>
+              <p>{erro}</p>
+              <button type="button" className="btn btn--secundario" onClick={recarregar}>Tentar novamente</button>
+            </>
+          ) : (
+            <p><Spinner /> Carregando…</p>
+          )}
+        </section>
+      </main>
+    )
+  }
+
+  const usuario = id ? usuarios.find((u) => u.id === id) : undefined
   if (id && !usuario) {
     return (
       <main className="conteudo">
@@ -27,11 +52,10 @@ export function UsuarioFormPage() {
       </main>
     )
   }
-  return <FormUsuarioTela key={id ?? 'novo'} usuario={usuario} />
+  return <FormUsuarioTela key={id ?? 'novo'} usuario={usuario} usuarios={usuarios} />
 }
 
-function FormUsuarioTela({ usuario }: Readonly<{ usuario?: Usuario }>) {
-  const db = useDb()
+function FormUsuarioTela({ usuario, usuarios }: Readonly<{ usuario?: UsuarioPublico; usuarios: UsuarioPublico[] }>) {
   const navigate = useNavigate()
   const notificar = useToast()
   const [form, setForm] = useState<FormUsuario>(() =>
@@ -55,7 +79,7 @@ function FormUsuarioTela({ usuario }: Readonly<{ usuario?: Usuario }>) {
   }
 
   const salvar = async () => {
-    const e = validarUsuario(form, usuario?.id, db.usuarios)
+    const e = validarUsuario(form, usuario?.id, usuarios)
     setErros(e)
     if (Object.keys(e).length) {
       notificar('Revise os campos destacados.', 'erro')

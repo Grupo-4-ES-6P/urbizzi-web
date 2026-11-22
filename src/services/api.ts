@@ -1,4 +1,4 @@
-import { atualizarDb, lerDb } from '../data/db'
+import { atualizarDb } from '../data/db'
 import type {
   Cliente,
   Db,
@@ -56,23 +56,6 @@ export function proximoCodigo(prefixo: string, existentes: string[]) {
     .filter((c) => c.startsWith(`${prefixo}-${ano}-`))
     .reduce((m, c) => Math.max(m, Number(c.split('-').pop()) || 0), 0)
   return `${prefixo}-${ano}-${String(maior + 1).padStart(4, '0')}`
-}
-
-export async function autenticar(email: string, senha: string): Promise<UsuarioPublico> {
-  await esperar()
-  const usuario = lerDb().usuarios.find((u) => u.email.toLowerCase() === email.trim().toLowerCase())
-  if (usuario?.senha !== senha) {
-    throw new Error('E-mail ou senha incorretos.')
-  }
-  if (usuario.ativo === false) {
-    throw new Error('Usuário inativo. Fale com o administrador.')
-  }
-  const agora = new Date().toISOString()
-  atualizarDb((db) => ({
-    ...db,
-    usuarios: db.usuarios.map((u) => (u.id === usuario.id ? { ...u, ultimoAcesso: agora } : u)),
-  }))
-  return paraUsuarioPublico(usuario)
 }
 
 /** Sempre responde com sucesso para não revelar quais e-mails existem. */

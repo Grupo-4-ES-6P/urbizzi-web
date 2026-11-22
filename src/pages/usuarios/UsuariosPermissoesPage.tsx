@@ -3,9 +3,8 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { Dialogo } from '../../components/Dialogo'
-import { Badge } from '../../components/ui'
+import { Badge, Spinner } from '../../components/ui'
 import { useToast } from '../../contexts/ToastContext'
-import { useDb } from '../../data/db'
 import {
   ABREVIACAO_PERFIL,
   DESCRICAO_PERFIL,
@@ -15,31 +14,68 @@ import {
   VARIANTE_PERFIL,
   type Perfil,
 } from '../../data/permissoes'
-import type { Usuario } from '../../data/types'
+import type { UsuarioPublico } from '../../data/types'
+import { useRecurso } from '../../hooks/useRecurso'
 import { iniciais } from '../../lib/format'
 import { formatarUltimoAcesso } from '../../lib/ultimoAcesso'
-import { alternarPermissao, matrizPermissoes } from '../../services/usuariosPermissoes'
+import { alterarPermissao, listarUsuarios, obterMatriz } from '../../services/usuariosPermissoes'
 
-const ativo = (u: Usuario) => u.ativo !== false
+const ativo = (u: UsuarioPublico) => u.ativo !== false
 const varianteDoPerfil = (papel: string) => VARIANTE_PERFIL[papel as Perfil] ?? 'neutro'
 
 export function UsuariosPermissoesPage() {
-  const db = useDb()
   const navigate = useNavigate()
   const notificar = useToast()
   const [logAberto, setLogAberto] = useState(false)
+  const [alterando, setAlterando] = useState<string | null>(null)
+  const listaUsuarios = useRecurso('usuarios', listarUsuarios)
+  const recursoMatriz = useRecurso('matriz', obterMatriz)
 
-  const ativos = db.usuarios.filter(ativo)
-  const matriz = matrizPermissoes(db)
-  const porAcesso = [...db.usuarios].sort((a, b) => (b.ultimoAcesso ?? '').localeCompare(a.ultimoAcesso ?? ''))
+  const usuarios = listaUsuarios.dados ?? []
+  const matriz = recursoMatriz.dados ?? {}
+  const ativos = usuarios.filter(ativo)
+  const porAcesso = [...usuarios].sort((a, b) => (b.ultimoAcesso ?? '').localeCompare(a.ultimoAcesso ?? ''))
 
-  const alternar = (permissao: string, perfil: Perfil) => {
+  const alternar = async (permissao: string, perfil: Perfil, liberado: boolean) => {
+    setAlterando(`${permissao}:${perfil}`)
     try {
-      alternarPermissao(permissao, perfil)
+      recursoMatriz.definir(await alterarPermissao(permissao, perfil, !liberado))
       notificar('Permissão atualizada.')
     } catch (error_) {
       notificar(error_ instanceof Error ? error_.message : 'Não foi possível alterar a permissão.', 'erro')
+    } finally {
+      setAlterando(null)
     }
+  }
+
+  const erro = listaUsuarios.erro ?? recursoMatriz.erro
+  if (erro || !listaUsuarios.dados || !recursoMatriz.dados) {
+    return (
+      <main className="conteudo">
+        <section className="card vazio">
+          {erro ? (
+            <>
+              <h1>Não foi possível carregar os usuários</h1>
+              <p>{erro}</p>
+              <button
+                type="button"
+                className="btn btn--secundario"
+                onClick={() => {
+                  listaUsuarios.recarregar()
+                  recursoMatriz.recarregar()
+                }}
+              >
+                Tentar novamente
+              </button>
+            </>
+          ) : (
+            <p>
+              <Spinner /> Carregando usuários…
+            </p>
+          )}
+        </section>
+      </main>
+    )
   }
 
   return (
@@ -84,7 +120,7 @@ export function UsuariosPermissoesPage() {
                 </tr>
               </thead>
               <tbody>
-                {db.usuarios.map((u) => (
+                {usuarios.map((u) => (
                   <tr key={u.id} onClick={() => navigate(`/usuarios/${u.id}`)}>
                     <td>
                       <span className="usuario-celula">
@@ -142,8 +178,8 @@ export function UsuariosPermissoesPage() {
                             className={`matriz-permissoes__celula ${liberado ? 'matriz-permissoes__celula--sim' : ''}`}
                             aria-pressed={liberado}
                             aria-label={`${ABREVIACAO_PERFIL[perfil]}: ${permissao.rotulo}`}
-                            disabled={travado}
-                            onClick={() => alternar(permissao.id, perfil)}
+                            disabled={travado || alterando !== null}
+                            onClick={() => alternar(permissao.id, perfil, liberado)}
                           >
                             {liberado ? <span className="matriz-permissoes__ponto" /> : '—'}
                           </button>
