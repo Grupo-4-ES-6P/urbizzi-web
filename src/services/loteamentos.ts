@@ -53,7 +53,8 @@ function paraLoteamento(l: LoteamentoApi): Loteamento {
   }
 }
 
-function paraApi({ id: _id, centro, ...dados }: DadosLoteamento) {
+function paraApi({ centro, ...dados }: DadosLoteamento) {
+  delete dados.id
   return {
     ...dados,
     nome: dados.nome.trim(),
