@@ -21,13 +21,49 @@ import {
   type FormCliente,
 } from '../../lib/clienteForm'
 import { dataCalendario, formatarData, mascaraCep } from '../../lib/format'
+import { useRecurso } from '../../hooks/useRecurso'
 import { useAgora } from '../../lib/useAgora'
-import { buscarCep, novoId, salvarCliente } from '../../services/api'
+import { buscarCep, novoId } from '../../services/api'
+import { buscarCliente, salvarCliente } from '../../services/clientes'
+import { ErroApi } from '../../services/http'
+
+const NAO_ENCONTRADO = 'nao-encontrado'
 
 export function ClienteFormPage() {
   const { id } = useParams()
-  const db = useDb()
-  const cliente = id ? db.clientes.find((c) => c.id === id) : undefined
+  const recurso = useRecurso(`cliente:${id ?? 'novo'}`, async (signal) => {
+    if (!id) return undefined
+    try {
+      return await buscarCliente(id, signal)
+    } catch (error_) {
+      if (error_ instanceof ErroApi && (error_.status === 404 || error_.status === 400)) return NAO_ENCONTRADO
+      throw error_
+    }
+  })
+
+  if (recurso.erro || recurso.carregando) {
+    return (
+      <main className="conteudo">
+        <section className="card vazio">
+          {recurso.erro ? (
+            <>
+              <h2>Não foi possível carregar o cliente</h2>
+              <p>{recurso.erro}</p>
+              <button type="button" className="btn btn--secundario" onClick={recurso.recarregar}>
+                Tentar novamente
+              </button>
+            </>
+          ) : (
+            <p>
+              <Spinner /> Carregando…
+            </p>
+          )}
+        </section>
+      </main>
+    )
+  }
+
+  const cliente = recurso.dados === NAO_ENCONTRADO ? undefined : recurso.dados
   if (id && !cliente) {
     return (
       <main className="conteudo">
@@ -139,7 +175,7 @@ function FormularioCliente({ cliente }: Readonly<{ cliente?: Cliente }>) {
     }
     setSalvando(true)
     try {
-      await salvarCliente({ ...form, id: cliente?.id })
+      await salvarCliente(form, cliente?.id)
       setSujo(false)
       notificar(cliente ? 'Cliente atualizado.' : 'Cliente cadastrado.')
       navigate('/clientes')

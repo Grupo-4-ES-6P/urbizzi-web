@@ -1,6 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react'
 
 import { lerDb } from '../../data/db'
+import { clientesDaApiFalsa, fetchFalso } from '../../test/apiFalsa'
 import { renderizar } from '../../test/utils'
 
 const linhas = () => within(screen.getByRole('table')).getAllByRole('row').slice(1)
@@ -8,7 +9,9 @@ const linhas = () => within(screen.getByRole('table')).getAllByRole('row').slice
 describe('Lista de clientes', () => {
   it('busca por nome ignorando acentos e por dígitos do CPF', async () => {
     const { user } = renderizar('/clientes')
-    expect(screen.getByText(/^32 cadastrados · \d+ com reserva ativa · \d+ com proposta em análise$/)).toBeInTheDocument()
+    expect(
+      await screen.findByText(/^32 cadastrados · \d+ com reserva ativa · \d+ com proposta em análise$/),
+    ).toBeInTheDocument()
 
     const busca = screen.getByRole('searchbox', { name: 'Buscar clientes' })
     await user.type(busca, 'silvia')
@@ -24,49 +27,54 @@ describe('Lista de clientes', () => {
 
   it('desativa os clientes selecionados', async () => {
     const { user } = renderizar('/clientes')
-    await user.click(screen.getByRole('checkbox', { name: 'Selecionar Marina Alves' }))
+    await user.click(await screen.findByRole('checkbox', { name: 'Selecionar Marina Alves' }))
     await user.click(screen.getByRole('button', { name: 'Desativar' }))
 
     expect(await screen.findByText('Clientes desativados.')).toBeInTheDocument()
-    expect(lerDb().clientes.find((c) => c.nome === 'Marina Alves')?.ativo).toBe(false)
+    expect(clientesDaApiFalsa().find((c) => c.nome === 'Marina Alves')?.status).toBe('INATIVO')
   })
 
-  it('não exclui cliente com reservas registradas', async () => {
+  it('exclui os clientes selecionados', async () => {
     const { user } = renderizar('/clientes')
-    await user.click(screen.getByRole('checkbox', { name: 'Selecionar Marina Alves' }))
+    await user.click(await screen.findByRole('checkbox', { name: 'Selecionar Aline Becker' }))
     await user.click(screen.getByRole('button', { name: 'Excluir' }))
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Excluir' }))
 
-    expect(await screen.findByText(/Desative o cadastro em vez de excluir\./)).toBeInTheDocument()
-    expect(lerDb().clientes.some((c) => c.nome === 'Marina Alves')).toBe(true)
+    expect(await screen.findByText('1 cliente excluído.')).toBeInTheDocument()
+    expect(clientesDaApiFalsa().some((c) => c.nome === 'Aline Becker')).toBe(false)
+    await waitFor(() => expect(screen.queryByText('Aline Becker')).not.toBeInTheDocument())
+  })
+
+  it('mostra erro e permite tentar de novo quando a API falha', async () => {
+    vi.mocked(fetch).mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    const { user } = renderizar('/clientes')
+    expect(await screen.findByText('Não foi possível conectar ao servidor.')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Tentar novamente' }))
+    expect(await screen.findByText('Marina Alves')).toBeInTheDocument()
   })
 })
 
 describe('Cadastro de cliente', () => {
-  afterEach(() => vi.unstubAllGlobals())
-
   it('não salva com campos obrigatórios vazios', async () => {
     const { user } = renderizar('/clientes/novo')
-    await user.click(screen.getByRole('button', { name: 'Salvar cliente' }))
+    await user.click(await screen.findByRole('button', { name: 'Salvar cliente' }))
 
     expect(screen.getByText('Informe o nome completo.')).toBeInTheDocument()
     expect(screen.getByText('Informe o CPF.')).toBeInTheDocument()
     expect(screen.getAllByText('Informe pelo menos um telefone ou e-mail.')).toHaveLength(3)
     expect(screen.getByLabelText('Nome completo / Razão social')).toHaveAttribute('aria-invalid', 'true')
-    expect(lerDb().clientes).toHaveLength(32)
+    expect(clientesDaApiFalsa()).toHaveLength(32)
   })
 
   it('preenche o endereço pelo CEP e cadastra o cliente', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({ logradouro: 'Rua Barão do Rio Branco', bairro: 'Centro', localidade: 'Toledo', uf: 'PR' }),
-      }),
+    vi.mocked(fetch).mockImplementation(async (entrada, init) =>
+      String(entrada).includes('viacep.com.br')
+        ? Response.json({ logradouro: 'Rua Barão do Rio Branco', bairro: 'Centro', localidade: 'Toledo', uf: 'PR' })
+        : fetchFalso(entrada, init),
     )
     const { user } = renderizar('/clientes/novo')
 
-    await user.type(screen.getByLabelText('Nome completo / Razão social'), 'Maria da Silva')
+    await user.type(await screen.findByLabelText('Nome completo / Razão social'), 'Maria da Silva')
     await user.type(screen.getByLabelText('CPF / CNPJ'), '52998224725')
     expect(screen.getByLabelText('CPF / CNPJ')).toHaveValue('529.982.247-25')
     await user.type(screen.getByLabelText('Telefone'), '45998124477')
@@ -78,22 +86,43 @@ describe('Cadastro de cliente', () => {
     await user.click(screen.getByRole('button', { name: 'Salvar cliente' }))
 
     expect(await screen.findByRole('heading', { name: 'Clientes' })).toBeInTheDocument()
-    expect(lerDb().clientes.at(-1)).toMatchObject({
+    expect(clientesDaApiFalsa().at(-1)).toMatchObject({
+      tipoDocumento: 'CPF',
       nome: 'Maria da Silva',
-      cpfCnpj: '529.982.247-25',
-      telefone: '(45) 99812-4477',
-      ativo: true,
+      documentoIdentificacao: '52998224725',
+      telefone: '45998124477',
+      status: 'ATIVO',
       origem: 'Catálogo público',
       responsavel: 'Gustavo Marques',
-      endereco: { cep: '85900-010', logradouro: 'Rua Barão do Rio Branco', numero: '1200', cidade: 'Toledo', uf: 'PR' },
+      endereco: { cep: '85900010', logradouro: 'Rua Barão do Rio Branco', numero: '1200', cidade: 'Toledo', uf: 'PR' },
     })
+  })
+
+  it('mostra o erro da API quando o CPF já está cadastrado', async () => {
+    vi.mocked(fetch).mockImplementation(async (entrada, init) =>
+      String(entrada).includes('viacep.com.br')
+        ? Response.json({ logradouro: 'Rua A', bairro: 'Centro', localidade: 'Toledo', uf: 'PR' })
+        : fetchFalso(entrada, init),
+    )
+    const { user } = renderizar('/clientes/novo')
+    const cpf = lerDb().clientes[0].cpfCnpj
+
+    await user.type(await screen.findByLabelText('Nome completo / Razão social'), 'Outra Pessoa')
+    await user.type(screen.getByLabelText('CPF / CNPJ'), cpf.replace(/\D/g, ''))
+    await user.type(screen.getByLabelText('Telefone'), '45998124477')
+    await user.type(screen.getByLabelText('CEP'), '85900010')
+    await waitFor(() => expect(screen.getByLabelText('Logradouro')).toHaveValue('Rua A'))
+    await user.click(screen.getByRole('button', { name: 'Salvar cliente' }))
+
+    expect(await screen.findByText('Já existe cliente com este CPF ou CNPJ.')).toBeInTheDocument()
+    expect(clientesDaApiFalsa()).toHaveLength(32)
   })
 
   it('edita o cliente e mostra as reservas dele', async () => {
     const reserva = lerDb().reservas.find((r) => r.clienteId === 'cli-1')!
     const { user } = renderizar('/clientes/cli-1')
 
-    expect(screen.getByRole('heading', { name: 'Editar cliente' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Editar cliente' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: reserva.codigo })).toBeInTheDocument()
 
     const email = screen.getByLabelText('E-mail')
@@ -102,14 +131,19 @@ describe('Cadastro de cliente', () => {
     await user.click(screen.getByRole('button', { name: 'Salvar alterações' }))
 
     expect(await screen.findByText('Cliente atualizado.')).toBeInTheDocument()
-    expect(lerDb().clientes[0].email).toBe('marina@urbizzi.com.br')
+    expect(clientesDaApiFalsa()[0].email).toBe('marina@urbizzi.com.br')
+  })
+
+  it('avisa quando o cliente não existe', async () => {
+    renderizar('/clientes/cli-inexistente')
+    expect(await screen.findByRole('heading', { name: 'Cliente não encontrado' })).toBeInTheDocument()
   })
 
   it('registra um contato comercial e grava junto com o cliente', async () => {
-    const antes = lerDb().clientes[0].contatos.length
+    const antes = clientesDaApiFalsa()[0].contatos.length
     const { user } = renderizar('/clientes/cli-1')
 
-    await user.click(screen.getByRole('button', { name: 'Registrar contato' }))
+    await user.click(await screen.findByRole('button', { name: 'Registrar contato' }))
     const dialogo = screen.getByRole('dialog')
     await user.click(within(dialogo).getByRole('button', { name: 'Registrar contato' }))
     expect(within(dialogo).getByText('Descreva o assunto do contato.')).toBeInTheDocument()
@@ -124,8 +158,10 @@ describe('Cadastro de cliente', () => {
 
     await user.click(screen.getByRole('button', { name: 'Salvar alterações' }))
     expect(await screen.findByText('Cliente atualizado.')).toBeInTheDocument()
-    const contatos = lerDb().clientes[0].contatos
+    const contatos = clientesDaApiFalsa()[0].contatos
     expect(contatos).toHaveLength(antes + 1)
-    expect(contatos[0]).toMatchObject({ canal: 'Telefone', responsavel: 'Ayran Bade', assunto: 'Retorno sobre a simulação', resultado: 'positivo' })
+    expect(contatos).toContainEqual(
+      expect.objectContaining({ canal: 'Telefone', responsavel: 'Ayran Bade', assunto: 'Retorno sobre a simulação', resultado: 'positivo' }),
+    )
   })
 })

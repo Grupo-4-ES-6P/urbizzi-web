@@ -3,15 +3,16 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { Dialogo } from '../../components/Dialogo'
-import { Badge } from '../../components/ui'
+import { Badge, Spinner } from '../../components/ui'
 import { useToast } from '../../contexts/ToastContext'
 import { useDb } from '../../data/db'
 import type { Cliente } from '../../data/types'
+import { useRecurso } from '../../hooks/useRecurso'
 import { SITUACAO_CLIENTE, situacaoCliente, ultimoContato, vinculosClientes } from '../../lib/clientes'
 import { baixarCsv, gerarCsv } from '../../lib/csv'
 import { formatarData, normalizar } from '../../lib/format'
 import { useAgora } from '../../lib/useAgora'
-import { alterarStatusClientes, excluirClientes } from '../../services/api'
+import { alterarStatusClientes, excluirClientes, listarClientes } from '../../services/clientes'
 
 const POR_PAGINA = 20
 
@@ -23,6 +24,8 @@ const FILTROS_STATUS = [
 
 export function ClientesPage() {
   const db = useDb()
+  const lista = useRecurso('clientes', listarClientes)
+  const clientes = useMemo(() => lista.dados ?? [], [lista.dados])
   const agora = useAgora()
   const navigate = useNavigate()
   const notificar = useToast()
@@ -47,7 +50,7 @@ export function ClientesPage() {
   const filtrados = useMemo(() => {
     const termo = normalizar(q.trim())
     const digitos = q.replace(/\D/g, '')
-    return db.clientes
+    return clientes
       .filter((c) => !status || (status === 'ativo') === c.ativo)
       .filter(
         (c) =>
@@ -56,16 +59,16 @@ export function ClientesPage() {
           (digitos.length >= 3 && `${c.telefone} ${c.celular} ${c.cpfCnpj}`.replace(/\D/g, '').includes(digitos)),
       )
       .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
-  }, [db.clientes, q, status])
+  }, [clientes, q, status])
 
   const totalPaginas = Math.max(1, Math.ceil(filtrados.length / POR_PAGINA))
   const paginaAtual = Math.min(pagina, totalPaginas)
   const visiveis = filtrados.slice((paginaAtual - 1) * POR_PAGINA, paginaAtual * POR_PAGINA)
   const todosVisiveisMarcados = visiveis.length > 0 && visiveis.every((c) => selecionados.has(c.id))
-  const comReservaAtiva = db.clientes.filter((c) => vinculos.comReservaAtiva.has(c.id)).length
-  const comPropostaEmAnalise = db.clientes.filter((c) => vinculos.comPropostaEmAndamento.has(c.id)).length
+  const comReservaAtiva = clientes.filter((c) => vinculos.comReservaAtiva.has(c.id)).length
+  const comPropostaEmAnalise = clientes.filter((c) => vinculos.comPropostaEmAndamento.has(c.id)).length
   // Sem nenhum cadastro, a lista filtrada também fica vazia.
-  const mensagemVazia = db.clientes.length === 0 ? 'Nenhum cliente cadastrado ainda.' : 'Nenhum cliente encontrado com esses filtros.'
+  const mensagemVazia = clientes.length === 0 ? 'Nenhum cliente cadastrado ainda.' : 'Nenhum cliente encontrado com esses filtros.'
   const contatoPrincipal = (c: Cliente) => c.celular || c.telefone || c.email
 
   const exportar = () => {
@@ -115,9 +118,32 @@ export function ClientesPage() {
     } catch (e) {
       notificar(e instanceof Error ? e.message : 'Não foi possível concluir a ação.', 'erro')
     } finally {
+      lista.recarregar()
       setProcessando(false)
       setConfirmarExclusao(false)
     }
+  }
+
+  if (lista.erro || !lista.dados) {
+    return (
+      <main className="conteudo">
+        <section className="card vazio">
+          {lista.erro ? (
+            <>
+              <h1>Não foi possível carregar os clientes</h1>
+              <p>{lista.erro}</p>
+              <button type="button" className="btn btn--secundario" onClick={lista.recarregar}>
+                Tentar novamente
+              </button>
+            </>
+          ) : (
+            <p>
+              <Spinner /> Carregando clientes…
+            </p>
+          )}
+        </section>
+      </main>
+    )
   }
 
   const quantidade = selecionados.size
@@ -129,7 +155,7 @@ export function ClientesPage() {
         <div>
           <h1 className="cabecalho__titulo">Clientes</h1>
           <p className="cabecalho__subtitulo">
-            {db.clientes.length} cadastrados · {comReservaAtiva} com reserva ativa · {comPropostaEmAnalise} com proposta em análise
+            {clientes.length} cadastrados · {comReservaAtiva} com reserva ativa · {comPropostaEmAnalise} com proposta em análise
           </p>
         </div>
         <div className="cabecalho__acoes">

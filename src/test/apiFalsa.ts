@@ -11,10 +11,83 @@ interface UsuarioFalso {
   ultimoAcesso: string | null
 }
 
+type ClienteFalso = Record<string, unknown> & {
+  id: string
+  documentoIdentificacao: string
+  nome: string | null
+  razaoSocial: string | null
+  email: string | null
+  status: string
+  contatos: Record<string, unknown>[]
+}
+
 let usuarios: UsuarioFalso[] = []
 let matriz: Record<string, string[]> = {}
+let clientes: ClienteFalso[] = []
+let proximoCliente = 1
+
+const digitos = (v: unknown) => (typeof v === 'string' ? v.replace(/\D/g, '') : '') || null
+const textoOuNulo = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null)
+
+function clienteDoCorpo(corpo: Record<string, unknown>, atual?: ClienteFalso): ClienteFalso {
+  const e = (corpo.endereco ?? {}) as Record<string, unknown>
+  const agora = new Date().toISOString()
+  return {
+    ...atual,
+    id: atual?.id ?? `cli-api-${proximoCliente++}`,
+    tipoDocumento: corpo.tipoDocumento,
+    documentoIdentificacao: digitos(corpo.documentoIdentificacao) ?? '',
+    nome: textoOuNulo(corpo.nome),
+    razaoSocial: textoOuNulo(corpo.razaoSocial),
+    nomeFantasia: null,
+    telefone: digitos(corpo.telefone),
+    celular: digitos(corpo.celular),
+    email: textoOuNulo(corpo.email)?.toLowerCase() ?? null,
+    origem: textoOuNulo(corpo.origem),
+    rg: textoOuNulo(corpo.rg),
+    dataNascimento: textoOuNulo(corpo.dataNascimento),
+    estadoCivil: textoOuNulo(corpo.estadoCivil),
+    profissao: textoOuNulo(corpo.profissao),
+    responsavel: textoOuNulo(corpo.responsavel),
+    imovelInteresseId: textoOuNulo(corpo.imovelInteresseId),
+    endereco: {
+      cep: digitos(e.cep),
+      logradouro: textoOuNulo(e.logradouro),
+      numero: textoOuNulo(e.numero),
+      complemento: textoOuNulo(e.complemento),
+      bairro: textoOuNulo(e.bairro),
+      cidade: textoOuNulo(e.cidade),
+      uf: textoOuNulo(e.uf)?.toUpperCase() ?? null,
+      pais: textoOuNulo(e.pais),
+    },
+    contatos: ((corpo.contatos ?? atual?.contatos ?? []) as Record<string, unknown>[]).map((c, i) => ({
+      ...c,
+      id: String(i + 1),
+      imovelId: textoOuNulo(c.imovelId),
+    })),
+    status: atual?.status ?? 'ATIVO',
+    dataCadastro: atual?.dataCadastro ?? agora,
+    dataAtualizacao: agora,
+  }
+}
+
+export function clientesDaApiFalsa() {
+  return clientes
+}
 
 export function reiniciarApiFalsa() {
+  proximoCliente = 1
+  clientes = lerDb().clientes.map((c) => ({
+    ...clienteDoCorpo({
+      ...c,
+      tipoDocumento: c.tipoPessoa === 'fisica' ? 'CPF' : 'CNPJ',
+      documentoIdentificacao: c.cpfCnpj,
+      nome: c.tipoPessoa === 'fisica' ? c.nome : null,
+      razaoSocial: c.tipoPessoa === 'fisica' ? null : c.nome,
+    }),
+    id: c.id,
+    status: c.ativo ? 'ATIVO' : 'INATIVO',
+  }))
   usuarios = lerDb().usuarios.map((u) => ({
     id: u.id,
     name: u.nome,
@@ -125,7 +198,46 @@ function rotear(metodo: string, caminho: string, corpo: Record<string, unknown>)
     return json({ matriz })
   }
 
+  const respostaCliente = rotearClientes(metodo, caminho, corpo)
+  if (respostaCliente) return respostaCliente
+
   return erro(`Rota não simulada: ${metodo} ${caminho}`, 404)
+}
+
+function rotearClientes(metodo: string, caminho: string, corpo: Record<string, unknown>): Response | null {
+  if (caminho === '/clientes' && metodo === 'GET') {
+    return json({ data: clientes, page: { page: 1, perPage: 100, totalItems: clientes.length, totalPages: 1 } })
+  }
+
+  const duplicado = (doc: string | null, id?: string) =>
+    clientes.some((c) => c.id !== id && c.documentoIdentificacao === doc)
+
+  if (caminho === '/clientes' && metodo === 'POST') {
+    const novo = clienteDoCorpo(corpo)
+    if (duplicado(novo.documentoIdentificacao)) return erro('Já existe cliente com este CPF ou CNPJ.', 409)
+    clientes = [...clientes, novo]
+    return json({ cliente: novo }, 201)
+  }
+
+  const rota = /^\/clientes\/([^/]+)(?:\/(desativar|reativar))?$/.exec(caminho)
+  if (!rota) return null
+  const atual = clientes.find((c) => c.id === rota[1])
+  if (!atual) return erro('Cliente não encontrado.', 404)
+
+  let salvo = atual
+  if (metodo === 'GET') return json(atual)
+  if (metodo === 'DELETE') {
+    clientes = clientes.filter((c) => c.id !== atual.id)
+    return new Response(null, { status: 204 })
+  }
+  if (metodo === 'PATCH' && rota[2]) salvo = { ...atual, status: rota[2] === 'desativar' ? 'INATIVO' : 'ATIVO' }
+  else if (metodo === 'PATCH') {
+    salvo = clienteDoCorpo(corpo, atual)
+    if (duplicado(salvo.documentoIdentificacao, atual.id)) return erro('Já existe cliente com este CPF ou CNPJ.', 409)
+  } else return null
+
+  clientes = clientes.map((c) => (c.id === atual.id ? salvo : c))
+  return json(salvo)
 }
 
 export async function fetchFalso(entrada: RequestInfo | URL, init?: RequestInit) {
