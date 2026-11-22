@@ -47,6 +47,22 @@ describe('Login', () => {
     })
   })
 
+  it('descarta sessão adulterada no navegador', async () => {
+    sessionStorage.setItem(
+      'urbizzi:sessao',
+      JSON.stringify({ token: '<script>', usuario: { id: '1', nome: 'X', email: 'x@x', papel: 'Administrador' }, permissoes: [] }),
+    )
+    renderizar('/usuarios', { logado: false })
+    expect(await screen.findByRole('button', { name: 'Entrar' })).toBeInTheDocument()
+
+    sessionStorage.setItem(
+      'urbizzi:sessao',
+      JSON.stringify({ token: 'token-ok', usuario: { id: '1', nome: 'X', email: 'x@x', papel: 'Hacker' }, permissoes: [] }),
+    )
+    renderizar('/usuarios', { logado: false })
+    expect(await screen.findAllByRole('button', { name: 'Entrar' })).toHaveLength(2)
+  })
+
   it('permite solicitar recuperação de senha', async () => {
     const { user } = renderizar('/login', { logado: false })
     await user.click(screen.getByRole('button', { name: 'Esqueci minha senha' }))

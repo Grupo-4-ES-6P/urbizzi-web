@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 
+import { PERFIS, type Perfil } from '../data/permissoes'
 import type { UsuarioPublico } from '../data/types'
 import { entrarNaApi, tokenExpirado, type Sessao } from '../services/auth'
 import { aoExpirarSessao, definirToken } from '../services/http'
@@ -16,15 +17,33 @@ interface AuthValor {
 
 const AuthContext = createContext<AuthValor | null>(null)
 
+const TOKEN_VALIDO = /^[\w.-]{1,4096}$/
+const PERMISSAO_VALIDA = /^[A-Z0-9_:]{1,64}$/
+
+const texto = (valor: unknown, max: number) => (typeof valor === 'string' ? valor.slice(0, max) : '')
+
+/** Remonta a sessão só com campos válidos; o storage é editável pelo usuário. */
+function sessaoValida(valor: unknown): Sessao | null {
+  const s = valor as Partial<Sessao> | null
+  if (!s || typeof s.token !== 'string' || !TOKEN_VALIDO.test(s.token)) return null
+  const u = s.usuario as Partial<UsuarioPublico> | undefined
+  if (!u || !PERFIS.includes(u.papel as Perfil)) return null
+  return {
+    token: s.token,
+    usuario: { id: texto(u.id, 64), nome: texto(u.nome, 256), email: texto(u.email, 256), papel: u.papel as Perfil },
+    permissoes: Array.isArray(s.permissoes)
+      ? s.permissoes.filter((p): p is string => typeof p === 'string' && PERMISSAO_VALIDA.test(p))
+      : [],
+  }
+}
+
 function lerSessao(): Sessao | null {
   for (const storage of [localStorage, sessionStorage]) {
     try {
       const bruto = storage.getItem(CHAVE)
       if (!bruto) continue
-      const sessao = JSON.parse(bruto) as Partial<Sessao>
-      if (sessao.token && sessao.usuario && !tokenExpirado(sessao.token)) {
-        return { token: sessao.token, usuario: sessao.usuario, permissoes: sessao.permissoes ?? [] }
-      }
+      const sessao = sessaoValida(JSON.parse(bruto))
+      if (sessao && !tokenExpirado(sessao.token)) return sessao
     } catch {
       // Ignora sessão inválida.
     }
@@ -58,7 +77,8 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   useEffect(() => aoExpirarSessao(sair), [sair])
 
   const entrar = useCallback(async (email: string, senha: string, manterConectado: boolean) => {
-    const nova = await entrarNaApi(email, senha)
+    const nova = sessaoValida(await entrarNaApi(email, senha))
+    if (!nova) throw new Error('Resposta de login inválida.')
     limparSessao()
     try {
       // "Manter conectado" sobrevive ao fechamento do navegador; caso contrário, só à aba.
