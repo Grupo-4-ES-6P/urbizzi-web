@@ -42,8 +42,6 @@ import { TerrenoDetalhePage } from './pages/publico/TerrenoDetalhePage'
 /*Usuários*/
 import { UsuariosPermissoesPage } from './pages/usuarios/UsuariosPermissoesPage'
 import { UsuarioFormPage } from './pages/usuarios/UsuarioFormPage'
-import { EmConstrucaoPage } from './pages/EmConstrucaoPage'
-import { EmBrevePublicoPage } from './pages/publico/EmBrevePublicoPage'
 
 function Protegida({ children }: Readonly<{ children: ReactNode }>) {
   const { usuario } = useAuth()
