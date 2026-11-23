@@ -183,6 +183,12 @@ function rotearPropostas(metodo: string, caminho: string, corpo: Record<string, 
 export const uploadsDaApiFalsa: string[] = []
 
 function rotearPublico(metodo: string, caminho: string, corpo: Record<string, unknown>): Response | null {
+  if (caminho === '/relatorios' && metodo === 'GET') return json([...relatoriosDaApiFalsa].reverse())
+  if (caminho === '/relatorios' && metodo === 'POST') {
+    const id = String(relatoriosDaApiFalsa.length + 1)
+    relatoriosDaApiFalsa.push({ ...corpo, id, geradoPor: 'Admin', criadoEm: new Date().toISOString() })
+    return json({ id }, 201)
+  }
   if (caminho === '/links-publicos' && metodo === 'GET') return json([...linksDaApiFalsa].reverse())
   if (caminho === '/links-publicos' && metodo === 'POST') {
     const dias = corpo.validadeDias as number | null
@@ -344,6 +350,8 @@ function rotearLoteamentos(metodo: string, caminho: string, corpo: Record<string
 }
 
 export function reiniciarApiFalsa() {
+  configDaApiFalsa = CONFIG_PADRAO.map((c) => ({ ...c }))
+  relatoriosDaApiFalsa.length = 0
   linksDaApiFalsa.length = 0
   notificacoesDaApiFalsa.length = 0
   emailsDaApiFalsa.length = 0
@@ -410,6 +418,14 @@ export interface LinkFalso {
   criadoEm: string
 }
 export const linksDaApiFalsa: LinkFalso[] = []
+
+const CONFIG_PADRAO = [
+  { tipo: 'reserva_vencendo', evento: 'Reserva perto de vencer', quando: 'Antes do prazo', destinatario: 'Corretor e aprovadores', ativo: true, email: false, antecedenciaHoras: 48 },
+  { tipo: 'reserva_expirada', evento: 'Reserva expirada', quando: 'No vencimento', destinatario: 'Corretor', ativo: true, email: false, antecedenciaHoras: null },
+  { tipo: 'interesse', evento: 'Novo interesse pelo site', quando: 'Ao receber', destinatario: 'Quem cria propostas', ativo: true, email: false, antecedenciaHoras: null },
+]
+export let configDaApiFalsa = CONFIG_PADRAO.map((c) => ({ ...c }))
+export const relatoriosDaApiFalsa: Record<string, unknown>[] = []
 
 export function usuariosDaApiFalsa() {
   return usuarios
@@ -486,6 +502,7 @@ function rotear(metodo: string, caminho: string, corpo: Record<string, unknown>)
     return semConteudo(204)
   }
 
+  corpoAtual = corpo
   const respostaNotificacoes = rotearNotificacoes(metodo, caminho)
   if (respostaNotificacoes) return respostaNotificacoes
 
@@ -552,12 +569,25 @@ function rotear(metodo: string, caminho: string, corpo: Record<string, unknown>)
   return erro(`Rota não simulada: ${metodo} ${caminho}`, 404)
 }
 
+let corpoAtual: Record<string, unknown> = {}
+
 function rotearNotificacoes(metodo: string, caminho: string): Response | null {
   if (!caminho.startsWith('/notificacoes')) return null
   const usuario = usuarios.find((x) => `token-${x.id}` === tokenAtual)
   if (!usuario) return erro('Unauthorized', 401)
   const minhas = notificacoesDaApiFalsa.filter((n) => n.idUsuario === usuario.id)
 
+  if (metodo === 'GET' && caminho === '/notificacoes/config') return json(configDaApiFalsa)
+  const config = /^\/notificacoes\/config\/([^/]+)$/.exec(caminho)
+  if (metodo === 'PUT' && config) {
+    const atual = configDaApiFalsa.find((c) => c.tipo === config[1])
+    if (!atual) return erro('Tipo de alerta desconhecido.', 400)
+    Object.assign(atual, corpoAtual)
+    return json(atual)
+  }
+  if (metodo === 'GET' && caminho === '/notificacoes/envios') {
+    return json(notificacoesDaApiFalsa.map((n) => ({ id: n.id, tipo: n.tipo, titulo: n.titulo, destinatario: usuarios.find((u) => u.id === n.idUsuario)?.name ?? '—', lida: n.lida, criadaEm: n.criadaEm })))
+  }
   if (metodo === 'GET' && caminho === '/notificacoes') {
     const itens = [...minhas].sort((a, b) => b.criadaEm.localeCompare(a.criadaEm)).map((n) => {
       const copia: Partial<NotificacaoFalsa> = { ...n }

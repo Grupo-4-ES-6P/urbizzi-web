@@ -1,40 +1,26 @@
 import { Plus } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { Dialogo } from '../../components/Dialogo'
-import { Badge, Campo } from '../../components/ui'
+import { Campo } from '../../components/ui'
 import { useAuth } from '../../contexts/AuthContext'
 import { useToast } from '../../contexts/ToastContext'
 import { useDb } from '../../data/db'
 import type { Db } from '../../data/types'
-import { dataCalendario, formatarData, formatarMoedaAbreviada } from '../../lib/format'
+import { formatarData, formatarMoedaAbreviada } from '../../lib/format'
 import { reservasDe } from '../../data/selectors'
 import { baixarCsv, gerarCsv } from '../../lib/csv'
 import { imprimirTabela, montarRelatorio, TIPOS_RELATORIO, type TipoRelatorio } from '../../lib/relatorios'
+import { listarRelatorios, registrarRelatorio, type RelatorioRegistrado } from '../../services/relatoriosGerados'
 
 type Formato = 'PDF' | 'CSV'
-type StatusRelatorio = 'pronto' | 'gerando'
-
-interface RelatorioGerado {
-  id: string
-  nome: string
-  periodo: string
-  formato: Formato
-  geradoPor: string
-  data: string
-  status: StatusRelatorio
-}
 
 const DIAS_DISPONIVEL = 90
 
 
 const FORMATOS: readonly Formato[] = ['PDF', 'CSV']
 
-const STATUS: Record<StatusRelatorio, { rotulo: string; variante: string }> = {
-  pronto: { rotulo: 'Pronto', variante: 'normal' },
-  gerando: { rotulo: 'Gerando', variante: 'laranja' },
-}
 
 
 const DIA_MS = 24 * 60 * 60 * 1000
@@ -82,13 +68,19 @@ export function RelatoriosExportacaoPage() {
   const ano = new Date().getFullYear()
   const k = indicadores(db, ano)
 
-  const [relatorios, setRelatorios] = useState<RelatorioGerado[]>([])
+  const [relatorios, setRelatorios] = useState<RelatorioRegistrado[]>([])
+
+  useEffect(() => {
+    listarRelatorios()
+      .then(setRelatorios)
+      .catch(() => setRelatorios([]))
+  }, [])
   const [gerarAberto, setGerarAberto] = useState(false)
   const [tipo, setTipo] = useState<TipoRelatorio>(TIPOS_RELATORIO[0])
   const [periodo, setPeriodo] = useState(String(ano))
   const [formato, setFormato] = useState<Formato>('PDF')
 
-  const gerar = () => {
+  const gerar = async () => {
     const anoFiltro = /^\d{4}$/.test(periodo.trim()) ? Number(periodo.trim()) : null
     const tabela = montarRelatorio(db, tipo, anoFiltro)
     const rotuloPeriodo = periodo.trim() || 'Todo o histórico'
@@ -102,17 +94,15 @@ export function RelatoriosExportacaoPage() {
       notificar(error_ instanceof Error ? error_.message : 'Não foi possível gerar o relatório.', 'erro')
       return
     }
-    const novo: RelatorioGerado = {
-      id: crypto.randomUUID(),
-      nome: tipo,
-      periodo: rotuloPeriodo,
-      formato,
-      geradoPor: usuario?.nome ?? 'Administrador',
-      data: dataCalendario(new Date()),
-      status: 'pronto',
-    }
-    setRelatorios((lista) => [novo, ...lista])
     setGerarAberto(false)
+    const dados = { nome: tipo, periodo: rotuloPeriodo, formato, registros: tabela.linhas.length }
+    try {
+      const { id } = await registrarRelatorio(dados)
+      const novo: RelatorioRegistrado = { ...dados, id, geradoPor: usuario?.nome ?? '—', criadoEm: new Date().toISOString() }
+      setRelatorios((lista) => [novo, ...lista])
+    } catch {
+      // Arquivo já foi gerado; só o histórico ficou sem registro.
+    }
     notificar(`Relatório "${tipo}" gerado em ${formato} com ${tabela.linhas.length} registro(s).`)
   }
 
@@ -172,14 +162,14 @@ export function RelatoriosExportacaoPage() {
             <table className="tabela">
               <thead>
                 <tr>
-                  <th>Relatório</th><th>Período</th><th>Formato</th><th>Gerado por</th><th>Data</th><th>Status</th>
+                  <th>Relatório</th><th>Período</th><th>Formato</th><th>Registros</th><th>Gerado por</th><th>Data</th>
                 </tr>
               </thead>
               <tbody>
                 {relatorios.length === 0 && (
                   <tr>
                     <td colSpan={6} className="card__vazio">
-                      Nenhum relatório gerado nesta sessão. Use “Gerar relatório” para baixar CSV ou imprimir em PDF.
+                      Nenhum relatório gerado ainda. Use “Gerar relatório” para baixar CSV ou imprimir em PDF.
                     </td>
                   </tr>
                 )}
@@ -188,9 +178,9 @@ export function RelatoriosExportacaoPage() {
                     <td className="tabela__destaque">{r.nome}</td>
                     <td>{r.periodo}</td>
                     <td>{r.formato}</td>
+                    <td>{r.registros}</td>
                     <td>{r.geradoPor}</td>
-                    <td>{formatarData(r.data)}</td>
-                    <td><Badge variante={STATUS[r.status].variante}>{STATUS[r.status].rotulo}</Badge></td>
+                    <td>{formatarData(r.criadoEm)}</td>
                   </tr>
                 ))}
               </tbody>

@@ -1,6 +1,7 @@
 import { screen, within } from '@testing-library/react'
 
 import { atualizarDb, lerDb } from '../../data/db'
+import { relatoriosDaApiFalsa } from '../../test/apiFalsa'
 import { renderizar } from '../../test/utils'
 
 describe('Relatórios', () => {
@@ -11,7 +12,7 @@ describe('Relatórios', () => {
     const kpis = screen.getByRole('region', { name: 'Indicadores do período' })
     expect(within(kpis).getByText('Vendas no período')).toBeInTheDocument()
     expect(within(kpis).getByText('Conversão de reservas')).toBeInTheDocument()
-    expect(screen.getByText(/Nenhum relatório gerado nesta sessão/)).toBeInTheDocument()
+    expect(screen.getByText(/Nenhum relatório gerado ainda/)).toBeInTheDocument()
   })
 
   it('gera um novo relatório pelo diálogo', async () => {
@@ -34,6 +35,7 @@ describe('Relatórios', () => {
     const linhas = texto.trim().split('\r\n')
     expect(linhas[0]).toContain('Imóvel;Matrícula;Loteamento')
     expect(linhas).toHaveLength(total + 1)
+    expect(relatoriosDaApiFalsa).toEqual([expect.objectContaining({ nome: 'Inventário de imóveis', formato: 'CSV', registros: total })])
   })
 
   it('leva para a configuração de notificações', async () => {

@@ -1,4 +1,4 @@
-import { BadgeCheck, Bell, CalendarClock, CheckCheck, FileText, MessageSquare, XCircle } from 'lucide-react'
+import { BadgeCheck, Bell, CalendarClock, CalendarX, CheckCheck, FileText, MessageSquare, XCircle } from 'lucide-react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
@@ -12,6 +12,7 @@ const ICONES: Record<string, typeof Bell> = {
   proposta_aprovada: BadgeCheck,
   proposta_recusada: XCircle,
   reserva_vencendo: CalendarClock,
+  reserva_expirada: CalendarX,
 }
 
 function quando(iso: string, agora = Date.now()) {
