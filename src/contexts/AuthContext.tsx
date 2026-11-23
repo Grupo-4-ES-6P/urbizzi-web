@@ -11,6 +11,8 @@ interface AuthValor {
   usuario: UsuarioPublico | null
   permissoes: string[]
   pode: (permissao: string) => boolean
+  trocarSenha: boolean
+  senhaTrocada: () => void
   entrar: (email: string, senha: string, manterConectado: boolean) => Promise<void>
   sair: () => void
 }
@@ -34,6 +36,7 @@ function sessaoValida(valor: unknown): Sessao | null {
     permissoes: Array.isArray(s.permissoes)
       ? s.permissoes.filter((p): p is string => typeof p === 'string' && PERMISSAO_VALIDA.test(p))
       : [],
+    trocarSenha: s.trocarSenha === true,
   }
 }
 
@@ -90,16 +93,33 @@ export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
     setSessao(nova)
   }, [])
 
+  const senhaTrocada = useCallback(() => {
+    setSessao((atual) => {
+      if (!atual) return atual
+      const nova = { ...atual, trocarSenha: false }
+      for (const storage of [localStorage, sessionStorage]) {
+        try {
+          if (storage.getItem(CHAVE)) storage.setItem(CHAVE, JSON.stringify(nova))
+        } catch {
+          // Storage indisponível.
+        }
+      }
+      return nova
+    })
+  }, [])
+
   const valor = useMemo(() => {
     const permissoes = sessao?.permissoes ?? []
     return {
       usuario: sessao?.usuario ?? null,
       permissoes,
       pode: (permissao: string) => permissoes.includes('ADMIN') || permissoes.includes(permissao.toUpperCase()),
+      trocarSenha: sessao?.trocarSenha === true,
+      senhaTrocada,
       entrar,
       sair,
     }
-  }, [sessao, entrar, sair])
+  }, [sessao, entrar, sair, senhaTrocada])
 
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>
 }

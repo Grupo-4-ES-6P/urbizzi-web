@@ -9,6 +9,7 @@ import { AppLayout } from './layouts/AppLayout'
 import { SiteLayout } from './pages/publico/SiteLayout'
 /*Login e Dashboard*/
 import { LoginPage } from './pages/LoginPage'
+import { RedefinirSenhaPage, TrocarSenhaPage } from './pages/SenhaPages'
 import { DashboardPage } from './pages/DashboardPage'
 /*Imóveis*/
 import { ImoveisPage } from './pages/imovel/ImoveisPage'
@@ -45,9 +46,17 @@ import { UsuariosPermissoesPage } from './pages/usuarios/UsuariosPermissoesPage'
 import { UsuarioFormPage } from './pages/usuarios/UsuarioFormPage'
 
 function Protegida({ children }: Readonly<{ children: ReactNode }>) {
-  const { usuario } = useAuth()
+  const { usuario, trocarSenha } = useAuth()
   const location = useLocation()
   if (!usuario) return <Navigate to="/login" replace state={{ de: location.pathname + location.search }} />
+  if (trocarSenha) return <Navigate to="/trocar-senha" replace />
+  return <>{children}</>
+}
+
+function SenhaProvisoria({ children }: Readonly<{ children: ReactNode }>) {
+  const { usuario, trocarSenha } = useAuth()
+  if (!usuario) return <Navigate to="/login" replace />
+  if (!trocarSenha) return <Navigate to="/dashboard" replace />
   return <>{children}</>
 }
 
@@ -70,6 +79,15 @@ export function Rotas() {
           </SomenteVisitante>
         }
       />
+      <Route
+        path="/trocar-senha"
+        element={
+          <SenhaProvisoria>
+            <TrocarSenhaPage />
+          </SenhaProvisoria>
+        }
+      />
+      <Route path="/redefinir-senha" element={<RedefinirSenhaPage />} />
       <Route
         element={
           <Protegida>

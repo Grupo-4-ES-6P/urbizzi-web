@@ -593,6 +593,9 @@ textarea {
   font-size: 11px;
   color: #a5a5aa;
 }
+.login--simples {
+  grid-template-columns: 1fr;
+}
 .login__area {
   position: relative;
   display: grid;

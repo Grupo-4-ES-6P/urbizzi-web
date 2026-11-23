@@ -9,6 +9,7 @@ interface UsuarioFalso {
   perfil: string
   status: string
   ultimoAcesso: string | null
+  trocarSenha?: boolean
 }
 
 type ClienteFalso = Record<string, unknown> & {
@@ -320,6 +321,8 @@ function rotearLoteamentos(metodo: string, caminho: string, corpo: Record<string
 }
 
 export function reiniciarApiFalsa() {
+  emailsDaApiFalsa.length = 0
+  tokensUsados.clear()
   semeiaRegistros()
   proximoLote = 1
   lotes = lerDb().imoveis.map(loteDoImovel)
@@ -354,6 +357,11 @@ export function reiniciarApiFalsa() {
     Object.entries(PERMISSOES_PADRAO).map(([id, perfis]) => [id.toUpperCase(), perfis.map((p) => PERFIL_NA_API[p])]),
   )
 }
+
+/** Links de redefinição "enviados" por e-mail. */
+export const emailsDaApiFalsa: { para: string; token: string }[] = []
+const tokensUsados = new Set<string>()
+let tokenAtual = ''
 
 export function usuariosDaApiFalsa() {
   return usuarios
@@ -398,8 +406,36 @@ function rotear(metodo: string, caminho: string, corpo: Record<string, unknown>)
       accessToken: `token-${u.id}`,
       tokenType: 'Bearer',
       expiresIn: '1h',
-      usuario: { id: u.id, nome: u.name, email: u.email, perfil: u.perfil, permissoes },
+      usuario: { id: u.id, nome: u.name, email: u.email, perfil: u.perfil, permissoes, trocarSenha: u.trocarSenha === true },
     })
+  }
+
+  const semConteudo = (status: number) => new Response(null, { status })
+
+  if (metodo === 'POST' && caminho === '/auth/trocar-senha') {
+    const u = usuarios.find((x) => `token-${x.id}` === tokenAtual)
+    if (!u) return erro('Unauthorized', 401)
+    if (u.password !== corpo.senhaAtual) return erro('Senha atual incorreta.', 400)
+    u.password = String(corpo.novaSenha)
+    u.trocarSenha = false
+    return semConteudo(204)
+  }
+
+  if (metodo === 'POST' && caminho === '/auth/recuperar-senha') {
+    const u = usuarios.find((x) => x.email === String(corpo.email).toLowerCase() && x.status === 'ATIVO')
+    if (u) emailsDaApiFalsa.push({ para: u.email, token: `reset-${u.id}-${emailsDaApiFalsa.length}` })
+    return semConteudo(202)
+  }
+
+  if (metodo === 'POST' && caminho === '/auth/redefinir-senha') {
+    const token = String(corpo.token)
+    const enviado = emailsDaApiFalsa.find((e) => e.token === token)
+    const u = enviado && usuarios.find((x) => x.email === enviado.para)
+    if (!u || tokensUsados.has(token)) return erro('Link inválido ou expirado. Peça um novo.', 400)
+    tokensUsados.add(token)
+    u.password = String(corpo.novaSenha)
+    u.trocarSenha = false
+    return semConteudo(204)
   }
 
   if (metodo === 'GET' && caminho === '/users') return json(usuarios.map(resposta))
@@ -414,6 +450,7 @@ function rotear(metodo: string, caminho: string, corpo: Record<string, unknown>)
       perfil: String(corpo.perfil ?? 'CORRETOR'),
       status: String(corpo.status),
       ultimoAcesso: null,
+      trocarSenha: true,
     }
     usuarios.push(novo)
     return json(resposta(novo), 201)
@@ -429,7 +466,7 @@ function rotear(metodo: string, caminho: string, corpo: Record<string, unknown>)
       ...(corpo.email ? { email: String(corpo.email) } : {}),
       ...(corpo.perfil ? { perfil: String(corpo.perfil) } : {}),
       ...(corpo.status ? { status: String(corpo.status) } : {}),
-      ...(corpo.password ? { password: String(corpo.password) } : {}),
+      ...(corpo.password ? { password: String(corpo.password), trocarSenha: true } : {}),
     }
     if (semAdmin(atual.id, proximo)) return erro('O sistema precisa de pelo menos um administrador ativo.', 400)
     usuarios = usuarios.map((u) => (u.id === atual.id ? proximo : u))
@@ -503,6 +540,7 @@ function rotearClientes(metodo: string, caminho: string, corpo: Record<string, u
 export async function fetchFalso(entrada: RequestInfo | URL, init?: RequestInit) {
   const url = new URL(String(entrada), 'http://localhost')
   const caminho = url.pathname.replace(/^\/api/, '')
+  tokenAtual = ((init?.headers as Record<string, string> | undefined)?.Authorization ?? '').replace(/^Bearer /, '')
   const corpo =
     init?.body instanceof FormData
       ? { arquivo: init.body.get('arquivo') }

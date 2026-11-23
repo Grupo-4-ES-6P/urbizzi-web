@@ -215,8 +215,13 @@ function FormRecuperar({ email, setEmail, onVoltar, onEnviado }: Readonly<FormRe
     }
     setErro('')
     setEnviando(true)
-    await solicitarRecuperacaoSenha(email)
-    onEnviado()
+    try {
+      await solicitarRecuperacaoSenha(email)
+      onEnviado()
+    } catch (error_) {
+      setErro(error_ instanceof Error ? error_.message : 'Não foi possível enviar o link.')
+      setEnviando(false)
+    }
   }
 
   return (

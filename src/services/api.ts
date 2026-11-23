@@ -64,7 +64,7 @@ export function proximoCodigo(prefixo: string, existentes: string[]) {
 
 /** Sempre responde com sucesso para não revelar quais e-mails existem. */
 export async function solicitarRecuperacaoSenha(email: string) {
-  await esperar()
+  await http('/auth/recuperar-senha', { method: 'POST', body: { email: email.trim() } })
   return { email: email.trim() }
 }
 
