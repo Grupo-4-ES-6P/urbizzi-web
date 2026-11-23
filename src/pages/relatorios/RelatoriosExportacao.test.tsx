@@ -11,10 +11,12 @@ describe('Relatórios', () => {
     const kpis = screen.getByRole('region', { name: 'Indicadores do período' })
     expect(within(kpis).getByText('Vendas no período')).toBeInTheDocument()
     expect(within(kpis).getByText('Conversão de reservas')).toBeInTheDocument()
-    expect(screen.getByText('Auditoria de cancelamentos')).toBeInTheDocument()
+    expect(screen.getByText(/Nenhum relatório gerado nesta sessão/)).toBeInTheDocument()
   })
 
   it('gera um novo relatório pelo diálogo', async () => {
+    let arquivo: Blob | undefined
+    vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: (b: Blob) => ((arquivo = b), 'blob:x'), revokeObjectURL: () => {} }))
     const { user } = renderizar('/relatorios')
     await user.click(screen.getByRole('button', { name: /Gerar relatório/ }))
     const dialogo = screen.getByRole('dialog')
@@ -22,8 +24,16 @@ describe('Relatórios', () => {
     await user.selectOptions(within(dialogo).getByLabelText('Formato'), 'CSV')
     await user.click(within(dialogo).getByRole('button', { name: 'Gerar' }))
 
-    expect(await screen.findByText('Relatório "Inventário de imóveis" gerado em CSV.')).toBeInTheDocument()
-    expect(screen.getAllByText('Inventário de imóveis')).toHaveLength(2)
+    const total = lerDb().imoveis.length
+    expect(await screen.findByText(`Relatório "Inventário de imóveis" gerado em CSV com ${total} registro(s).`)).toBeInTheDocument()
+    const texto = await new Promise<string>((ok) => {
+      const leitor = new FileReader()
+      leitor.onload = () => ok(String(leitor.result))
+      leitor.readAsText(arquivo!)
+    })
+    const linhas = texto.trim().split('\r\n')
+    expect(linhas[0]).toContain('Imóvel;Matrícula;Loteamento')
+    expect(linhas).toHaveLength(total + 1)
   })
 
   it('leva para a configuração de notificações', async () => {

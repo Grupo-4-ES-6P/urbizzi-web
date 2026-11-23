@@ -10,6 +10,8 @@ import { useDb } from '../../data/db'
 import type { Db } from '../../data/types'
 import { dataCalendario, formatarData, formatarMoedaAbreviada } from '../../lib/format'
 import { reservasDe } from '../../data/selectors'
+import { baixarCsv, gerarCsv } from '../../lib/csv'
+import { imprimirTabela, montarRelatorio, TIPOS_RELATORIO, type TipoRelatorio } from '../../lib/relatorios'
 
 type Formato = 'PDF' | 'CSV'
 type StatusRelatorio = 'pronto' | 'gerando'
@@ -26,14 +28,6 @@ interface RelatorioGerado {
 
 const DIAS_DISPONIVEL = 90
 
-const TIPOS_RELATORIO = [
-  'Vendas por empreendimento',
-  'Reservas expiradas',
-  'Comissões por corretor',
-  'Inventário de imóveis',
-  'Propostas recusadas',
-  'Auditoria de cancelamentos',
-] as const
 
 const FORMATOS: readonly Formato[] = ['PDF', 'CSV']
 
@@ -42,14 +36,6 @@ const STATUS: Record<StatusRelatorio, { rotulo: string; variante: string }> = {
   gerando: { rotulo: 'Gerando', variante: 'laranja' },
 }
 
-const RELATORIOS_INICIAIS: readonly RelatorioGerado[] = [
-  { id: 'rel-1', nome: 'Vendas por empreendimento', periodo: 'Jul–Ago 2026', formato: 'PDF', geradoPor: 'Ayran Bade', data: '2026-08-24', status: 'pronto' },
-  { id: 'rel-2', nome: 'Reservas expiradas', periodo: 'Ago 2026', formato: 'CSV', geradoPor: 'Gabriela Krüger', data: '2026-08-23', status: 'pronto' },
-  { id: 'rel-3', nome: 'Comissões por corretor', periodo: '2º trimestre', formato: 'PDF', geradoPor: 'Arthur Pacheco', data: '2026-08-20', status: 'pronto' },
-  { id: 'rel-4', nome: 'Inventário de imóveis', periodo: 'Posição atual', formato: 'CSV', geradoPor: 'Automático', data: '2026-08-19', status: 'pronto' },
-  { id: 'rel-5', nome: 'Propostas recusadas', periodo: 'Jan–Ago 2026', formato: 'PDF', geradoPor: 'Ayran Bade', data: '2026-08-18', status: 'gerando' },
-  { id: 'rel-6', nome: 'Auditoria de cancelamentos', periodo: '2026', formato: 'PDF', geradoPor: 'Ayran Bade', data: '2026-08-15', status: 'pronto' },
-]
 
 const DIA_MS = 24 * 60 * 60 * 1000
 
@@ -96,17 +82,30 @@ export function RelatoriosExportacaoPage() {
   const ano = new Date().getFullYear()
   const k = indicadores(db, ano)
 
-  const [relatorios, setRelatorios] = useState<RelatorioGerado[]>(() => [...RELATORIOS_INICIAIS])
+  const [relatorios, setRelatorios] = useState<RelatorioGerado[]>([])
   const [gerarAberto, setGerarAberto] = useState(false)
-  const [tipo, setTipo] = useState<string>(TIPOS_RELATORIO[0])
+  const [tipo, setTipo] = useState<TipoRelatorio>(TIPOS_RELATORIO[0])
   const [periodo, setPeriodo] = useState(String(ano))
   const [formato, setFormato] = useState<Formato>('PDF')
 
   const gerar = () => {
+    const anoFiltro = /^\d{4}$/.test(periodo.trim()) ? Number(periodo.trim()) : null
+    const tabela = montarRelatorio(db, tipo, anoFiltro)
+    const rotuloPeriodo = periodo.trim() || 'Todo o histórico'
+    try {
+      if (formato === 'CSV') {
+        baixarCsv(`${tipo.toLowerCase().replaceAll(' ', '-')}-${rotuloPeriodo}.csv`, gerarCsv(tabela.cabecalho, tabela.linhas))
+      } else {
+        imprimirTabela(tipo, `Período: ${rotuloPeriodo} · ${tabela.linhas.length} registro(s)`, tabela)
+      }
+    } catch (error_) {
+      notificar(error_ instanceof Error ? error_.message : 'Não foi possível gerar o relatório.', 'erro')
+      return
+    }
     const novo: RelatorioGerado = {
       id: crypto.randomUUID(),
       nome: tipo,
-      periodo: periodo.trim() || String(ano),
+      periodo: rotuloPeriodo,
       formato,
       geradoPor: usuario?.nome ?? 'Administrador',
       data: dataCalendario(new Date()),
@@ -114,7 +113,7 @@ export function RelatoriosExportacaoPage() {
     }
     setRelatorios((lista) => [novo, ...lista])
     setGerarAberto(false)
-    notificar(`Relatório "${tipo}" gerado em ${formato}.`)
+    notificar(`Relatório "${tipo}" gerado em ${formato} com ${tabela.linhas.length} registro(s).`)
   }
 
   return (
@@ -177,6 +176,13 @@ export function RelatoriosExportacaoPage() {
                 </tr>
               </thead>
               <tbody>
+                {relatorios.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="card__vazio">
+                      Nenhum relatório gerado nesta sessão. Use “Gerar relatório” para baixar CSV ou imprimir em PDF.
+                    </td>
+                  </tr>
+                )}
                 {relatorios.map((r) => (
                   <tr key={r.id}>
                     <td className="tabela__destaque">{r.nome}</td>
@@ -203,7 +209,7 @@ export function RelatoriosExportacaoPage() {
         <div className="grade">
           <Campo rotulo="Relatório" className="c-6">
             {(p) => (
-              <select {...p} className="input select" value={tipo} onChange={(e) => setTipo(e.target.value)}>
+              <select {...p} className="input select" value={tipo} onChange={(e) => setTipo(e.target.value as TipoRelatorio)}>
                 {TIPOS_RELATORIO.map((t) => <option key={t}>{t}</option>)}
               </select>
             )}
