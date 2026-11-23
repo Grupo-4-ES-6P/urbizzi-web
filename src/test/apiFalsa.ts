@@ -94,6 +94,123 @@ function loteamentoDoCorpo(corpo: Record<string, unknown>, atual?: Record<string
   }
 }
 
+type Registro = Record<string, unknown> & { id: string }
+
+/** Reservas, vendas, interesses, histórico e documentos: mesmo formato da API. */
+let registros: Record<string, Registro[]> = {}
+let propostas: Record<string, unknown>[] = []
+let proximoRegistro = 1
+
+export function registrosDaApiFalsa(rota: string) {
+  return registros[rota] ?? []
+}
+
+export function propostasDaApiFalsa() {
+  return propostas
+}
+
+function semeiaRegistros() {
+  const db = lerDb()
+  const comoRegistro = (item: { id: string; imovelId?: string; clienteId?: string }, status?: unknown): Registro => {
+    const { id, ...detalhes } = item as Registro
+    return { id, idLote: item.imovelId ?? null, idCliente: item.clienteId ?? null, status: status ?? null, detalhes }
+  }
+  registros = {
+    reservas: db.reservas.map((r) => comoRegistro(r, r.status)),
+    vendas: db.vendas.map((v) => comoRegistro(v, v.status)),
+    interesses: db.interesses.map((i) => comoRegistro(i)),
+    historico: db.historico.map((h) => comoRegistro(h, h.tipo)),
+    documentos: db.documentos.map((d) => comoRegistro(d, d.tipo)),
+  }
+  propostas = db.propostas.map(({ id, ...detalhes }) => ({
+    idProposta: id,
+    status: detalhes.status,
+    idLote: detalhes.imovelId,
+    idCliente: detalhes.clienteId,
+    detalhes,
+  }))
+  proximoRegistro = 1
+}
+
+function rotearRegistros(metodo: string, caminho: string, corpo: Record<string, unknown>): Response | null {
+  const [, rota, id] = /^\/(reservas|vendas|interesses|historico|documentos)(?:\/([^/]+))?$/.exec(caminho) ?? []
+  if (!rota) return null
+  const lista = registros[rota]
+  if (!id && metodo === 'GET') return json(lista)
+  if (!id && metodo === 'POST') {
+    const novo = { ...corpo, id: `${rota}-api-${proximoRegistro++}` } as Registro
+    registros[rota] = [...lista, novo]
+    return json(novo, 201)
+  }
+  const atual = lista.find((r) => r.id === id)
+  if (!atual) return erro('Registro não encontrado.', 404)
+  if (metodo === 'PUT') {
+    const salvo = { ...atual, ...corpo }
+    registros[rota] = lista.map((r) => (r === atual ? salvo : r))
+    return json(salvo)
+  }
+  if (metodo === 'DELETE') {
+    registros[rota] = lista.filter((r) => r !== atual)
+    return new Response(null, { status: 204 })
+  }
+  return json(atual)
+}
+
+function rotearPropostas(metodo: string, caminho: string, corpo: Record<string, unknown>): Response | null {
+  const [, id] = /^\/propostas(?:\/([^/]+))?$/.exec(caminho) ?? []
+  if (!caminho.startsWith('/propostas')) return null
+  if (!id && metodo === 'GET') return json(propostas)
+  if (!id && metodo === 'POST') {
+    const nova = { ...corpo, idProposta: `prop-api-${proximoRegistro++}` }
+    propostas = [...propostas, nova]
+    return json(nova, 201)
+  }
+  const atual = propostas.find((p) => p.idProposta === id)
+  if (!atual) return erro('Proposta não encontrada.', 404)
+  if (metodo === 'PATCH') {
+    const salva = { ...atual, ...corpo }
+    propostas = propostas.map((p) => (p === atual ? salva : p))
+    return json(salva)
+  }
+  if (metodo === 'DELETE') {
+    propostas = propostas.filter((p) => p !== atual)
+    return new Response(null, { status: 204 })
+  }
+  return json(atual)
+}
+
+function rotearPublico(metodo: string, caminho: string, corpo: Record<string, unknown>): Response | null {
+  if (caminho === '/users/equipe' && metodo === 'GET') {
+    return json(usuarios.map((u) => ({ id: u.id, nome: u.name, perfil: u.perfil, ativo: u.status === 'ATIVO' })))
+  }
+  if (caminho === '/publico/catalogo' && metodo === 'GET') {
+    const publicados = lotes.filter(
+      (l) => l.publicado && (l.detalhes as { status?: string }).status !== 'rascunho',
+    )
+    return json({
+      imoveis: publicados.map((l) => {
+        const detalhes = { ...(l.detalhes as Record<string, unknown>) }
+        delete detalhes.bloqueio
+        delete detalhes.observacao
+        return { ...l, informacoesComplementares: null, detalhes }
+      }),
+      loteamentos: loteamentos.map((l) => ({ ...l })),
+    })
+  }
+  if (caminho === '/publico/interesses' && metodo === 'POST') {
+    const lote = lotes.find((l) => l.id === corpo.idLote && l.publicado)
+    if (!lote) return erro('Imóvel indisponível no catálogo.', 400)
+    const codigo = `INT-${String(registros.interesses.length + 1).padStart(4, '0')}`
+    const { idLote, ...dados } = corpo
+    registros.interesses = [
+      ...registros.interesses,
+      { id: `interesses-api-${proximoRegistro++}`, codigo, idLote, status: 'novo', detalhes: { ...dados, codigo, imovelId: idLote } },
+    ]
+    return json({ id: 'x', codigo }, 201)
+  }
+  return null
+}
+
 let lotes: Record<string, unknown>[] = []
 let proximoLote = 1
 
@@ -194,6 +311,7 @@ function rotearLoteamentos(metodo: string, caminho: string, corpo: Record<string
 }
 
 export function reiniciarApiFalsa() {
+  semeiaRegistros()
   proximoLote = 1
   lotes = lerDb().imoveis.map(loteDoImovel)
   proximoCliente = 1
@@ -328,7 +446,10 @@ function rotear(metodo: string, caminho: string, corpo: Record<string, unknown>)
     rotearClientes(metodo, caminho, corpo) ??
     rotearLoteamentos(metodo, caminho, corpo) ??
     rotearQuadras(metodo, caminho, corpo) ??
-    rotearLotes(metodo, caminho, corpo)
+    rotearLotes(metodo, caminho, corpo) ??
+    rotearRegistros(metodo, caminho, corpo) ??
+    rotearPropostas(metodo, caminho, corpo) ??
+    rotearPublico(metodo, caminho, corpo)
   if (respostaCliente) return respostaCliente
 
   return erro(`Rota não simulada: ${metodo} ${caminho}`, 404)

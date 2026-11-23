@@ -1,3 +1,4 @@
+import { atualizarDb } from '../data/db'
 import type { CanalContato, Cliente, ContatoComercial, ResultadoContato } from '../data/types'
 import type { FormCliente } from '../lib/clienteForm'
 import { mascaraCpfCnpj, mascaraTelefone } from '../lib/clienteForm'
@@ -128,21 +129,35 @@ export async function listarClientes(signal?: AbortSignal) {
   }
 }
 
+/** As outras telas (propostas, reservas…) leem os clientes do banco local. */
+export async function sincronizarClientes(signal?: AbortSignal) {
+  const clientes = await listarClientes(signal)
+  atualizarDb((db) => ({ ...db, clientes }))
+  return clientes
+}
+
 export async function buscarCliente(id: string, signal?: AbortSignal) {
   return paraCliente(await http<ClienteApi>(`/clientes/${id}`, { signal }))
 }
 
 export async function salvarCliente(form: FormCliente, id?: string) {
-  if (id) return paraCliente(await http<ClienteApi>(`/clientes/${id}`, { method: 'PATCH', body: paraApi(form) }))
-  const { cliente } = await http<{ cliente: ClienteApi }>('/clientes', { method: 'POST', body: paraApi(form) })
-  return paraCliente(cliente)
+  const salvo = id
+    ? await http<ClienteApi>(`/clientes/${id}`, { method: 'PATCH', body: paraApi(form) })
+    : (await http<{ cliente: ClienteApi }>('/clientes', { method: 'POST', body: paraApi(form) })).cliente
+  await sincronizarClientes()
+  return paraCliente(salvo)
 }
 
 export async function alterarStatusClientes(ids: string[], ativo: boolean) {
   await Promise.all(ids.map((id) => http(`/clientes/${id}/${ativo ? 'reativar' : 'desativar'}`, { method: 'PATCH' })))
+  await sincronizarClientes()
 }
 
-// TODO: barrar na API cliente com reserva/proposta/venda (RF32)
+// RF32: a API recusa (FK) cliente com reserva, venda ou histórico
 export async function excluirClientes(ids: string[]) {
-  await Promise.all(ids.map((id) => http(`/clientes/${id}`, { method: 'DELETE' })))
+  try {
+    await Promise.all(ids.map((id) => http(`/clientes/${id}`, { method: 'DELETE' })))
+  } finally {
+    await sincronizarClientes()
+  }
 }

@@ -1,6 +1,7 @@
 import { atualizarDb } from '../data/db'
 import { reservaAtiva } from '../data/selectors'
 import type { Proposta, UsuarioPublico } from '../data/types'
+import { sincronizada } from './api'
 
 export type DadosNovaProposta = Pick<Proposta,
   'imovelId' | 'clienteId' | 'valor' | 'entrada' | 'parcelas' | 'indiceCorrecao' | 'primeiroVencimento' |
@@ -32,7 +33,7 @@ function proximoCodigo(codigos: string[]) {
   return `PROP-${ano}-${String(sequencia).padStart(4, '0')}`
 }
 
-export function salvarProposta(dados: DadosNovaProposta, status: 'rascunho' | 'pendente', id?: string, autor?: UsuarioPublico) {
+function salvarPropostaLocal(dados: DadosNovaProposta, status: 'rascunho' | 'pendente', id?: string, autor?: UsuarioPublico) {
   if (!dados.imovelId || !dados.clienteId) throw new Error('Selecione um imóvel e um cliente.')
   if (status === 'pendente' && Object.keys(validarProposta(dados)).length) {
     throw new Error('Revise os campos destacados.')
@@ -95,7 +96,7 @@ export function salvarProposta(dados: DadosNovaProposta, status: 'rascunho' | 'p
   return salvoId
 }
 
-export async function registrarContraproposta(id: string, valor: number, justificativa: string, autor: UsuarioPublico) {
+async function registrarContrapropostaLocal(id: string, valor: number, justificativa: string, autor: UsuarioPublico) {
   if (!Number.isFinite(valor) || valor <= 0) throw new Error('Informe um valor válido para a contraproposta.')
   if (!justificativa.trim()) throw new Error('Informe a justificativa da contraproposta.')
 
@@ -133,3 +134,6 @@ export async function registrarContraproposta(id: string, valor: number, justifi
     }
   })
 }
+
+export const salvarProposta = sincronizada(salvarPropostaLocal)
+export const registrarContraproposta = sincronizada(registrarContrapropostaLocal)

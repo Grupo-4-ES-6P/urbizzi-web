@@ -4,6 +4,8 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 
 import { BotaoTema } from '../../components/BotaoTema'
 import { Logo } from '../../components/Logo'
+import { useAuth } from '../../contexts/AuthContext'
+import { sincronizarCatalogo, sincronizarComApi } from '../../services/sincronizacao'
 
 const LINKS = [
   { para: '/inicio', rotulo: 'Início' },
@@ -18,6 +20,15 @@ export function SiteLayout() {
   const { pathname } = useLocation()
   const [aberto, setAberto] = useState(false)
   useEffect(() => setAberto(false), [pathname])
+  const { usuario } = useAuth()
+
+  // Visitante vê só o catálogo público; a equipe logada mantém o espelho completo.
+  useEffect(() => {
+    const controle = new AbortController()
+    const carregar = usuario ? sincronizarComApi : sincronizarCatalogo
+    carregar(controle.signal).catch(() => undefined)
+    return () => controle.abort()
+  }, [usuario])
 
   return (
     <div className="site">

@@ -2,6 +2,7 @@ import { screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 
 import { lerDb } from '../../data/db'
+import { registrosDaApiFalsa } from '../../test/apiFalsa'
 import { renderizar } from '../../test/utils'
 
 const noCatalogo = () =>
@@ -44,6 +45,10 @@ describe('Catálogo público', () => {
     await user.click(within(dialogo).getByRole('button', { name: 'Enviar interesse' }))
 
     expect(await screen.findByText('Interesse enviado!')).toBeInTheDocument()
-    expect(lerDb().interesses.some((i) => i.nome === 'Marina Ferreira Duarte')).toBe(true)
+    // O visitante não tem login: o interesse vai direto para a rota pública da API.
+    const enviado = registrosDaApiFalsa('interesses')
+      .filter((i) => (i.detalhes as { nome?: string }).nome === 'Marina Ferreira Duarte')
+      .at(-1)
+    expect(enviado).toMatchObject({ codigo: expect.stringMatching(/^INT-/), status: 'novo' })
   })
 })

@@ -92,7 +92,7 @@ export function NovaPropostaPage() {
     alterar('imovelId', '')
   }
 
-  function salvar(enviar: boolean) {
+  async function salvar(enviar: boolean) {
     const encontrados = enviar ? validarProposta(form) : {
       ...(!form.imovelId ? { imovelId: 'Selecione um imóvel.' } : {}),
       ...(!form.clienteId ? { clienteId: 'Selecione um cliente.' } : {}),
@@ -104,7 +104,7 @@ export function NovaPropostaPage() {
     }
     setEnviando(true)
     try {
-      const id = salvarProposta(form, enviar ? 'pendente' : 'rascunho', idSalvo, usuario ?? undefined)
+      const id = await salvarProposta(form, enviar ? 'pendente' : 'rascunho', idSalvo, usuario ?? undefined)
       setIdSalvo(id)
       if (enviar) {
         notificar('Proposta enviada para aprovação.')

@@ -24,16 +24,8 @@ import { useTema } from '../contexts/TemaContext'
 import { useToast } from '../contexts/ToastContext'
 import { restaurarDemo } from '../data/db'
 import { iniciais } from '../lib/format'
-import { sincronizarImoveis } from '../services/imoveis'
-import { sincronizarLoteamentos } from '../services/loteamentos'
-import { sincronizarQuadras } from '../services/quadras'
+import { sincronizarComApi } from '../services/sincronizacao'
 
-/** Espelha na base local os cadastros que já vêm da API. */
-async function sincronizarComApi(signal?: AbortSignal) {
-  await sincronizarLoteamentos(signal)
-  await sincronizarQuadras(signal)
-  await sincronizarImoveis(signal)
-}
 
 const MENU = [
   { para: '/dashboard', rotulo: 'Dashboard', icone: LayoutDashboard },

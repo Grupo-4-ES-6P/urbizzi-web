@@ -1,4 +1,6 @@
-import { comSincronizacaoDeImoveis } from './imoveis'
+import { http } from './http'
+import { idNaApi } from './quadras'
+import { comSincronizacao } from './sincronizacao'
 import { atualizarDb } from '../data/db'
 import type {
   Cliente,
@@ -123,7 +125,7 @@ async function aprovarPropostaLocal(propostaId: string, autor = 'Administrador')
   })
 }
 
-export async function recusarProposta(propostaId: string, motivo: string, autor = 'Administrador') {
+async function recusarPropostaLocal(propostaId: string, motivo: string, autor = 'Administrador') {
   await esperar()
   atualizarDb((db) => {
     const proposta = db.propostas.find((p) => p.id === propostaId)
@@ -324,7 +326,7 @@ function lerComoDataUrl(arquivo: File) {
   })
 }
 
-export async function enviarDocumento(
+async function enviarDocumentoLocal(
   imovelId: string,
   dados: { tipo: string; arquivo: File; validade?: string; visivelCatalogo: boolean },
   autor: string,
@@ -374,31 +376,14 @@ export async function enviarDocumento(
 
 // ===== Catálogo público =====
 
+/** Vai direto para a rota pública: quem envia é o visitante, sem login. */
 export async function registrarInteresse(
   imovelId: string,
   dados: { nome: string; email: string; telefone: string; mensagem: string },
 ) {
-  await esperar()
-  let codigo = ''
-  atualizarDb((db) => {
-    const imovel = acharImovel(db, imovelId)
-    const maior = db.interesses.reduce((m, i) => Math.max(m, Number(i.codigo.replace(/\D/g, '')) || 0), 0)
-    codigo = `INT-${String(maior + 1).padStart(4, '0')}`
-    const atualizado: Db = {
-      ...db,
-      interesses: [
-        ...db.interesses,
-        { id: novoId('int'), codigo, imovelId, ...dados, criadoEm: new Date().toISOString() },
-      ],
-    }
-    return comEvento(atualizado, {
-      imovelId,
-      tipo: 'Interesse',
-      descricao: `Formulário recebido pelo catálogo público (${dados.nome.trim()})`,
-      autor: 'Sistema',
-      referencia: codigo,
-      situacao: { rotulo: 'Novo', variante: imovel ? 'laranja' : 'neutro' },
-    })
+  const { codigo } = await http<{ codigo: string }>('/publico/interesses', {
+    method: 'POST',
+    body: { idLote: idNaApi(imovelId), ...dados },
   })
   return codigo
 }
@@ -670,11 +655,11 @@ export async function excluirClientes(ids: string[]) {
   })
 }
 
-// Operações que mexem em imóveis: rodam no banco local e enviam a diferença para a API.
-const sincronizada =
-  <A extends unknown[], R>(fn: (...args: A) => Promise<R>) =>
+// Operações que mexem no banco: rodam localmente e enviam a diferença para a API.
+export const sincronizada =
+  <A extends unknown[], R>(fn: (...args: A) => Promise<R> | R) =>
   (...args: A) =>
-    comSincronizacaoDeImoveis(() => fn(...args))
+    comSincronizacao(() => fn(...args))
 
 export const salvarImovel = sincronizada(salvarImovelLocal)
 export const excluirImovel = sincronizada(excluirImovelLocal)
@@ -684,3 +669,5 @@ export const importarImoveis = sincronizada(importarImoveisLocal)
 export const gerarQuadra = sincronizada(gerarQuadraLocal)
 export const aprovarProposta = sincronizada(aprovarPropostaLocal)
 export const cancelarVenda = sincronizada(cancelarVendaLocal)
+export const recusarProposta = sincronizada(recusarPropostaLocal)
+export const enviarDocumento = sincronizada(enviarDocumentoLocal)
