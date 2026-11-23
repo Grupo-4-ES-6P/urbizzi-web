@@ -79,6 +79,9 @@ function salvarPropostaLocal(dados: DadosNovaProposta, status: 'rascunho' | 'pen
       propostas: anterior
         ? db.propostas.map((item) => item.id === anterior.id ? proposta : item)
         : [...db.propostas, proposta],
+      imoveis: status === 'pendente'
+        ? db.imoveis.map((i) => i.id === dados.imovelId ? { ...i, situacao: 'reservado' as const, atualizadoEm: agora.toISOString() } : i)
+        : db.imoveis,
       historico: status === 'pendente'
         ? [...db.historico, {
           id: `his-${crypto.randomUUID()}`,

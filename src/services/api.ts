@@ -140,6 +140,9 @@ async function recusarPropostaLocal(propostaId: string, motivo: string, autor = 
           ? { ...p, status: 'recusada', decididaEm: new Date().toISOString(), motivoRecusa: motivo.trim() || undefined }
           : p,
       ),
+      imoveis: db.imoveis.map((i) =>
+        i.id === proposta.imovelId && i.situacao === 'reservado' ? { ...i, situacao: 'disponivel', atualizadoEm: new Date().toISOString() } : i,
+      ),
     }
     return comEvento(atualizado, {
       imovelId: proposta.imovelId,

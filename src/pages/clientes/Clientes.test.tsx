@@ -1,3 +1,4 @@
+import { reservasDe } from '../../data/selectors'
 import { screen, waitFor, within } from '@testing-library/react'
 
 import { lerDb } from '../../data/db'
@@ -119,7 +120,7 @@ describe('Cadastro de cliente', () => {
   })
 
   it('edita o cliente e mostra as reservas dele', async () => {
-    const reserva = lerDb().reservas.find((r) => r.clienteId === 'cli-1')!
+    const reserva = reservasDe(lerDb()).find((r) => r.clienteId === 'cli-1')!
     const { user } = renderizar('/clientes/cli-1')
 
     expect(await screen.findByRole('heading', { name: 'Editar cliente' })).toBeInTheDocument()

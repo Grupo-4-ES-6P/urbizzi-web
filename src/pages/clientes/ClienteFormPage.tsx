@@ -7,7 +7,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { useToast } from '../../contexts/ToastContext'
 import { UFS } from '../../data/catalogos'
 import { useDb } from '../../data/db'
-import { indexar, rotuloImovel } from '../../data/selectors'
+import { indexar, rotuloImovel, reservasDe } from '../../data/selectors'
 import type { CanalContato, Cliente, ContatoComercial, EnderecoCliente, Imovel, ResultadoContato, TipoPessoa } from '../../data/types'
 import { CANAIS_CONTATO, ordenarContatos, ORIGENS_CLIENTE, RESULTADO_CONTATO, RESULTADOS_CONTATO, situacaoReserva } from '../../lib/clientes'
 import {
@@ -415,7 +415,7 @@ function ReservasDoCliente({ clienteId }: Readonly<{ clienteId: string }>) {
   const db = useDb()
   const agora = useAgora()
   const imoveis = indexar(db.imoveis)
-  const reservas = db.reservas.filter((r) => r.clienteId === clienteId).sort((a, b) => b.criadaEm.localeCompare(a.criadaEm))
+  const reservas = reservasDe(db).filter((r) => r.clienteId === clienteId).sort((a, b) => b.criadaEm.localeCompare(a.criadaEm))
 
   return (
     <section className="card">

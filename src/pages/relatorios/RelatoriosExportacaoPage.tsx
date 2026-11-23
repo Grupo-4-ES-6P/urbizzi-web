@@ -9,6 +9,7 @@ import { useToast } from '../../contexts/ToastContext'
 import { useDb } from '../../data/db'
 import type { Db } from '../../data/types'
 import { dataCalendario, formatarData, formatarMoedaAbreviada } from '../../lib/format'
+import { reservasDe } from '../../data/selectors'
 
 type Formato = 'PDF' | 'CSV'
 type StatusRelatorio = 'pronto' | 'gerando'
@@ -65,14 +66,14 @@ function indicadores(db: Db, ano: number) {
 
   // Só entram reservas já encerradas: convertidas, canceladas ou com prazo vencido.
   const agora = Date.now()
-  const encerradas = db.reservas.filter(
+  const encerradas = reservasDe(db).filter(
     (r) => doAno(r.criadaEm) && (r.status !== 'ativa' || new Date(r.expiraEm).getTime() < agora),
   )
   const convertidas = encerradas.filter((r) => r.status === 'convertida').length
   const conversao = encerradas.length ? Math.round((convertidas / encerradas.length) * 100) : null
 
   const prazos = vendas.flatMap((v) => {
-    const reserva = db.reservas.find((r) => r.imovelId === v.imovelId && r.status === 'convertida')
+    const reserva = reservasDe(db).find((r) => r.imovelId === v.imovelId && r.status === 'convertida')
     if (!reserva) return []
     const dias = (new Date(v.data).getTime() - new Date(reserva.criadaEm).getTime()) / DIA_MS
     return dias >= 0 ? [dias] : []

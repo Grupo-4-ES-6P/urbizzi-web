@@ -39,9 +39,9 @@ describe('Relatórios — indicadores de reserva', () => {
     const criada = new Date(new Date(venda.data).getTime() - 10 * 24 * 60 * 60 * 1000)
     atualizarDb((db) => ({
       ...db,
-      reservas: [
-        ...db.reservas,
-        { ...db.reservas[0], id: 'res-teste', imovelId: venda.imovelId, criadaEm: criada.toISOString(), expiraEm: venda.data, status: 'convertida' },
+      propostas: [
+        ...db.propostas,
+        { ...db.propostas[0], id: 'pro-teste', imovelId: venda.imovelId, criadaEm: criada.toISOString(), expiraEm: venda.data, status: 'aprovada' },
       ],
     }))
 

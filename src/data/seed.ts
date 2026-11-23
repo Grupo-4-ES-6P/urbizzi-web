@@ -590,6 +590,11 @@ export function criarSeed(agora: Date): Db {
     const imovel = imoveis.find((i) => i.id === r.imovelId)!
     novaProposta(imovel, r.clienteId, r.corretorId, imovel.valores.tabela!, escolher(CONDICOES))
   }
+  // Reserva = lote com proposta pendente: toda reserva do seed tem a sua.
+  for (const d of [destaque[0], destaque[3]]) {
+    novaProposta(d.imovel, cliente(d.cli), corretor(d.cor), d.imovel.valores.tabela!, 'À vista')
+  }
+  for (const p of propostas) p.expiraEm = reservas.find((r) => r.imovelId === p.imovelId)?.expiraEm
 
   const vendas = criarVendas(ctx, retirar, livres)
 
