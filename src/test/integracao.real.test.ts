@@ -14,6 +14,12 @@ const API = import.meta.env.VITE_API_URL as string | undefined
 describe.runIf(API?.startsWith('http'))('Integração com a API real', () => {
   beforeEach(async () => {
     vi.unstubAllGlobals()
+    // fetch real é do Node: o FormData/File do jsdom viraria "[object FormData]"
+    const nativo = await new Response(new URLSearchParams('a=1')).formData()
+    const modulo = 'node:buffer'
+    const { File: FileNativo } = (await import(/* @vite-ignore */ modulo)) as { File: typeof File }
+    vi.stubGlobal('FormData', nativo.constructor)
+    vi.stubGlobal('File', FileNativo)
     atualizarDb((db) => ({ ...db, imoveis: [], propostas: [], reservas: [], vendas: [], historico: [], documentos: [], interesses: [] }))
     const sessao = await entrarNaApi('admin@urbizzi.com', 'admin123')
     definirToken(sessao.token)
@@ -80,8 +86,11 @@ describe.runIf(API?.startsWith('http'))('Integração com a API real', () => {
     await cancelarVenda(vendas[0].id, { motivo: 'Distrato', dataDistrato: '2026-11-22', devolucao: 1000 } as never, 'Administrador')
     expect((await http<{ status: string }>(`/vendas/${vendas[0].id}`)).status).toBe('cancelada')
 
-    await enviarDocumento(salvo.id, { tipo: 'Matrícula', arquivo: 'matricula.pdf', visivelCatalogo: false } as never, 'Administrador')
-    expect((await http<unknown[]>(`/documentos?idLote=${salvo.id}`)).length).toBe(1)
+    const pdf = new File(['%PDF-1.4 teste'], 'matricula.pdf', { type: 'application/pdf' })
+    await enviarDocumento(salvo.id, { tipo: 'Matrícula', arquivo: pdf, visivelCatalogo: false }, 'Administrador')
+    const [doc] = await http<{ detalhes: { conteudo: string } }[]>(`/documentos?idLote=${salvo.id}`)
+    expect(doc.detalhes.conteudo).toMatch(/^\/uploads\/.+\.pdf$/)
+    expect((await fetch(new URL(doc.detalhes.conteudo, API)).then((r) => r.text()))).toBe('%PDF-1.4 teste')
 
     // Depois de tudo, um espelho novo tem que bater com o que a tela mostrava.
     const local = lerDb().vendas.find((v) => v.id === vendas[0].id)
