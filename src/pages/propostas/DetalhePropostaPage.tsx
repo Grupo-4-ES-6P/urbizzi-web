@@ -12,6 +12,7 @@ import type { Proposta } from '../../data/types'
 import { formatarDecimal, formatarMoedaInteira } from '../../lib/format'
 import { aprovarProposta, recusarProposta } from '../../services/api'
 import { registrarContraproposta } from '../../services/propostas'
+import { SePuder } from '../../components/ComPermissao'
 
 type Acao = 'aprovar' | 'recusar' | 'contraproposta'
 type EstadoEtapa = 'concluida' | 'atual' | 'futura' | 'recusada'
@@ -159,9 +160,15 @@ export function DetalhePropostaPage() {
         <div className="detalhe-proposta__titulo-linha"><h1 className="cabecalho__titulo">{titulo}</h1><span className={`badge badge--${varianteSituacao(proposta.status)}`}>{rotuloSituacao(proposta, abaixoDaTabela)}</span></div>
       </div>
       {proposta.status === 'pendente' && <div className="cabecalho__acoes">
+        <SePuder permissao="APROVAR_PROPOSTA">
         <button type="button" className="btn btn--secundario detalhe-proposta__recusar" onClick={() => abrir('recusar')}>Recusar proposta</button>
+        </SePuder>
+        <SePuder permissao="CRIAR_PROPOSTA">
         <button type="button" className="btn btn--suave" onClick={() => abrir('contraproposta')}>Contraproposta</button>
+        </SePuder>
+        <SePuder permissao="APROVAR_PROPOSTA">
         <button type="button" className="btn btn--primario" onClick={() => abrir('aprovar')}>Aprovar proposta</button>
+        </SePuder>
       </div>}
       {proposta.status === 'rascunho' && <Link className="btn btn--primario" to={`/propostas/nova?rascunho=${proposta.id}`}>Continuar rascunho</Link>}
     </header>

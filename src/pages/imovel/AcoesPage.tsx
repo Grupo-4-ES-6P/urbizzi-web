@@ -21,14 +21,14 @@ export function AcoesPage() {
   const db = useDb()
   const navigate = useNavigate()
   const notificar = useToast()
-  const { usuario } = useAuth()
+  const { usuario, pode } = useAuth()
   const { imovel, naoEncontrado } = useImovelDaRota()
   const vendasAtivas = db.vendas.filter((v) => v.imovelId === imovel?.id && v.status === 'ativa')
 
   const disponivel = {
-    bloquear: imovel?.situacao === 'disponivel',
-    reabilitar: imovel?.situacao === 'bloqueado',
-    cancelar: imovel?.situacao === 'vendido' && vendasAtivas.length > 0,
+    bloquear: imovel?.situacao === 'disponivel' && pode('CADASTRAR_IMOVEIS'),
+    reabilitar: imovel?.situacao === 'bloqueado' && pode('CADASTRAR_IMOVEIS'),
+    cancelar: imovel?.situacao === 'vendido' && vendasAtivas.length > 0 && pode('CANCELAR_VENDA'),
   }
   const primeira = (Object.keys(disponivel) as Acao[]).find((a) => disponivel[a]) ?? null
 

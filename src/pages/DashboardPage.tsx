@@ -20,6 +20,7 @@ import {
 } from '../lib/format'
 import { useAgora } from '../lib/useAgora'
 import { aprovarProposta, recusarProposta } from '../services/api'
+import { SePuder } from '../components/ComPermissao'
 
 const HORA = 3_600_000
 
@@ -304,6 +305,7 @@ function ItemProposta({ proposta, rotulo, cliente, detalhe }: Readonly<ItemPropo
       </span>
       <div className="proposta__rodape">
         <strong className="proposta__valor">{formatarMoedaInteira(proposta.valor)}</strong>
+        <SePuder permissao="APROVAR_PROPOSTA">
         <div className="proposta__acoes">
           <button
             type="button"
@@ -324,6 +326,7 @@ function ItemProposta({ proposta, rotulo, cliente, detalhe }: Readonly<ItemPropo
             {acao === 'aprovar' ? <Spinner tamanho={12} /> : 'Aprovar'}
           </button>
         </div>
+        </SePuder>
       </div>
       <Dialogo
         aberto={confirmarRecusa}

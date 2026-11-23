@@ -13,6 +13,7 @@ import type { Loteamento, SituacaoLoteamento } from '../../data/types'
 import { formatarMoedaCompacta, mascaraCep } from '../../lib/format'
 import { buscarCep } from '../../services/api'
 import { salvarLoteamento } from '../../services/loteamentos'
+import { SePuder } from '../../components/ComPermissao'
 
 type Form = Omit<Loteamento, 'id' | 'centro'> & { coordenadas: string }
 
@@ -249,9 +250,11 @@ export function FormLoteamento({ loteamento }: Readonly<{ loteamento?: Loteament
               <p className="card__subtitulo">Cada quadra agrupa os lotes e herda o código do loteamento · RF04</p>
             </div>
             {loteamento && (
+              <SePuder permissao="CADASTRAR_IMOVEIS">
               <Link to={`/loteamentos/${loteamento.id}/quadras/nova`} className="btn btn--secundario btn--pequeno">
                 <SquarePlus size={13} /> Nova quadra
               </Link>
+              </SePuder>
             )}
           </div>
           <TabelaQuadras loteamento={loteamento} quadras={quadras} />

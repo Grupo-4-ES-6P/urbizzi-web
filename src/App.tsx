@@ -1,6 +1,7 @@
 /*Geral*/
 import type { ReactNode } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { RotaComPermissao } from './components/ComPermissao'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { TemaProvider } from './contexts/TemaContext'
 import { ToastProvider } from './contexts/ToastContext'
@@ -79,43 +80,43 @@ export function Rotas() {
         <Route path="/dashboard" element={<DashboardPage />} />
         {/*Links de Páginas de Imóveis*/}
         <Route path="/imoveis" element={<ImoveisPage />} />
-        <Route path="/imoveis/novo" element={<ImovelFormPage />} />
+        <Route path="/imoveis/novo" element={<RotaComPermissao permissao="CADASTRAR_IMOVEIS"><ImovelFormPage /></RotaComPermissao>} />
         <Route path="/imoveis/:id" element={<ImovelFormPage />} />
         <Route path="/imoveis/:id/historico" element={<HistoricoPage />} />
         <Route path="/imoveis/:id/acoes" element={<AcoesPage />} />
         <Route path="/imoveis/:id/documentos" element={<DocumentosPage />} />
         {/*Links de Páginas de Loteamentos*/}
         <Route path="/loteamentos" element={<LoteamentosPage />} />
-        <Route path="/loteamentos/novo" element={<NovoLoteamentoPage />} />
+        <Route path="/loteamentos/novo" element={<RotaComPermissao permissao="CADASTRAR_IMOVEIS"><NovoLoteamentoPage /></RotaComPermissao>} />
         <Route path="/loteamentos/:id" element={<EditarLoteamentoPage />} />
         <Route path="/loteamentos/:id/mapa" element={<MapaLoteamentoPage />} />
         {/*Links de Páginas de Quadras*/}
-        <Route path="/loteamentos/:id/quadras/nova" element={<NovaQuadraPage />} />
+        <Route path="/loteamentos/:id/quadras/nova" element={<RotaComPermissao permissao="CADASTRAR_IMOVEIS"><NovaQuadraPage /></RotaComPermissao>} />
         <Route path="/loteamentos/:id/quadras/:quadraId" element={<QuadraPage />} />
         {/*Mesmas telas de loteamento acessadas a partir de Imóveis (links da listagem)*/}
         <Route path="/imoveis/loteamentos" element={<LoteamentosPage />} />
-        <Route path="/imoveis/loteamentos/novo" element={<NovoLoteamentoPage />} />
+        <Route path="/imoveis/loteamentos/novo" element={<RotaComPermissao permissao="CADASTRAR_IMOVEIS"><NovoLoteamentoPage /></RotaComPermissao>} />
         <Route path="/imoveis/loteamentos/:id" element={<EditarLoteamentoPage />} />
         <Route path="/imoveis/loteamentos/:id/mapa" element={<MapaLoteamentoPage />} />
-        <Route path="/imoveis/loteamentos/:id/quadras/nova" element={<NovaQuadraPage />} />
+        <Route path="/imoveis/loteamentos/:id/quadras/nova" element={<RotaComPermissao permissao="CADASTRAR_IMOVEIS"><NovaQuadraPage /></RotaComPermissao>} />
         <Route path="/imoveis/loteamentos/:id/quadras/:quadraId" element={<QuadraPage />} />
         {/*Links de Páginas de Propostas*/}
         <Route path="/propostas" element={<PropostasListaPage />} />
-        <Route path="/propostas/nova" element={<NovaPropostaPage />} />
+        <Route path="/propostas/nova" element={<RotaComPermissao permissao="CRIAR_PROPOSTA"><NovaPropostaPage /></RotaComPermissao>} />
         <Route path="/propostas/:id" element={<DetalhePropostaPage />} />
         <Route path="/propostas/:id/versoes" element={<PropostaVersoesPage />} />
         {/*Links de Páginas de Vendas e Relatórios*/}
         <Route path="/vendas" element={<VendasPage />} />
-        <Route path="/relatorios" element={<RelatoriosExportacaoPage />} />
-        <Route path="/relatorios/divulgacao" element={<DivulgacaoPage />} />
+        <Route path="/relatorios" element={<RotaComPermissao permissao="EMITIR_RELATORIOS"><RelatoriosExportacaoPage /></RotaComPermissao>} />
+        <Route path="/relatorios/divulgacao" element={<RotaComPermissao permissao="EMITIR_RELATORIOS"><DivulgacaoPage /></RotaComPermissao>} />
         {/*Links de Páginas de Clientes*/}
         <Route path="/clientes" element={<ClientesPage />} />
         <Route path="/clientes/novo" element={<ClienteFormPage />} />
         <Route path="/clientes/:id" element={<ClienteFormPage />} />
         {/*Links de Páginas de Usuários*/}
-        <Route path="/usuarios" element={<UsuariosPermissoesPage />} />
-        <Route path="/usuarios/novo" element={<UsuarioFormPage />} />
-        <Route path="/usuarios/:id" element={<UsuarioFormPage />} />
+        <Route path="/usuarios" element={<RotaComPermissao permissao="GERENCIAR_USUARIOS"><UsuariosPermissoesPage /></RotaComPermissao>} />
+        <Route path="/usuarios/novo" element={<RotaComPermissao permissao="GERENCIAR_USUARIOS"><UsuarioFormPage /></RotaComPermissao>} />
+        <Route path="/usuarios/:id" element={<RotaComPermissao permissao="GERENCIAR_USUARIOS"><UsuarioFormPage /></RotaComPermissao>} />
       </Route>
       {/* Site público: não exige login*/}
       <Route element={<SiteLayout />}>

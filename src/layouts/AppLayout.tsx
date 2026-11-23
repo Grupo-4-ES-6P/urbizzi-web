@@ -27,19 +27,19 @@ import { iniciais } from '../lib/format'
 import { sincronizarComApi } from '../services/sincronizacao'
 
 
-const MENU = [
+const MENU: { para: string; rotulo: string; icone: typeof LayoutDashboard; permissao?: string }[] = [
   { para: '/dashboard', rotulo: 'Dashboard', icone: LayoutDashboard },
   { para: '/imoveis', rotulo: 'Imóveis', icone: Building2 },
   { para: '/loteamentos', rotulo: 'Loteamentos', icone: LandPlot },
   { para: '/propostas', rotulo: 'Propostas', icone: FileText },
   { para: '/vendas', rotulo: 'Vendas', icone: BadgeDollarSign },
-  { para: '/relatorios', rotulo: 'Relatórios', icone: BarChart3 },
+  { para: '/relatorios', rotulo: 'Relatórios', icone: BarChart3, permissao: 'EMITIR_RELATORIOS' },
   { para: '/clientes', rotulo: 'Clientes', icone: Users },
-  { para: '/usuarios', rotulo: 'Usuários', icone: UserCog },
+  { para: '/usuarios', rotulo: 'Usuários', icone: UserCog, permissao: 'GERENCIAR_USUARIOS' },
 ]
 
 export function AppLayout() {
-  const { usuario, sair } = useAuth()
+  const { usuario, sair, pode } = useAuth()
   const notificar = useToast()
   const { tema, alternarTema } = useTema()
   const navigate = useNavigate()
@@ -85,7 +85,7 @@ export function AppLayout() {
           </button>
         </div>
         <nav className="sidebar__nav">
-          {MENU.map(({ para, rotulo, icone: Icone }) => (
+          {MENU.filter((item) => !item.permissao || pode(item.permissao)).map(({ para, rotulo, icone: Icone }) => (
             <NavLink key={para} to={para} className="sidebar__link">
               <Icone size={16} aria-hidden />
               {rotulo}
