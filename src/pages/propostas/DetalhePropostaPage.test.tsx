@@ -2,6 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { lerDb, restaurarDemo } from '../../data/db'
+import { lotesDaApiFalsa, propostasDaApiFalsa, registrosDaApiFalsa } from '../../test/apiFalsa'
 import { renderizar } from '../../test/utils'
 
 describe('Detalhe da proposta', () => {
@@ -47,6 +48,12 @@ describe('Detalhe da proposta', () => {
     await user.click(dialogo.getByRole('button', { name: 'Recusar proposta' }))
 
     await waitFor(() => expect(lerDb().propostas.find((item) => item.id === proposta.id)?.status).toBe('recusada'))
+    await waitFor(() =>
+      expect(propostasDaApiFalsa().find((p) => p.idProposta === proposta.id)).toMatchObject({
+        status: 'recusada',
+        justificativa: 'Condições não aceitas.',
+      }),
+    )
   })
 
   it('confirma a aprovação e registra a venda', async () => {
@@ -58,6 +65,11 @@ describe('Detalhe da proposta', () => {
 
     await waitFor(() => expect(lerDb().propostas.find((item) => item.id === proposta.id)?.status).toBe('aprovada'))
     expect(lerDb().vendas.some((venda) => venda.propostaId === proposta.id)).toBe(true)
+    // Proposta aprovada, venda nova e imóvel vendido chegam juntos na API.
+    await waitFor(() => expect(propostasDaApiFalsa().find((p) => p.idProposta === proposta.id)?.status).toBe('aprovada'))
+    const venda = registrosDaApiFalsa('vendas').find((v) => (v.detalhes as { propostaId?: string }).propostaId === proposta.id)
+    expect(venda).toMatchObject({ idLote: proposta.imovelId, status: 'ativa' })
+    expect(lotesDaApiFalsa().find((l) => l.id === proposta.imovelId)?.estado).toBe('vendido')
   })
 
   it('abre o detalhe ao clicar na proposta exibida no dashboard', async () => {

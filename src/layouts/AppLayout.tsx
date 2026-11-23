@@ -1,6 +1,7 @@
 import {
   BadgeDollarSign,
   BarChart3,
+  Bell,
   Building2,
   FileText,
   LandPlot,
@@ -8,7 +9,6 @@ import {
   LogOut,
   Menu,
   Moon,
-  RotateCcw,
   Sun,
   UserCog,
   Users,
@@ -17,38 +17,49 @@ import {
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 
-import { Dialogo } from '../components/Dialogo'
 import { Logo } from '../components/Logo'
 import { useAuth } from '../contexts/AuthContext'
 import { useTema } from '../contexts/TemaContext'
 import { useToast } from '../contexts/ToastContext'
-import { restaurarDemo } from '../data/db'
 import { iniciais } from '../lib/format'
+import { useNotificacoes } from '../services/notificacoes'
+import { sincronizarComApi } from '../services/sincronizacao'
 
-const MENU = [
+
+const MENU: { para: string; rotulo: string; icone: typeof LayoutDashboard; permissao?: string }[] = [
   { para: '/dashboard', rotulo: 'Dashboard', icone: LayoutDashboard },
+  { para: '/notificacoes', rotulo: 'Notificações', icone: Bell },
   { para: '/imoveis', rotulo: 'Imóveis', icone: Building2 },
   { para: '/loteamentos', rotulo: 'Loteamentos', icone: LandPlot },
   { para: '/propostas', rotulo: 'Propostas', icone: FileText },
   { para: '/vendas', rotulo: 'Vendas', icone: BadgeDollarSign },
-  { para: '/relatorios', rotulo: 'Relatórios', icone: BarChart3 },
+  { para: '/relatorios', rotulo: 'Relatórios', icone: BarChart3, permissao: 'EMITIR_RELATORIOS' },
   { para: '/clientes', rotulo: 'Clientes', icone: Users },
-  { para: '/usuarios', rotulo: 'Usuários', icone: UserCog },
+  { para: '/usuarios', rotulo: 'Usuários', icone: UserCog, permissao: 'GERENCIAR_USUARIOS' },
 ]
 
 export function AppLayout() {
-  const { usuario, sair } = useAuth()
+  const { usuario, sair, pode } = useAuth()
   const notificar = useToast()
   const { tema, alternarTema } = useTema()
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const [menuAberto, setMenuAberto] = useState(false)
   const [contaAberta, setContaAberta] = useState(false)
-  const [confirmarReset, setConfirmarReset] = useState(false)
   const contaRef = useRef<HTMLDivElement>(null)
+  const naoLidas = useNotificacoes().dados?.naoLidas ?? 0
 
   // Fecha o menu lateral (mobile) ao trocar de página.
   useEffect(() => setMenuAberto(false), [pathname])
+
+  useEffect(() => {
+    const controle = new AbortController()
+    sincronizarComApi(controle.signal).catch((error_: unknown) => {
+      if (controle.signal.aborted) return
+      notificar(error_ instanceof Error ? error_.message : 'Não foi possível sincronizar com o servidor.', 'erro')
+    })
+    return () => controle.abort()
+  }, [notificar])
 
   useEffect(() => {
     if (!contaAberta) return
@@ -74,10 +85,15 @@ export function AppLayout() {
           </button>
         </div>
         <nav className="sidebar__nav">
-          {MENU.map(({ para, rotulo, icone: Icone }) => (
+          {MENU.filter((item) => !item.permissao || pode(item.permissao)).map(({ para, rotulo, icone: Icone }) => (
             <NavLink key={para} to={para} className="sidebar__link">
               <Icone size={16} aria-hidden />
               {rotulo}
+              {para === '/notificacoes' && naoLidas > 0 && (
+                <span className="sidebar__contador" aria-label={`${naoLidas} não lidas`}>
+                  {naoLidas > 99 ? '99+' : naoLidas}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -93,16 +109,6 @@ export function AppLayout() {
                 }}
               >
                 {tema === 'escuro' ? <Sun size={15} /> : <Moon size={15} />} {tema === 'escuro' ? 'Tema claro' : 'Tema escuro'}
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  setContaAberta(false)
-                  setConfirmarReset(true)
-                }}
-              >
-                <RotateCcw size={15} /> Restaurar dados de demonstração
               </button>
               <button
                 type="button"
@@ -133,24 +139,17 @@ export function AppLayout() {
       </aside>
       <div className="app__fundo" onClick={() => setMenuAberto(false)} aria-hidden />
       <div className="app__principal">
-        <button type="button" className="botao-menu" onClick={() => setMenuAberto(true)} aria-label="Abrir menu">
+        <button
+          type="button"
+          className="botao-menu"
+          onClick={() => setMenuAberto(true)}
+          aria-label={naoLidas > 0 ? `Abrir menu (${naoLidas} notificações não lidas)` : 'Abrir menu'}
+        >
           <Menu size={20} />
+          {naoLidas > 0 && <span className="botao-menu__ponto" aria-hidden />}
         </button>
         <Outlet />
       </div>
-      <Dialogo
-        aberto={confirmarReset}
-        titulo="Restaurar dados de demonstração?"
-        descricao="Todos os imóveis, clientes, reservas e propostas voltam ao estado inicial. Cadastros e rascunhos feitos por você serão apagados."
-        textoConfirmar="Restaurar"
-        perigoso
-        onCancelar={() => setConfirmarReset(false)}
-        onConfirmar={() => {
-          restaurarDemo()
-          setConfirmarReset(false)
-          notificar('Dados de demonstração restaurados.')
-        }}
-      />
     </div>
   )
 }

@@ -5,6 +5,7 @@ import { Badge } from '../../components/ui'
 import { SITUACOES_LOTEAMENTO } from '../../data/catalogos'
 import { useDb } from '../../data/db'
 import type { SituacaoLoteamento, VarianteBadge } from '../../data/types'
+import { SePuder } from '../../components/ComPermissao'
 
 const VARIANTE_LOTEAMENTO: Record<SituacaoLoteamento, VarianteBadge> = {
   em_aprovacao: 'neutro',
@@ -31,9 +32,11 @@ export function LoteamentosPage() {
           <p className="cabecalho__subtitulo">{db.loteamentos.length} empreendimentos cadastrados</p>
         </div>
         <div className="cabecalho__acoes">
+          <SePuder permissao="CADASTRAR_IMOVEIS">
           <Link to="/loteamentos/novo" className="btn btn--primario">
             <Plus size={16} /> Novo loteamento
           </Link>
+          </SePuder>
         </div>
       </header>
       <main className="conteudo">
@@ -73,9 +76,11 @@ export function LoteamentosPage() {
                           <Link to={`/loteamentos/${l.id}/mapa`} className="btn btn--secundario btn--pequeno">
                             <Grid3x3 size={13} /> Mapa
                           </Link>
+                          <SePuder permissao="CADASTRAR_IMOVEIS">
                           <Link to={`/loteamentos/${l.id}/quadras/nova`} className="btn btn--secundario btn--pequeno">
                             <SquarePlus size={13} /> Nova quadra
                           </Link>
+                          </SePuder>
                         </div>
                       </td>
                     </tr>

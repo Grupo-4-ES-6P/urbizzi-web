@@ -2,6 +2,7 @@ import { ImagePlus, Star, Trash2 } from 'lucide-react'
 import { useRef, useState, type DragEvent } from 'react'
 
 import { Spinner } from './ui'
+import { dataUrlParaBlob, enviarArquivo } from '../services/arquivos'
 
 const TIPOS = ['image/jpeg', 'image/png']
 const TAMANHO_MAX = 5 * 1024 * 1024
@@ -33,7 +34,8 @@ async function prepararFoto(arquivo: File): Promise<string> {
     ctx.fillStyle = '#fff' // PNG transparente não fica preto no JPEG
     ctx.fillRect(0, 0, canvas.width, canvas.height)
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-    return canvas.toDataURL('image/jpeg', 0.8)
+    const nome = `${arquivo.name.replace(/\.[^.]+$/, '') || 'foto'}.jpg`
+    return await enviarArquivo(dataUrlParaBlob(canvas.toDataURL('image/jpeg', 0.8)), nome)
   } finally {
     URL.revokeObjectURL(url)
   }

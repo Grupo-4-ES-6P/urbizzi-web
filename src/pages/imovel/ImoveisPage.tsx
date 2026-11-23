@@ -3,11 +3,13 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { ImportarPlanilha } from '../../components/ImportarPlanilha'
+import { LinkPublicoCard } from '../../components/LinkPublicoCard'
 import { Badge } from '../../components/ui'
 import { SITUACOES } from '../../data/catalogos'
 import { useDb } from '../../data/db'
 import { contarPor, imoveisComPropostaPendente, rotuloImovel, situacaoExibida } from '../../data/selectors'
 import { formatarDecimal, formatarMoedaInteira, normalizar } from '../../lib/format'
+import { SePuder } from '../../components/ComPermissao'
 
 const POR_PAGINA = 20
 
@@ -111,16 +113,21 @@ export function ImoveisPage() {
           <Link to="/imoveis/loteamentos" className="btn btn--secundario">
             <MapIcon size={15} /> Loteamentos
           </Link>
+          <SePuder permissao="CADASTRAR_IMOVEIS">
           <button type="button" className="btn btn--secundario" onClick={() => setImportando(true)}>
             <Upload size={15} /> Importar planilha
           </button>
           <Link to="/imoveis/novo" className="btn btn--primario">
             <Plus size={16} /> Novo imóvel
           </Link>
+          </SePuder>
         </div>
       </header>
 
-      <main className="conteudo">
+      <main className="conteudo pilha">
+        <SePuder permissao="PUBLICAR_CATALOGO">
+          <LinkPublicoCard />
+        </SePuder>
         <section className="card">
           <div className="card__cabecalho">
             <div>

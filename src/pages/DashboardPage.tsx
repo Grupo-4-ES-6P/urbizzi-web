@@ -8,7 +8,7 @@ import { Dialogo } from '../components/Dialogo'
 import { BadgeUrgencia, Campo, Spinner } from '../components/ui'
 import { useToast } from '../contexts/ToastContext'
 import { useDb } from '../data/db'
-import { descontoSobreTabela, exigeAprovacao, indexar, reservaAtiva, rotuloImovel } from '../data/selectors'
+import { descontoSobreTabela, exigeAprovacao, indexar, reservaAtiva, rotuloImovel, reservasDe } from '../data/selectors'
 import type { Db, Imovel, Proposta } from '../data/types'
 import {
   formatarDataExtensa,
@@ -20,6 +20,7 @@ import {
 } from '../lib/format'
 import { useAgora } from '../lib/useAgora'
 import { aprovarProposta, recusarProposta } from '../services/api'
+import { SePuder } from '../components/ComPermissao'
 
 const HORA = 3_600_000
 
@@ -47,7 +48,7 @@ function calcularIndicadores(db: Db, agora: number, imoveisPorId: Map<string, Im
   const disponiveis = publicados.filter((i) => i.situacao === 'disponivel')
   const novosNoMes = disponiveis.filter((i) => new Date(i.criadoEm).getTime() >= inicioMes).length
 
-  const ativas = db.reservas.filter((r) => reservaAtiva(r, agora))
+  const ativas = reservasDe(db).filter((r) => reservaAtiva(r, agora))
   const vencem48h = ativas.filter((r) => new Date(r.expiraEm).getTime() - agora <= 48 * HORA).length
 
   const pendentes = db.propostas.filter((p) => p.status === 'pendente')
@@ -89,11 +90,11 @@ export function DashboardPage() {
 
   const proximasReservas = useMemo(
     () =>
-      db.reservas
+      reservasDe(db)
         .filter((r) => reservaAtiva(r, agora))
         .sort((a, b) => a.expiraEm.localeCompare(b.expiraEm))
         .slice(0, 5),
-    [db.reservas, agora],
+    [db, agora],
   )
 
   const propostasDestaque = [...indicadores.aguardandoAdmin]
@@ -304,6 +305,7 @@ function ItemProposta({ proposta, rotulo, cliente, detalhe }: Readonly<ItemPropo
       </span>
       <div className="proposta__rodape">
         <strong className="proposta__valor">{formatarMoedaInteira(proposta.valor)}</strong>
+        <SePuder permissao="APROVAR_PROPOSTA">
         <div className="proposta__acoes">
           <button
             type="button"
@@ -324,6 +326,7 @@ function ItemProposta({ proposta, rotulo, cliente, detalhe }: Readonly<ItemPropo
             {acao === 'aprovar' ? <Spinner tamanho={12} /> : 'Aprovar'}
           </button>
         </div>
+        </SePuder>
       </div>
       <Dialogo
         aberto={confirmarRecusa}

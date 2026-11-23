@@ -18,6 +18,28 @@ export function indexar<T extends { id: string }>(lista: T[]) {
   return new Map(lista.map((x) => [x.id, x]))
 }
 
+const STATUS_RESERVA = { pendente: 'ativa', aprovada: 'convertida', recusada: 'cancelada' } as const
+
+/** Regra do negócio: o lote fica reservado enquanto há proposta pendente. */
+export function reservasDe(db: Pick<Db, 'propostas'>): Reserva[] {
+  return db.propostas.flatMap((p) =>
+    p.status === 'rascunho'
+      ? []
+      : [
+          {
+            id: `res-${p.id}`,
+            codigo: p.codigo,
+            imovelId: p.imovelId,
+            clienteId: p.clienteId,
+            corretorId: p.corretorId,
+            criadaEm: p.criadaEm,
+            expiraEm: p.expiraEm ?? p.criadaEm,
+            status: STATUS_RESERVA[p.status],
+          },
+        ],
+  )
+}
+
 export function reservaAtiva(r: Reserva, agora: number) {
   return r.status === 'ativa' && new Date(r.expiraEm).getTime() > agora
 }
@@ -42,7 +64,7 @@ export function resumoGeral(db: Db, agora: number) {
   const ano = new Date(agora).getFullYear()
   return {
     imoveisCadastrados: db.imoveis.filter((i) => i.status === 'publicado').length,
-    reservasAtivas: db.reservas.filter((r) => reservaAtiva(r, agora)).length,
+    reservasAtivas: reservasDe(db).filter((r) => reservaAtiva(r, agora)).length,
     vendasNoAno: db.vendas
       .filter((v) => new Date(v.data).getFullYear() === ano)
       .reduce((s, v) => s + v.valor, 0),

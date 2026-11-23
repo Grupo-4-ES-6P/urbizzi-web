@@ -6,6 +6,7 @@ import { AuthProvider } from '../contexts/AuthContext'
 import { TemaProvider } from '../contexts/TemaContext'
 import { ToastProvider } from '../contexts/ToastContext'
 import { lerDb } from '../data/db'
+import { PERMISSOES_PADRAO, type Perfil } from '../data/permissoes'
 import { Rotas } from '../App'
 import { paraUsuarioPublico } from '../services/api'
 
@@ -13,7 +14,13 @@ import { paraUsuarioPublico } from '../services/api'
 export function renderizar(rota: string, { logado = true, usuarioId = 'usr-1' } = {}) {
   if (logado) {
     const usuario = lerDb().usuarios.find((u) => u.id === usuarioId)!
-    sessionStorage.setItem('urbizzi:sessao', JSON.stringify(paraUsuarioPublico(usuario)))
+    const permissoes = Object.entries(PERMISSOES_PADRAO)
+      .filter(([, perfis]) => perfis.includes(usuario.papel as Perfil))
+      .map(([id]) => id.toUpperCase())
+    sessionStorage.setItem(
+      'urbizzi:sessao',
+      JSON.stringify({ token: `token-${usuario.id}`, usuario: paraUsuarioPublico(usuario), permissoes }),
+    )
   }
   const user = userEvent.setup()
   const resultado = render(

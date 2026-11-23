@@ -1,6 +1,7 @@
 import { screen, within } from '@testing-library/react'
 
 import { lerDb } from '../../data/db'
+import { registrosDaApiFalsa } from '../../test/apiFalsa'
 import { renderizar } from '../../test/utils'
 
 const lote12 = () =>
@@ -49,5 +50,8 @@ describe('Páginas do lote', () => {
       [2, true],
       [3, false],
     ])
+    // O arquivo vai pelo upload; o documento guarda só o endereço.
+    expect(docs[1].conteudo).toMatch(/^\/uploads\/.*matricula-v3\.pdf$/)
+    expect(registrosDaApiFalsa('documentos').some((d) => (d.detalhes as { conteudo?: string }).conteudo === docs[1].conteudo)).toBe(true)
   })
 })

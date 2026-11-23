@@ -1,7 +1,8 @@
-import { fireEvent, screen } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { lerDb, restaurarDemo } from '../../data/db'
+import { propostasDaApiFalsa } from '../../test/apiFalsa'
 import { renderizar } from '../../test/utils'
 
 describe('Nova proposta', () => {
@@ -31,14 +32,20 @@ describe('Nova proposta', () => {
     await user.type(screen.getByRole('spinbutton', { name: 'Validade da proposta' }), '7')
 
     await user.click(screen.getByRole('button', { name: 'Salvar rascunho' }))
+    await waitFor(() => expect(lerDb().propostas.filter((item) => item.status === 'rascunho')).toHaveLength(1))
     const rascunhos = lerDb().propostas.filter((item) => item.status === 'rascunho')
-    expect(rascunhos).toHaveLength(1)
     expect(rascunhos[0].imovelId).toBe(imovel.id)
     expect(rascunhos[0].clienteId).toBe(cliente.id)
 
     await user.click(screen.getByRole('button', { name: 'Enviar para aprovação' }))
+    expect(await screen.findByRole('heading', { name: 'Propostas' })).toBeInTheDocument()
     expect(lerDb().propostas.find((item) => item.id === rascunhos[0].id)?.status).toBe('pendente')
-    expect(screen.getByRole('heading', { name: 'Propostas' })).toBeInTheDocument()
+    // Gravada na API com o mesmo id do espelho local.
+    expect(propostasDaApiFalsa().find((p) => p.idProposta === rascunhos[0].id)).toMatchObject({
+      status: 'pendente',
+      idLote: imovel.id,
+      idCliente: cliente.id,
+    })
   })
 
   it('mostra o erro do valor e impede o envio', async () => {

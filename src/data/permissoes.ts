@@ -53,3 +53,15 @@ export const VARIANTE_PERFIL: Record<Perfil, string> = {
   Corretor: 'perfil-corretor',
   Coletor: 'perfil-coletor',
 }
+
+/** Nome do perfil na API (enum do backend). */
+export const PERFIL_NA_API: Record<Perfil, string> = {
+  Administrador: 'ADMINISTRADOR',
+  'Gerente comercial': 'GERENTE_COMERCIAL',
+  Corretor: 'CORRETOR',
+  Coletor: 'COLETOR',
+}
+
+export function perfilDaApi(perfil: string): Perfil {
+  return PERFIS.find((p) => PERFIL_NA_API[p] === perfil) ?? 'Corretor'
+}

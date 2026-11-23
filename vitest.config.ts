@@ -8,6 +8,6 @@ export default defineConfig({
     // Testes de interface simulam digitação; em máquinas lentas 5 s não bastam.
     testTimeout: 15_000,
     globals: true,
-    setupFiles: ['./src/test/setup.ts'],
+    setupFiles: ['./src/test/storage.ts', './src/test/setup.ts'],
   },
 })

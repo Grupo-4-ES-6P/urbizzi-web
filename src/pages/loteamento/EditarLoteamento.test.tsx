@@ -1,6 +1,7 @@
 import { screen } from '@testing-library/react'
 
 import { lerDb } from '../../data/db'
+import { loteamentosDaApiFalsa } from '../../test/apiFalsa'
 import { renderizar } from '../../test/utils'
 
 const universitario = () => lerDb().loteamentos.find((l) => l.nome === 'Lot. Universitário')!
@@ -28,6 +29,7 @@ describe('Edição de loteamento cadastrado', () => {
 
     expect(await screen.findByText('Loteamento atualizado.')).toBeInTheDocument()
     expect(lerDb().loteamentos.find((l) => l.id === lot.id)!.cartorio).toBe('2º Ofício de Toledo')
+    expect(loteamentosDaApiFalsa().find((l) => l.idLoteamento === lot.id)?.cartorio).toBe('2º Ofício de Toledo')
   })
 
   it('avisa quando o loteamento não existe', () => {

@@ -189,7 +189,7 @@ function FormEntrar({ email, setEmail, onEsqueci }: Readonly<FormEntrarProps>) {
       <p className="login__rodape">Não tem acesso? Solicite ao administrador do sistema.</p>
       {import.meta.env.DEV && (
         <p className="login__demo">
-          Demonstração: <code>admin@urbizzi.com.br</code> / <code>urbizzi123</code>
+          Desenvolvimento: entre com o <code>ADMIN_EMAIL</code> / <code>ADMIN_PASSWORD</code> configurados na API.
         </p>
       )}
     </form>
@@ -215,8 +215,13 @@ function FormRecuperar({ email, setEmail, onVoltar, onEnviado }: Readonly<FormRe
     }
     setErro('')
     setEnviando(true)
-    await solicitarRecuperacaoSenha(email)
-    onEnviado()
+    try {
+      await solicitarRecuperacaoSenha(email)
+      onEnviado()
+    } catch (error_) {
+      setErro(error_ instanceof Error ? error_.message : 'Não foi possível enviar o link.')
+      setEnviando(false)
+    }
   }
 
   return (

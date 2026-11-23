@@ -43,6 +43,6 @@ describe('Loteamentos', () => {
     await user.click(screen.getByRole('button', { name: 'Lote 12, Qd. 04 — Reservado' }))
     const painel = screen.getByRole('heading', { name: 'Lote selecionado — Lote 12, Qd. 04' }).closest('section')!
     expect(within(painel).getByText('Marina Alves')).toBeInTheDocument()
-    expect(within(painel).getByText(/RES-\d{4}-0184/)).toBeInTheDocument()
+    expect(within(painel).getAllByText(/PROP-\d{4}-\d{4}/).length).toBeGreaterThan(0)
   })
 })

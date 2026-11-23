@@ -1,17 +1,18 @@
-import { atualizarDb, lerDb } from '../data/db'
+import { enviarArquivo } from './arquivos'
+import { http } from './http'
+import { idNaApi } from './quadras'
+import { comSincronizacao } from './sincronizacao'
+import { atualizarDb } from '../data/db'
 import type {
-  Cliente,
   Db,
   Documento,
   EventoHistorico,
   Imovel,
-  Loteamento,
   Quadra,
   Situacao,
   Usuario,
   UsuarioPublico,
 } from '../data/types'
-import type { FormCliente } from '../lib/clienteForm'
 import { formatarMoedaInteira } from '../lib/format'
 
 /**
@@ -58,30 +59,13 @@ export function proximoCodigo(prefixo: string, existentes: string[]) {
   return `${prefixo}-${ano}-${String(maior + 1).padStart(4, '0')}`
 }
 
-export async function autenticar(email: string, senha: string): Promise<UsuarioPublico> {
-  await esperar()
-  const usuario = lerDb().usuarios.find((u) => u.email.toLowerCase() === email.trim().toLowerCase())
-  if (usuario?.senha !== senha) {
-    throw new Error('E-mail ou senha incorretos.')
-  }
-  if (usuario.ativo === false) {
-    throw new Error('Usuário inativo. Fale com o administrador.')
-  }
-  const agora = new Date().toISOString()
-  atualizarDb((db) => ({
-    ...db,
-    usuarios: db.usuarios.map((u) => (u.id === usuario.id ? { ...u, ultimoAcesso: agora } : u)),
-  }))
-  return paraUsuarioPublico(usuario)
-}
-
 /** Sempre responde com sucesso para não revelar quais e-mails existem. */
 export async function solicitarRecuperacaoSenha(email: string) {
-  await esperar()
+  await http('/auth/recuperar-senha', { method: 'POST', body: { email: email.trim() } })
   return { email: email.trim() }
 }
 
-export async function aprovarProposta(propostaId: string, autor = 'Administrador') {
+async function aprovarPropostaLocal(propostaId: string, autor = 'Administrador') {
   await esperar()
   const agora = new Date().toISOString()
   atualizarDb((db) => {
@@ -139,7 +123,7 @@ export async function aprovarProposta(propostaId: string, autor = 'Administrador
   })
 }
 
-export async function recusarProposta(propostaId: string, motivo: string, autor = 'Administrador') {
+async function recusarPropostaLocal(propostaId: string, motivo: string, autor = 'Administrador') {
   await esperar()
   atualizarDb((db) => {
     const proposta = db.propostas.find((p) => p.id === propostaId)
@@ -152,6 +136,9 @@ export async function recusarProposta(propostaId: string, motivo: string, autor 
         p.id === propostaId
           ? { ...p, status: 'recusada', decididaEm: new Date().toISOString(), motivoRecusa: motivo.trim() || undefined }
           : p,
+      ),
+      imoveis: db.imoveis.map((i) =>
+        i.id === proposta.imovelId && i.situacao === 'reservado' ? { ...i, situacao: 'disponivel', atualizadoEm: new Date().toISOString() } : i,
       ),
     }
     return comEvento(atualizado, {
@@ -173,7 +160,7 @@ function descreverAlteracao(existente: Imovel | undefined, salvo: Imovel) {
   return `Valor de tabela ajustado de ${de} para ${para}`
 }
 
-export async function salvarImovel(
+async function salvarImovelLocal(
   dados: Omit<Imovel, 'id' | 'criadoEm' | 'atualizadoEm'> & { id?: string },
   autor = 'Administrador',
 ) {
@@ -210,7 +197,7 @@ export async function salvarImovel(
   return salvo
 }
 
-export async function excluirImovel(id: string) {
+async function excluirImovelLocal(id: string) {
   await esperar()
   atualizarDb((db) => {
     const vinculado =
@@ -225,7 +212,7 @@ export async function excluirImovel(id: string) {
 
 // ===== Ações administrativas (RF24, RF25, RF26) =====
 
-export async function bloquearImovel(
+async function bloquearImovelLocal(
   id: string,
   dados: { motivo: string; justificativa: string; previsao?: string },
   autor: string,
@@ -261,7 +248,7 @@ export async function bloquearImovel(
   })
 }
 
-export async function reabilitarImovel(id: string, dados: { documento: string; observacao: string }, autor: string) {
+async function reabilitarImovelLocal(id: string, dados: { documento: string; observacao: string }, autor: string) {
   await esperar()
   atualizarDb((db) => {
     const imovel = acharImovel(db, id)
@@ -284,7 +271,7 @@ export async function reabilitarImovel(id: string, dados: { documento: string; o
   })
 }
 
-export async function cancelarVenda(
+async function cancelarVendaLocal(
   vendaId: string,
   dados: { motivo: string; dataDistrato: string; devolucao: number },
   autor: string,
@@ -325,28 +312,13 @@ export async function cancelarVenda(
 // ===== Documentos (RF07) =====
 
 /** Arquivos até este tamanho ficam guardados para download na demonstração. */
-const LIMITE_CONTEUDO = 1024 * 1024
 
-function lerComoDataUrl(arquivo: File) {
-  return new Promise<string>((resolve, reject) => {
-    const leitor = new FileReader()
-    leitor.onload = () => {
-      // readAsDataURL sempre produz texto; qualquer outra coisa é falha de leitura.
-      if (typeof leitor.result === 'string') resolve(leitor.result)
-      else reject(new Error(`Não foi possível ler ${arquivo.name}.`))
-    }
-    leitor.onerror = () => reject(new Error(`Não foi possível ler ${arquivo.name}.`))
-    leitor.readAsDataURL(arquivo)
-  })
-}
-
-export async function enviarDocumento(
+async function enviarDocumentoLocal(
   imovelId: string,
   dados: { tipo: string; arquivo: File; validade?: string; visivelCatalogo: boolean },
   autor: string,
 ) {
-  const conteudo = dados.arquivo.size <= LIMITE_CONTEUDO ? await lerComoDataUrl(dados.arquivo) : undefined
-  await esperar()
+  const conteudo = await enviarArquivo(dados.arquivo, dados.arquivo.name)
   let versao = 1
   atualizarDb((db) => {
     // Mesmo tipo = nova versão; a anterior fica no histórico, nunca é apagada.
@@ -390,67 +362,19 @@ export async function enviarDocumento(
 
 // ===== Catálogo público =====
 
+/** Vai direto para a rota pública: quem envia é o visitante, sem login. */
 export async function registrarInteresse(
   imovelId: string,
   dados: { nome: string; email: string; telefone: string; mensagem: string },
 ) {
-  await esperar()
-  let codigo = ''
-  atualizarDb((db) => {
-    const imovel = acharImovel(db, imovelId)
-    const maior = db.interesses.reduce((m, i) => Math.max(m, Number(i.codigo.replace(/\D/g, '')) || 0), 0)
-    codigo = `INT-${String(maior + 1).padStart(4, '0')}`
-    const atualizado: Db = {
-      ...db,
-      interesses: [
-        ...db.interesses,
-        { id: novoId('int'), codigo, imovelId, ...dados, criadoEm: new Date().toISOString() },
-      ],
-    }
-    return comEvento(atualizado, {
-      imovelId,
-      tipo: 'Interesse',
-      descricao: `Formulário recebido pelo catálogo público (${dados.nome.trim()})`,
-      autor: 'Sistema',
-      referencia: codigo,
-      situacao: { rotulo: 'Novo', variante: imovel ? 'laranja' : 'neutro' },
-    })
+  const { codigo } = await http<{ codigo: string }>('/publico/interesses', {
+    method: 'POST',
+    body: { idLote: idNaApi(imovelId), ...dados },
   })
   return codigo
 }
 
 // ===== Loteamentos e quadras (RF03, RF04, RF05) =====
-
-export async function salvarLoteamento(dados: Omit<Loteamento, 'id'> & { id?: string }) {
-  await esperar()
-  let salvo!: Loteamento
-  atualizarDb((db) => {
-    const codigo = dados.codigo.trim().toUpperCase()
-    if (db.loteamentos.some((l) => l.codigo === codigo && l.id !== dados.id)) {
-      throw new Error(`Já existe um loteamento com o código ${codigo}.`)
-    }
-    if (db.loteamentos.some((l) => l.nome.toLowerCase() === dados.nome.trim().toLowerCase() && l.id !== dados.id)) {
-      throw new Error(`Já existe um loteamento chamado ${dados.nome.trim()}.`)
-    }
-    const existente = dados.id ? db.loteamentos.find((l) => l.id === dados.id) : undefined
-    salvo = { ...dados, nome: dados.nome.trim(), codigo, id: existente?.id ?? novoId('lot') }
-    const renomeado = existente && existente.nome !== salvo.nome
-    return {
-      ...db,
-      loteamentos: existente
-        ? db.loteamentos.map((l) => (l.id === salvo.id ? salvo : l))
-        : [...db.loteamentos, salvo],
-      // Imóveis e quadras referenciam o loteamento pelo nome.
-      imoveis: renomeado
-        ? db.imoveis.map((i) => (i.loteamento === existente.nome ? { ...i, loteamento: salvo.nome } : i))
-        : db.imoveis,
-      quadras: renomeado
-        ? db.quadras.map((q) => (q.loteamento === existente.nome ? { ...q, loteamento: salvo.nome } : q))
-        : db.quadras,
-    }
-  })
-  return salvo
-}
 
 export interface LotePrevia {
   lote: string
@@ -461,18 +385,19 @@ export interface LotePrevia {
   observacao: string
 }
 
-export async function gerarQuadra(
+async function gerarQuadraLocal(
   quadra: Omit<Quadra, 'id' | 'criadaEm'>,
   lotes: LotePrevia[],
   autor: string,
+  salva?: Pick<Quadra, 'id' | 'criadaEm'>,
 ) {
-  await esperar()
+  if (!salva) await esperar()
   let criados = 0
   atualizarDb((db) => {
     const loteamento = db.loteamentos.find((l) => l.nome === quadra.loteamento)
     if (!loteamento) throw new Error('Loteamento não encontrado.')
     const identificacao = quadra.identificacao.trim()
-    if (db.quadras.some((q) => q.loteamento === quadra.loteamento && q.identificacao === identificacao)) {
+    if (!salva && db.quadras.some((q) => q.loteamento === quadra.loteamento && q.identificacao === identificacao)) {
       throw new Error(`A Qd. ${identificacao} já existe em ${quadra.loteamento}.`)
     }
     const agora = new Date().toISOString()
@@ -522,7 +447,10 @@ export async function gerarQuadra(
     criados = novos.length
     let atualizado: Db = {
       ...db,
-      quadras: [...db.quadras, { ...quadra, identificacao, id: novoId('qua'), criadaEm: agora }],
+      quadras: [
+        ...db.quadras.filter((q) => q.id !== salva?.id),
+        { ...quadra, identificacao, id: salva?.id ?? novoId('qua'), criadaEm: salva?.criadaEm ?? agora },
+      ],
       imoveis: [...db.imoveis, ...novos],
     }
     for (const n of novos) {
@@ -542,7 +470,7 @@ export async function gerarQuadra(
 
 // ===== Importação de planilha =====
 
-export async function importarImoveis(
+async function importarImoveisLocal(
   itens: Omit<Imovel, 'id' | 'codigo' | 'criadoEm' | 'atualizadoEm'>[],
   autor: string,
 ) {
@@ -599,85 +527,19 @@ export async function buscarCep(cep: string, signal?: AbortSignal): Promise<Ende
   return { logradouro: json.logradouro, bairro: json.bairro, cidade: json.localidade, uf: json.uf }
 }
 
-// ===== Clientes =====
+// Operações que mexem no banco: rodam localmente e enviam a diferença para a API.
+export const sincronizada =
+  <A extends unknown[], R>(fn: (...args: A) => Promise<R> | R) =>
+  (...args: A) =>
+    comSincronizacao(() => fn(...args))
 
-function apenasDigitos(texto: string) {
-  return texto.replace(/\D/g, '')
-}
-
-export async function salvarCliente(dados: FormCliente & { id?: string }) {
-  await esperar()
-  const agora = new Date().toISOString()
-  let salvo!: Cliente
-  atualizarDb((db) => {
-    const documento = apenasDigitos(dados.cpfCnpj)
-    if (db.clientes.some((c) => c.id !== dados.id && apenasDigitos(c.cpfCnpj) === documento)) {
-      throw new Error(`Já existe um cliente com o ${dados.tipoPessoa === 'fisica' ? 'CPF' : 'CNPJ'} ${dados.cpfCnpj}.`)
-    }
-    const existente = dados.id ? db.clientes.find((c) => c.id === dados.id) : undefined
-    if (dados.id && !existente) throw new Error('Cliente não encontrado.')
-    const fisica = dados.tipoPessoa === 'fisica'
-    salvo = {
-      ...dados,
-      id: existente?.id ?? novoId('cli'),
-      nome: dados.nome.trim(),
-      cpfCnpj: dados.cpfCnpj.trim(),
-      rg: dados.rg.trim(),
-      telefone: dados.telefone.trim(),
-      celular: dados.celular.trim(),
-      email: dados.email.trim(),
-      estadoCivil: fisica ? dados.estadoCivil : '',
-      profissao: fisica ? dados.profissao.trim() : '',
-      endereco: {
-        ...dados.endereco,
-        logradouro: dados.endereco.logradouro.trim(),
-        numero: dados.endereco.numero.trim(),
-        complemento: dados.endereco.complemento.trim(),
-        bairro: dados.endereco.bairro.trim(),
-        cidade: dados.endereco.cidade.trim(),
-        uf: dados.endereco.uf.trim().toUpperCase(),
-        pais: dados.endereco.pais.trim(),
-      },
-      contatos: dados.contatos.map((c) => ({ ...c, assunto: c.assunto.trim() })),
-      criadoEm: existente?.criadoEm ?? agora,
-      atualizadoEm: agora,
-    }
-    return {
-      ...db,
-      clientes: existente ? db.clientes.map((c) => (c.id === salvo.id ? salvo : c)) : [...db.clientes, salvo],
-    }
-  })
-  return salvo
-}
-
-export async function alterarStatusClientes(ids: string[], ativo: boolean) {
-  await esperar()
-  const agora = new Date().toISOString()
-  const selecionados = new Set(ids)
-  atualizarDb((db) => ({
-    ...db,
-    clientes: db.clientes.map((c) => (selecionados.has(c.id) ? { ...c, ativo, atualizadoEm: agora } : c)),
-  }))
-}
-
-/** Clientes com reserva, proposta ou venda ficam no cadastro para não quebrar o histórico (RF32). */
-export async function excluirClientes(ids: string[]) {
-  await esperar()
-  const selecionados = new Set(ids)
-  atualizarDb((db) => {
-    const vinculados = db.clientes.filter(
-      (c) =>
-        selecionados.has(c.id) &&
-        (db.reservas.some((r) => r.clienteId === c.id) ||
-          db.propostas.some((p) => p.clienteId === c.id) ||
-          db.vendas.some((v) => v.clienteId === c.id)),
-    )
-    if (vinculados.length > 0) {
-      const nomes = vinculados.map((c) => c.nome).join(', ')
-      throw new Error(
-        `${nomes} ${vinculados.length === 1 ? 'tem' : 'têm'} reservas, propostas ou vendas registradas e não ${vinculados.length === 1 ? 'pode' : 'podem'} ser excluído${vinculados.length === 1 ? '' : 's'}. Desative o cadastro em vez de excluir.`,
-      )
-    }
-    return { ...db, clientes: db.clientes.filter((c) => !selecionados.has(c.id)) }
-  })
-}
+export const salvarImovel = sincronizada(salvarImovelLocal)
+export const excluirImovel = sincronizada(excluirImovelLocal)
+export const bloquearImovel = sincronizada(bloquearImovelLocal)
+export const reabilitarImovel = sincronizada(reabilitarImovelLocal)
+export const importarImoveis = sincronizada(importarImoveisLocal)
+export const gerarQuadra = sincronizada(gerarQuadraLocal)
+export const aprovarProposta = sincronizada(aprovarPropostaLocal)
+export const cancelarVenda = sincronizada(cancelarVendaLocal)
+export const recusarProposta = sincronizada(recusarPropostaLocal)
+export const enviarDocumento = sincronizada(enviarDocumentoLocal)

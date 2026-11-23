@@ -4,9 +4,10 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 
 import { Badge } from '../../components/ui'
 import { useDb } from '../../data/db'
-import { CORES_SITUACAO, indexar, nomeLote, reservaAtiva, SITUACAO_EXIBICAO } from '../../data/selectors'
+import { CORES_SITUACAO, indexar, nomeLote, reservaAtiva, SITUACAO_EXIBICAO, reservasDe } from '../../data/selectors'
 import type { Imovel, Situacao } from '../../data/types'
 import { formatarDecimal, formatarMoedaInteira } from '../../lib/format'
+import { SePuder } from '../../components/ComPermissao'
 
 /**
  * Divide os lotes em duas "fileiras" (frente e fundos da quadra) e distribui a
@@ -62,7 +63,7 @@ export function QuadraPage() {
   const selecionado = lotes.find((i) => i.id === selecionadoId)
   const pessoas = indexar([...db.clientes, ...db.corretores, ...db.usuarios])
   const agora = Date.now()
-  const reserva = selecionado && db.reservas.find((r) => r.imovelId === selecionado.id && reservaAtiva(r, agora))
+  const reserva = selecionado && reservasDe(db).find((r) => r.imovelId === selecionado.id && reservaAtiva(r, agora))
   const proposta = selecionado && db.propostas.filter((p) => p.imovelId === selecionado.id).sort((a, b) => b.criadaEm.localeCompare(a.criadaEm))[0]
   const venda = selecionado && db.vendas.find((v) => v.imovelId === selecionado.id && v.status === 'ativa')
   const clienteId = reserva?.clienteId ?? venda?.clienteId ?? (proposta?.status === 'pendente' ? proposta.clienteId : undefined)
@@ -90,9 +91,11 @@ export function QuadraPage() {
           </p>
         </div>
         <div className="cabecalho__acoes">
+          <SePuder permissao="CADASTRAR_IMOVEIS">
           <Link to={`/loteamentos/${loteamento.id}/quadras/nova`} className="btn btn--secundario">
             <Plus size={15} /> Nova quadra
           </Link>
+          </SePuder>
           <Link to={`/loteamentos/${loteamento.id}/mapa`} className="btn btn--secundario">
             <Grid3x3 size={15} /> Ver mapa do loteamento
           </Link>

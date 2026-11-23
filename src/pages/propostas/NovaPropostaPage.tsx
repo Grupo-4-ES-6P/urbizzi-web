@@ -6,7 +6,7 @@ import { InputNumerico } from '../../components/InputNumerico'
 import { useAuth } from '../../contexts/AuthContext'
 import { useToast } from '../../contexts/ToastContext'
 import { useDb } from '../../data/db'
-import { nomeLote, reservaAtiva, rotuloImovel } from '../../data/selectors'
+import { nomeLote, reservaAtiva, rotuloImovel, reservasDe } from '../../data/selectors'
 import { formatarMoedaInteira } from '../../lib/format'
 import { salvarProposta, validarProposta, type DadosNovaProposta } from '../../services/propostas'
 
@@ -42,7 +42,7 @@ export function NovaPropostaPage() {
   const rascunho = db.propostas.find((item) => item.id === parametros.get('rascunho') && item.status === 'rascunho')
   const imoveisDisponiveis = db.imoveis.filter((item) =>
     item.status === 'publicado' && item.situacao === 'disponivel' &&
-    !db.reservas.some((reserva) => reserva.imovelId === item.id && reservaAtiva(reserva, Date.now())) &&
+    !reservasDe(db).some((reserva) => reserva.imovelId === item.id && reservaAtiva(reserva, Date.now())) &&
     !db.propostas.some((proposta) => proposta.imovelId === item.id && proposta.status === 'pendente'))
   const imovelInicial = imoveisDisponiveis.find((item) => item.id === parametros.get('imovel'))
   const imovelRascunho = db.imoveis.find((item) => item.id === rascunho?.imovelId)
@@ -92,7 +92,7 @@ export function NovaPropostaPage() {
     alterar('imovelId', '')
   }
 
-  function salvar(enviar: boolean) {
+  async function salvar(enviar: boolean) {
     const encontrados = enviar ? validarProposta(form) : {
       ...(!form.imovelId ? { imovelId: 'Selecione um imóvel.' } : {}),
       ...(!form.clienteId ? { clienteId: 'Selecione um cliente.' } : {}),
@@ -104,7 +104,7 @@ export function NovaPropostaPage() {
     }
     setEnviando(true)
     try {
-      const id = salvarProposta(form, enviar ? 'pendente' : 'rascunho', idSalvo, usuario ?? undefined)
+      const id = await salvarProposta(form, enviar ? 'pendente' : 'rascunho', idSalvo, usuario ?? undefined)
       setIdSalvo(id)
       if (enviar) {
         notificar('Proposta enviada para aprovação.')

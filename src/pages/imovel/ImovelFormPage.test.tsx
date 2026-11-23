@@ -1,6 +1,7 @@
 import { screen, waitFor } from '@testing-library/react'
 
 import { lerDb } from '../../data/db'
+import { fetchFalso, lotesDaApiFalsa, quadrasDaApiFalsa } from '../../test/apiFalsa'
 import { renderizar } from '../../test/utils'
 
 describe('Cadastro de imóvel', () => {
@@ -25,12 +26,10 @@ describe('Cadastro de imóvel', () => {
   })
 
   it('preenche o endereço pelo CEP e publica o imóvel', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({ logradouro: 'Av. Ministro Cirne Lima', bairro: 'Vila Becker', localidade: 'Toledo', uf: 'PR' }),
-      }),
+    vi.mocked(fetch).mockImplementation(async (entrada, init) =>
+      String(entrada).includes('viacep.com.br')
+        ? Response.json({ logradouro: 'Av. Ministro Cirne Lima', bairro: 'Vila Becker', localidade: 'Toledo', uf: 'PR' })
+        : fetchFalso(entrada, init),
     )
     const { user } = renderizar('/imoveis/novo')
 
@@ -55,7 +54,7 @@ describe('Cadastro de imóvel', () => {
     await user.click(screen.getByRole('button', { name: 'Publicar imóvel' }))
 
     expect(await screen.findByRole('heading', { name: 'Imóveis' })).toBeInTheDocument()
-    const salvo = lerDb().imoveis.find((i) => i.titulo === 'Terreno de esquina Biopark')
+    const salvo = lerDb().imoveis.find((i) => i.titulo === 'Terreno de esquina Biopark')!
     expect(salvo).toMatchObject({
       status: 'publicado',
       loteamento: 'Biopark Toledo',
@@ -63,6 +62,31 @@ describe('Cadastro de imóvel', () => {
       geo: { lat: -24.71392, lng: -53.74031 },
       valores: { tabela: 455000, minimo: 420000 },
     })
+    expect(lotesDaApiFalsa().find((l) => l.id === salvo.id)).toMatchObject({
+      matricula: '41902',
+      valor: 455000,
+      areaQuadrada: salvo.dimensoes.areaTotal,
+      publicado: salvo.publicacao.catalogo,
+      estado: 'disponivel',
+      detalhes: { titulo: 'Terreno de esquina Biopark', valores: { minimo: 420000 } },
+    })
+    expect(quadrasDaApiFalsa().some((q) => q.identificacao === '04')).toBe(true)
+  })
+
+  it('não deixa o imóvel aparecer como salvo quando a API falha', async () => {
+    vi.mocked(fetch).mockImplementation(async (entrada, init) =>
+      init?.method === 'POST' && String(entrada).endsWith('/lote')
+        ? Response.json({ message: 'O servidor encontrou um erro.' }, { status: 500 })
+        : fetchFalso(entrada, init),
+    )
+    const antes = lerDb().imoveis.length
+    const { user } = renderizar('/imoveis/novo')
+    await user.type(await screen.findByLabelText('Título do anúncio'), 'Vai falhar')
+    await user.click(screen.getByRole('button', { name: /Salvar rascunho/ }))
+
+    expect(await screen.findByText('O servidor encontrou um erro.')).toBeInTheDocument()
+    await waitFor(() => expect(lerDb().imoveis).toHaveLength(antes))
+    expect(lerDb().imoveis.some((i) => i.titulo === 'Vai falhar')).toBe(false)
   })
 
   it('salva rascunho e continua editando o mesmo registro', async () => {
@@ -73,6 +97,8 @@ describe('Cadastro de imóvel', () => {
     expect(await screen.findByText('Rascunho salvo.')).toBeInTheDocument()
     const rascunhos = lerDb().imoveis.filter((i) => i.status === 'rascunho')
     expect(rascunhos).toHaveLength(1)
+    // O rascunho já usa o id que a API devolveu, sem quadra nem valores.
+    expect(lotesDaApiFalsa().find((l) => l.id === rascunhos[0].id)).toMatchObject({ idQuadra: null, valor: null })
     expect(await screen.findByRole('heading', { name: 'Rascunho de teste' })).toBeInTheDocument()
   })
 })
