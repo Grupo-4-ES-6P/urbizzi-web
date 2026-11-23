@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { ImportarPlanilha } from '../../components/ImportarPlanilha'
+import { LinkPublicoCard } from '../../components/LinkPublicoCard'
 import { Badge } from '../../components/ui'
 import { SITUACOES } from '../../data/catalogos'
 import { useDb } from '../../data/db'
@@ -123,7 +124,10 @@ export function ImoveisPage() {
         </div>
       </header>
 
-      <main className="conteudo">
+      <main className="conteudo pilha">
+        <SePuder permissao="PUBLICAR_CATALOGO">
+          <LinkPublicoCard />
+        </SePuder>
         <section className="card">
           <div className="card__cabecalho">
             <div>

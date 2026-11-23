@@ -26,10 +26,10 @@ describe('Relatórios', () => {
     expect(screen.getAllByText('Inventário de imóveis')).toHaveLength(2)
   })
 
-  it('agendar envio leva para divulgação e notificações', async () => {
+  it('leva para a configuração de notificações', async () => {
     const { user } = renderizar('/relatorios')
-    await user.click(screen.getByRole('link', { name: 'Agendar envio' }))
-    expect(await screen.findByRole('heading', { name: 'Divulgação e notificações' })).toBeInTheDocument()
+    await user.click(screen.getByRole('link', { name: 'Configurar notificações' }))
+    expect(await screen.findByRole('heading', { name: 'Configurar notificações' })).toBeInTheDocument()
   })
 })
 

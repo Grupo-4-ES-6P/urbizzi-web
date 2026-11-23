@@ -183,6 +183,29 @@ function rotearPropostas(metodo: string, caminho: string, corpo: Record<string, 
 export const uploadsDaApiFalsa: string[] = []
 
 function rotearPublico(metodo: string, caminho: string, corpo: Record<string, unknown>): Response | null {
+  if (caminho === '/links-publicos' && metodo === 'GET') return json([...linksDaApiFalsa].reverse())
+  if (caminho === '/links-publicos' && metodo === 'POST') {
+    const dias = corpo.validadeDias as number | null
+    const link: LinkFalso = {
+      id: String(linksDaApiFalsa.length + 1),
+      token: `tok${linksDaApiFalsa.length + 1}`,
+      escopo: String(corpo.escopo),
+      alvo: corpo.escopo === 'catalogo' ? null : String(corpo.alvo),
+      expiraEm: dias ? new Date(Date.now() + dias * 86_400_000).toISOString() : null,
+      visitas: 0,
+      criadoEm: new Date().toISOString(),
+    }
+    linksDaApiFalsa.push(link)
+    return json(link, 201)
+  }
+  const aberto = /^\/publico\/links\/([^/]+)$/.exec(caminho)
+  if (aberto && metodo === 'GET') {
+    const link = linksDaApiFalsa.find((l) => l.token === decodeURIComponent(aberto[1]))
+    if (!link) return erro('Link não encontrado.', 404)
+    const valido = !link.expiraEm || new Date(link.expiraEm).getTime() > Date.now()
+    if (valido) link.visitas++
+    return json({ escopo: link.escopo, alvo: link.alvo, valido })
+  }
   if (caminho === '/anexos/upload' && metodo === 'POST') {
     const arquivo = corpo.arquivo as File | null
     if (!arquivo) return erro("Envie o arquivo no campo 'arquivo'.", 400)
@@ -321,6 +344,7 @@ function rotearLoteamentos(metodo: string, caminho: string, corpo: Record<string
 }
 
 export function reiniciarApiFalsa() {
+  linksDaApiFalsa.length = 0
   notificacoesDaApiFalsa.length = 0
   emailsDaApiFalsa.length = 0
   tokensUsados.clear()
@@ -375,6 +399,17 @@ export interface NotificacaoFalsa {
   criadaEm: string
 }
 export const notificacoesDaApiFalsa: NotificacaoFalsa[] = []
+
+export interface LinkFalso {
+  id: string
+  token: string
+  escopo: string
+  alvo: string | null
+  expiraEm: string | null
+  visitas: number
+  criadoEm: string
+}
+export const linksDaApiFalsa: LinkFalso[] = []
 
 export function usuariosDaApiFalsa() {
   return usuarios

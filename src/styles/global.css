@@ -1262,6 +1262,11 @@ textarea {
 .secao {
   padding: 16px 18px 18px;
 }
+.secao__acoes {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
 .secao__cabecalho {
   margin-bottom: 14px;
 }

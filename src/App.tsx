@@ -42,6 +42,7 @@ import { ClientesPage } from './pages/clientes/ClientesPage'
 /*Catálogo Público*/
 import { CatalogoPage } from './pages/publico/CatalogoPage'
 import { TerrenoDetalhePage } from './pages/publico/TerrenoDetalhePage'
+import { AbrirLinkPage } from './pages/publico/AbrirLinkPage'
 /*Usuários*/
 import { UsuariosPermissoesPage } from './pages/usuarios/UsuariosPermissoesPage'
 import { UsuarioFormPage } from './pages/usuarios/UsuarioFormPage'
@@ -128,7 +129,7 @@ export function Rotas() {
         {/*Links de Páginas de Vendas e Relatórios*/}
         <Route path="/vendas" element={<VendasPage />} />
         <Route path="/relatorios" element={<RotaComPermissao permissao="EMITIR_RELATORIOS"><RelatoriosExportacaoPage /></RotaComPermissao>} />
-        <Route path="/relatorios/divulgacao" element={<RotaComPermissao permissao="EMITIR_RELATORIOS"><DivulgacaoPage /></RotaComPermissao>} />
+        <Route path="/relatorios/notificacoes" element={<RotaComPermissao permissao="EMITIR_RELATORIOS"><DivulgacaoPage /></RotaComPermissao>} />
         {/*Links de Páginas de Clientes*/}
         <Route path="/clientes" element={<ClientesPage />} />
         <Route path="/clientes/novo" element={<ClienteFormPage />} />
@@ -142,6 +143,7 @@ export function Rotas() {
       <Route element={<SiteLayout />}>
         <Route path="/terrenos" element={<CatalogoPage />} />
         <Route path="/terrenos/:id" element={<TerrenoDetalhePage />} />
+        <Route path="/l/:token" element={<AbrirLinkPage />} />
         {/* Páginas institucionais ainda sem protótipo: abrem o catálogo */}
         <Route path="/inicio" element={<Navigate to="/terrenos" replace />} />
         <Route path="/empreendimentos" element={<Navigate to="/terrenos" replace />} />

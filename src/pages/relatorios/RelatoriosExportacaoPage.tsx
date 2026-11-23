@@ -125,8 +125,8 @@ export function RelatoriosExportacaoPage() {
           <p className="cabecalho__subtitulo">Histórico consolidado do período · exportação em CSV e PDF</p>
         </div>
         <div className="cabecalho__acoes">
-          <Link to="/relatorios/divulgacao" className="btn btn--secundario">
-            Agendar envio
+          <Link to="/relatorios/notificacoes" className="btn btn--secundario">
+            Configurar notificações
           </Link>
           <button type="button" className="btn btn--primario" onClick={() => setGerarAberto(true)}>
             <Plus size={16} aria-hidden /> Gerar relatório
