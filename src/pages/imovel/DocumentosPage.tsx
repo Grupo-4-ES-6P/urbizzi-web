@@ -112,7 +112,7 @@ export function DocumentosPage() {
               type="button"
               className="btn btn--secundario"
               disabled={baixaveis.length === 0}
-              title={baixaveis.length === 0 ? 'Nenhum arquivo vigente disponível para download nesta demonstração' : undefined}
+              title={baixaveis.length === 0 ? 'Nenhum arquivo vigente disponível para download' : undefined}
               onClick={() => baixaveis.forEach((d, i) => setTimeout(() => baixar(d), i * 300))}
             >
               <Download size={15} /> Baixar tudo

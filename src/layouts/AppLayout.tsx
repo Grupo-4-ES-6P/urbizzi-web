@@ -9,7 +9,6 @@ import {
   LogOut,
   Menu,
   Moon,
-  RotateCcw,
   Sun,
   UserCog,
   Users,
@@ -18,12 +17,10 @@ import {
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 
-import { Dialogo } from '../components/Dialogo'
 import { Logo } from '../components/Logo'
 import { useAuth } from '../contexts/AuthContext'
 import { useTema } from '../contexts/TemaContext'
 import { useToast } from '../contexts/ToastContext'
-import { restaurarDemo } from '../data/db'
 import { iniciais } from '../lib/format'
 import { useNotificacoes } from '../services/notificacoes'
 import { sincronizarComApi } from '../services/sincronizacao'
@@ -49,7 +46,6 @@ export function AppLayout() {
   const { pathname } = useLocation()
   const [menuAberto, setMenuAberto] = useState(false)
   const [contaAberta, setContaAberta] = useState(false)
-  const [confirmarReset, setConfirmarReset] = useState(false)
   const contaRef = useRef<HTMLDivElement>(null)
   const naoLidas = useNotificacoes().dados?.naoLidas ?? 0
 
@@ -118,16 +114,6 @@ export function AppLayout() {
                 type="button"
                 role="menuitem"
                 onClick={() => {
-                  setContaAberta(false)
-                  setConfirmarReset(true)
-                }}
-              >
-                <RotateCcw size={15} /> Restaurar dados de demonstração
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
                   sair()
                   navigate('/login', { replace: true })
                 }}
@@ -164,20 +150,6 @@ export function AppLayout() {
         </button>
         <Outlet />
       </div>
-      <Dialogo
-        aberto={confirmarReset}
-        titulo="Restaurar dados de demonstração?"
-        descricao="Todos os imóveis, clientes, reservas e propostas voltam ao estado inicial. Cadastros e rascunhos feitos por você serão apagados."
-        textoConfirmar="Restaurar"
-        perigoso
-        onCancelar={() => setConfirmarReset(false)}
-        onConfirmar={() => {
-          restaurarDemo()
-          setConfirmarReset(false)
-          notificar('Dados de demonstração restaurados.')
-          void sincronizarComApi().catch(() => undefined)
-        }}
-      />
     </div>
   )
 }
