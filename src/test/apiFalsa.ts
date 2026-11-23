@@ -179,7 +179,16 @@ function rotearPropostas(metodo: string, caminho: string, corpo: Record<string, 
   return json(atual)
 }
 
+export const uploadsDaApiFalsa: string[] = []
+
 function rotearPublico(metodo: string, caminho: string, corpo: Record<string, unknown>): Response | null {
+  if (caminho === '/anexos/upload' && metodo === 'POST') {
+    const arquivo = corpo.arquivo as File | null
+    if (!arquivo) return erro("Envie o arquivo no campo 'arquivo'.", 400)
+    const url = `/uploads/falso-${uploadsDaApiFalsa.length + 1}-${arquivo.name}`
+    uploadsDaApiFalsa.push(url)
+    return json({ idAnexo: uploadsDaApiFalsa.length, url }, 201)
+  }
   if (caminho === '/users/equipe' && metodo === 'GET') {
     return json(usuarios.map((u) => ({ id: u.id, nome: u.name, perfil: u.perfil, ativo: u.status === 'ATIVO' })))
   }
@@ -494,6 +503,11 @@ function rotearClientes(metodo: string, caminho: string, corpo: Record<string, u
 export async function fetchFalso(entrada: RequestInfo | URL, init?: RequestInit) {
   const url = new URL(String(entrada), 'http://localhost')
   const caminho = url.pathname.replace(/^\/api/, '')
-  const corpo = init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : {}
+  const corpo =
+    init?.body instanceof FormData
+      ? { arquivo: init.body.get('arquivo') }
+      : init?.body
+        ? (JSON.parse(String(init.body)) as Record<string, unknown>)
+        : {}
   return rotear(init?.method ?? 'GET', caminho, corpo)
 }

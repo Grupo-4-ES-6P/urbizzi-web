@@ -40,7 +40,9 @@ function mensagemDeErro(corpo: unknown, status: number) {
 
 export async function http<T>(caminho: string, { method = 'GET', body, signal }: OpcoesHttp = {}): Promise<T> {
   const headers: Record<string, string> = { Accept: 'application/json' }
-  if (body !== undefined) headers['Content-Type'] = 'application/json'
+  // FormData (upload): o navegador monta o Content-Type com o boundary
+  const formulario = body instanceof FormData
+  if (body !== undefined && !formulario) headers['Content-Type'] = 'application/json'
   if (token) headers.Authorization = `Bearer ${token}`
 
   let resposta: Response
@@ -48,7 +50,7 @@ export async function http<T>(caminho: string, { method = 'GET', body, signal }:
     resposta = await fetch(`${BASE}${caminho}`, {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
       signal,
     })
   } catch (error_) {

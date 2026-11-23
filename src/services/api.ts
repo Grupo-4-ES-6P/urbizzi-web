@@ -1,3 +1,4 @@
+import { enviarArquivo } from './arquivos'
 import { http } from './http'
 import { idNaApi } from './quadras'
 import { comSincronizacao } from './sincronizacao'
@@ -311,28 +312,13 @@ async function cancelarVendaLocal(
 // ===== Documentos (RF07) =====
 
 /** Arquivos até este tamanho ficam guardados para download na demonstração. */
-const LIMITE_CONTEUDO = 1024 * 1024
-
-function lerComoDataUrl(arquivo: File) {
-  return new Promise<string>((resolve, reject) => {
-    const leitor = new FileReader()
-    leitor.onload = () => {
-      // readAsDataURL sempre produz texto; qualquer outra coisa é falha de leitura.
-      if (typeof leitor.result === 'string') resolve(leitor.result)
-      else reject(new Error(`Não foi possível ler ${arquivo.name}.`))
-    }
-    leitor.onerror = () => reject(new Error(`Não foi possível ler ${arquivo.name}.`))
-    leitor.readAsDataURL(arquivo)
-  })
-}
 
 async function enviarDocumentoLocal(
   imovelId: string,
   dados: { tipo: string; arquivo: File; validade?: string; visivelCatalogo: boolean },
   autor: string,
 ) {
-  const conteudo = dados.arquivo.size <= LIMITE_CONTEUDO ? await lerComoDataUrl(dados.arquivo) : undefined
-  await esperar()
+  const conteudo = await enviarArquivo(dados.arquivo, dados.arquivo.name)
   let versao = 1
   atualizarDb((db) => {
     // Mesmo tipo = nova versão; a anterior fica no histórico, nunca é apagada.
