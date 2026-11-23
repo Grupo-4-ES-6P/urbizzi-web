@@ -94,7 +94,7 @@ export function DashboardPage() {
         .filter((r) => reservaAtiva(r, agora))
         .sort((a, b) => a.expiraEm.localeCompare(b.expiraEm))
         .slice(0, 5),
-    [db.propostas, agora],
+    [db, agora],
   )
 
   const propostasDestaque = [...indicadores.aguardandoAdmin]

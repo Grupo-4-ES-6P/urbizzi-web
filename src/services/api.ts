@@ -4,18 +4,15 @@ import { idNaApi } from './quadras'
 import { comSincronizacao } from './sincronizacao'
 import { atualizarDb } from '../data/db'
 import type {
-  Cliente,
   Db,
   Documento,
   EventoHistorico,
   Imovel,
-  Loteamento,
   Quadra,
   Situacao,
   Usuario,
   UsuarioPublico,
 } from '../data/types'
-import type { FormCliente } from '../lib/clienteForm'
 import { formatarMoedaInteira } from '../lib/format'
 
 /**
@@ -379,37 +376,6 @@ export async function registrarInteresse(
 
 // ===== Loteamentos e quadras (RF03, RF04, RF05) =====
 
-export async function salvarLoteamento(dados: Omit<Loteamento, 'id'> & { id?: string }) {
-  await esperar()
-  let salvo!: Loteamento
-  atualizarDb((db) => {
-    const codigo = dados.codigo.trim().toUpperCase()
-    if (db.loteamentos.some((l) => l.codigo === codigo && l.id !== dados.id)) {
-      throw new Error(`Já existe um loteamento com o código ${codigo}.`)
-    }
-    if (db.loteamentos.some((l) => l.nome.toLowerCase() === dados.nome.trim().toLowerCase() && l.id !== dados.id)) {
-      throw new Error(`Já existe um loteamento chamado ${dados.nome.trim()}.`)
-    }
-    const existente = dados.id ? db.loteamentos.find((l) => l.id === dados.id) : undefined
-    salvo = { ...dados, nome: dados.nome.trim(), codigo, id: existente?.id ?? novoId('lot') }
-    const renomeado = existente && existente.nome !== salvo.nome
-    return {
-      ...db,
-      loteamentos: existente
-        ? db.loteamentos.map((l) => (l.id === salvo.id ? salvo : l))
-        : [...db.loteamentos, salvo],
-      // Imóveis e quadras referenciam o loteamento pelo nome.
-      imoveis: renomeado
-        ? db.imoveis.map((i) => (i.loteamento === existente.nome ? { ...i, loteamento: salvo.nome } : i))
-        : db.imoveis,
-      quadras: renomeado
-        ? db.quadras.map((q) => (q.loteamento === existente.nome ? { ...q, loteamento: salvo.nome } : q))
-        : db.quadras,
-    }
-  })
-  return salvo
-}
-
 export interface LotePrevia {
   lote: string
   area: number
@@ -559,89 +525,6 @@ export async function buscarCep(cep: string, signal?: AbortSignal): Promise<Ende
   const json = await resposta.json()
   if (json.erro) return null
   return { logradouro: json.logradouro, bairro: json.bairro, cidade: json.localidade, uf: json.uf }
-}
-
-// ===== Clientes =====
-
-function apenasDigitos(texto: string) {
-  return texto.replace(/\D/g, '')
-}
-
-export async function salvarCliente(dados: FormCliente & { id?: string }) {
-  await esperar()
-  const agora = new Date().toISOString()
-  let salvo!: Cliente
-  atualizarDb((db) => {
-    const documento = apenasDigitos(dados.cpfCnpj)
-    if (db.clientes.some((c) => c.id !== dados.id && apenasDigitos(c.cpfCnpj) === documento)) {
-      throw new Error(`Já existe um cliente com o ${dados.tipoPessoa === 'fisica' ? 'CPF' : 'CNPJ'} ${dados.cpfCnpj}.`)
-    }
-    const existente = dados.id ? db.clientes.find((c) => c.id === dados.id) : undefined
-    if (dados.id && !existente) throw new Error('Cliente não encontrado.')
-    const fisica = dados.tipoPessoa === 'fisica'
-    salvo = {
-      ...dados,
-      id: existente?.id ?? novoId('cli'),
-      nome: dados.nome.trim(),
-      cpfCnpj: dados.cpfCnpj.trim(),
-      rg: dados.rg.trim(),
-      telefone: dados.telefone.trim(),
-      celular: dados.celular.trim(),
-      email: dados.email.trim(),
-      estadoCivil: fisica ? dados.estadoCivil : '',
-      profissao: fisica ? dados.profissao.trim() : '',
-      endereco: {
-        ...dados.endereco,
-        logradouro: dados.endereco.logradouro.trim(),
-        numero: dados.endereco.numero.trim(),
-        complemento: dados.endereco.complemento.trim(),
-        bairro: dados.endereco.bairro.trim(),
-        cidade: dados.endereco.cidade.trim(),
-        uf: dados.endereco.uf.trim().toUpperCase(),
-        pais: dados.endereco.pais.trim(),
-      },
-      contatos: dados.contatos.map((c) => ({ ...c, assunto: c.assunto.trim() })),
-      criadoEm: existente?.criadoEm ?? agora,
-      atualizadoEm: agora,
-    }
-    return {
-      ...db,
-      clientes: existente ? db.clientes.map((c) => (c.id === salvo.id ? salvo : c)) : [...db.clientes, salvo],
-    }
-  })
-  return salvo
-}
-
-export async function alterarStatusClientes(ids: string[], ativo: boolean) {
-  await esperar()
-  const agora = new Date().toISOString()
-  const selecionados = new Set(ids)
-  atualizarDb((db) => ({
-    ...db,
-    clientes: db.clientes.map((c) => (selecionados.has(c.id) ? { ...c, ativo, atualizadoEm: agora } : c)),
-  }))
-}
-
-/** Clientes com reserva, proposta ou venda ficam no cadastro para não quebrar o histórico (RF32). */
-export async function excluirClientes(ids: string[]) {
-  await esperar()
-  const selecionados = new Set(ids)
-  atualizarDb((db) => {
-    const vinculados = db.clientes.filter(
-      (c) =>
-        selecionados.has(c.id) &&
-        (db.reservas.some((r) => r.clienteId === c.id) ||
-          db.propostas.some((p) => p.clienteId === c.id) ||
-          db.vendas.some((v) => v.clienteId === c.id)),
-    )
-    if (vinculados.length > 0) {
-      const nomes = vinculados.map((c) => c.nome).join(', ')
-      throw new Error(
-        `${nomes} ${vinculados.length === 1 ? 'tem' : 'têm'} reservas, propostas ou vendas registradas e não ${vinculados.length === 1 ? 'pode' : 'podem'} ser excluído${vinculados.length === 1 ? '' : 's'}. Desative o cadastro em vez de excluir.`,
-      )
-    }
-    return { ...db, clientes: db.clientes.filter((c) => !selecionados.has(c.id)) }
-  })
 }
 
 // Operações que mexem no banco: rodam localmente e enviam a diferença para a API.
