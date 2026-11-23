@@ -24,6 +24,7 @@ import { useTema } from '../contexts/TemaContext'
 import { useToast } from '../contexts/ToastContext'
 import { restaurarDemo } from '../data/db'
 import { iniciais } from '../lib/format'
+import { sincronizarImoveis } from '../services/imoveis'
 import { sincronizarLoteamentos } from '../services/loteamentos'
 import { sincronizarQuadras } from '../services/quadras'
 
@@ -31,6 +32,7 @@ import { sincronizarQuadras } from '../services/quadras'
 async function sincronizarComApi(signal?: AbortSignal) {
   await sincronizarLoteamentos(signal)
   await sincronizarQuadras(signal)
+  await sincronizarImoveis(signal)
 }
 
 const MENU = [

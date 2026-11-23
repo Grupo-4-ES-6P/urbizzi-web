@@ -1,7 +1,7 @@
 import { screen, within } from '@testing-library/react'
 
 import { lerDb } from '../../data/db'
-import { loteamentosDaApiFalsa, quadrasDaApiFalsa } from '../../test/apiFalsa'
+import { loteamentosDaApiFalsa, lotesDaApiFalsa, quadrasDaApiFalsa } from '../../test/apiFalsa'
 import { renderizar } from '../../test/utils'
 
 const universitario = () => lerDb().loteamentos.find((l) => l.nome === 'Lot. Universitário')!
@@ -24,6 +24,10 @@ describe('Loteamentos', () => {
     expect(novos.every((i) => i.endereco.quadra === '07' && i.matricula === '')).toBe(true)
     expect(lerDb().quadras.some((q) => q.loteamento === lot.nome && q.identificacao === '07')).toBe(true)
     expect(quadrasDaApiFalsa().some((q) => q.idLoteamento === lot.id && q.identificacao === '07')).toBe(true)
+    // Os 6 lotes foram para a API e o espelho local usa os ids dela.
+    const naApi = lotesDaApiFalsa().filter((l) => novos.some((n) => n.id === l.id))
+    expect(naApi).toHaveLength(6)
+    expect(naApi.every((l) => l.matricula === null && l.idQuadra !== null)).toBe(true)
   })
 
   it('valida o cadastro de loteamento e salva', async () => {

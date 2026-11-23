@@ -1,3 +1,4 @@
+import { comSincronizacaoDeImoveis } from './imoveis'
 import { atualizarDb } from '../data/db'
 import type {
   Cliente,
@@ -64,7 +65,7 @@ export async function solicitarRecuperacaoSenha(email: string) {
   return { email: email.trim() }
 }
 
-export async function aprovarProposta(propostaId: string, autor = 'Administrador') {
+async function aprovarPropostaLocal(propostaId: string, autor = 'Administrador') {
   await esperar()
   const agora = new Date().toISOString()
   atualizarDb((db) => {
@@ -156,7 +157,7 @@ function descreverAlteracao(existente: Imovel | undefined, salvo: Imovel) {
   return `Valor de tabela ajustado de ${de} para ${para}`
 }
 
-export async function salvarImovel(
+async function salvarImovelLocal(
   dados: Omit<Imovel, 'id' | 'criadoEm' | 'atualizadoEm'> & { id?: string },
   autor = 'Administrador',
 ) {
@@ -193,7 +194,7 @@ export async function salvarImovel(
   return salvo
 }
 
-export async function excluirImovel(id: string) {
+async function excluirImovelLocal(id: string) {
   await esperar()
   atualizarDb((db) => {
     const vinculado =
@@ -208,7 +209,7 @@ export async function excluirImovel(id: string) {
 
 // ===== Ações administrativas (RF24, RF25, RF26) =====
 
-export async function bloquearImovel(
+async function bloquearImovelLocal(
   id: string,
   dados: { motivo: string; justificativa: string; previsao?: string },
   autor: string,
@@ -244,7 +245,7 @@ export async function bloquearImovel(
   })
 }
 
-export async function reabilitarImovel(id: string, dados: { documento: string; observacao: string }, autor: string) {
+async function reabilitarImovelLocal(id: string, dados: { documento: string; observacao: string }, autor: string) {
   await esperar()
   atualizarDb((db) => {
     const imovel = acharImovel(db, id)
@@ -267,7 +268,7 @@ export async function reabilitarImovel(id: string, dados: { documento: string; o
   })
 }
 
-export async function cancelarVenda(
+async function cancelarVendaLocal(
   vendaId: string,
   dados: { motivo: string; dataDistrato: string; devolucao: number },
   autor: string,
@@ -444,7 +445,7 @@ export interface LotePrevia {
   observacao: string
 }
 
-export async function gerarQuadra(
+async function gerarQuadraLocal(
   quadra: Omit<Quadra, 'id' | 'criadaEm'>,
   lotes: LotePrevia[],
   autor: string,
@@ -529,7 +530,7 @@ export async function gerarQuadra(
 
 // ===== Importação de planilha =====
 
-export async function importarImoveis(
+async function importarImoveisLocal(
   itens: Omit<Imovel, 'id' | 'codigo' | 'criadoEm' | 'atualizadoEm'>[],
   autor: string,
 ) {
@@ -668,3 +669,18 @@ export async function excluirClientes(ids: string[]) {
     return { ...db, clientes: db.clientes.filter((c) => !selecionados.has(c.id)) }
   })
 }
+
+// Operações que mexem em imóveis: rodam no banco local e enviam a diferença para a API.
+const sincronizada =
+  <A extends unknown[], R>(fn: (...args: A) => Promise<R>) =>
+  (...args: A) =>
+    comSincronizacaoDeImoveis(() => fn(...args))
+
+export const salvarImovel = sincronizada(salvarImovelLocal)
+export const excluirImovel = sincronizada(excluirImovelLocal)
+export const bloquearImovel = sincronizada(bloquearImovelLocal)
+export const reabilitarImovel = sincronizada(reabilitarImovelLocal)
+export const importarImoveis = sincronizada(importarImoveisLocal)
+export const gerarQuadra = sincronizada(gerarQuadraLocal)
+export const aprovarProposta = sincronizada(aprovarPropostaLocal)
+export const cancelarVenda = sincronizada(cancelarVendaLocal)

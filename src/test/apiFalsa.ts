@@ -94,6 +94,60 @@ function loteamentoDoCorpo(corpo: Record<string, unknown>, atual?: Record<string
   }
 }
 
+let lotes: Record<string, unknown>[] = []
+let proximoLote = 1
+
+export function lotesDaApiFalsa() {
+  return lotes
+}
+
+function loteDoImovel(i: ReturnType<typeof lerDb>['imoveis'][number]) {
+  const { id, matricula, tipo, situacao, observacao, geo, ...detalhes } = i
+  return {
+    id,
+    matricula: matricula || null,
+    tipo,
+    areaQuadrada: i.dimensoes.areaTotal,
+    valor: i.valores.tabela,
+    estado: situacao,
+    informacoesComplementares: observacao ?? null,
+    latitude: geo.lat,
+    longitude: geo.lng,
+    publicado: i.publicacao.catalogo,
+    idQuadra: null,
+    detalhes,
+    createdAt: i.criadoEm,
+    updatedAt: i.atualizadoEm,
+  }
+}
+
+function rotearLotes(metodo: string, caminho: string, corpo: Record<string, unknown>): Response | null {
+  if (caminho === '/lote' && metodo === 'GET') return json(lotes)
+  if (caminho === '/lote' && metodo === 'POST') {
+    if (corpo.matricula && lotes.some((l) => l.matricula === corpo.matricula)) {
+      return erro('Lote com essa matrícula já existente', 409)
+    }
+    const agora = new Date().toISOString()
+    const novo = { ...corpo, id: `lote-api-${proximoLote++}`, createdAt: agora, updatedAt: agora }
+    lotes = [...lotes, novo]
+    return json(novo, 201)
+  }
+  const rota = /^\/lote\/([^/]+)$/.exec(caminho)
+  if (!rota) return null
+  const atual = lotes.find((l) => l.id === rota[1])
+  if (!atual) return erro('Lote não encontrado', 404)
+  if (metodo === 'PUT') {
+    const salvo = { ...atual, ...corpo, updatedAt: new Date().toISOString() }
+    lotes = lotes.map((l) => (l === atual ? salvo : l))
+    return json(salvo)
+  }
+  if (metodo === 'DELETE') {
+    lotes = lotes.filter((l) => l !== atual)
+    return new Response(null, { status: 204 })
+  }
+  return metodo === 'GET' ? json(atual) : null
+}
+
 let quadras: Record<string, unknown>[] = []
 
 export function quadrasDaApiFalsa() {
@@ -140,6 +194,8 @@ function rotearLoteamentos(metodo: string, caminho: string, corpo: Record<string
 }
 
 export function reiniciarApiFalsa() {
+  proximoLote = 1
+  lotes = lerDb().imoveis.map(loteDoImovel)
   proximoCliente = 1
   proximoLoteamento = 1
   const idPorNome = new Map(lerDb().loteamentos.map((l) => [l.nome, l.id]))
@@ -271,7 +327,8 @@ function rotear(metodo: string, caminho: string, corpo: Record<string, unknown>)
   const respostaCliente =
     rotearClientes(metodo, caminho, corpo) ??
     rotearLoteamentos(metodo, caminho, corpo) ??
-    rotearQuadras(metodo, caminho, corpo)
+    rotearQuadras(metodo, caminho, corpo) ??
+    rotearLotes(metodo, caminho, corpo)
   if (respostaCliente) return respostaCliente
 
   return erro(`Rota não simulada: ${metodo} ${caminho}`, 404)

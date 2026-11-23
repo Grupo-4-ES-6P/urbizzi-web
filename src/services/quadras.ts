@@ -13,7 +13,7 @@ interface QuadraApi {
 }
 
 /** A API usa id numérico; ids de teste (lot-1) passam como estão. */
-const idNaApi = (id: string) => (/^\d+$/.test(id) ? Number(id) : id)
+export const idNaApi = (id: string) => (/^\d+$/.test(id) ? Number(id) : id)
 
 function paraQuadra(q: QuadraApi, nomes: Map<string, string>): Quadra {
   return {
