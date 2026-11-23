@@ -11,6 +11,7 @@ import { SiteLayout } from './pages/publico/SiteLayout'
 import { LoginPage } from './pages/LoginPage'
 import { RedefinirSenhaPage, TrocarSenhaPage } from './pages/SenhaPages'
 import { DashboardPage } from './pages/DashboardPage'
+import { NotificacoesPage } from './pages/NotificacoesPage'
 /*Imóveis*/
 import { ImoveisPage } from './pages/imovel/ImoveisPage'
 import { ImovelFormPage } from './pages/imovel/ImovelFormPage'
@@ -96,6 +97,7 @@ export function Rotas() {
         }
       >
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/notificacoes" element={<NotificacoesPage />} />
         {/*Links de Páginas de Imóveis*/}
         <Route path="/imoveis" element={<ImoveisPage />} />
         <Route path="/imoveis/novo" element={<RotaComPermissao permissao="CADASTRAR_IMOVEIS"><ImovelFormPage /></RotaComPermissao>} />

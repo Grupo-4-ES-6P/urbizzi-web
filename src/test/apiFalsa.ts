@@ -321,6 +321,7 @@ function rotearLoteamentos(metodo: string, caminho: string, corpo: Record<string
 }
 
 export function reiniciarApiFalsa() {
+  notificacoesDaApiFalsa.length = 0
   emailsDaApiFalsa.length = 0
   tokensUsados.clear()
   semeiaRegistros()
@@ -362,6 +363,18 @@ export function reiniciarApiFalsa() {
 export const emailsDaApiFalsa: { para: string; token: string }[] = []
 const tokensUsados = new Set<string>()
 let tokenAtual = ''
+
+export interface NotificacaoFalsa {
+  id: string
+  idUsuario: string
+  tipo: string
+  titulo: string
+  mensagem: string
+  link: string | null
+  lida: boolean
+  criadaEm: string
+}
+export const notificacoesDaApiFalsa: NotificacaoFalsa[] = []
 
 export function usuariosDaApiFalsa() {
   return usuarios
@@ -438,6 +451,9 @@ function rotear(metodo: string, caminho: string, corpo: Record<string, unknown>)
     return semConteudo(204)
   }
 
+  const respostaNotificacoes = rotearNotificacoes(metodo, caminho)
+  if (respostaNotificacoes) return respostaNotificacoes
+
   if (metodo === 'GET' && caminho === '/users') return json(usuarios.map(resposta))
 
   if (metodo === 'POST' && caminho === '/users') {
@@ -499,6 +515,34 @@ function rotear(metodo: string, caminho: string, corpo: Record<string, unknown>)
   if (respostaCliente) return respostaCliente
 
   return erro(`Rota não simulada: ${metodo} ${caminho}`, 404)
+}
+
+function rotearNotificacoes(metodo: string, caminho: string): Response | null {
+  if (!caminho.startsWith('/notificacoes')) return null
+  const usuario = usuarios.find((x) => `token-${x.id}` === tokenAtual)
+  if (!usuario) return erro('Unauthorized', 401)
+  const minhas = notificacoesDaApiFalsa.filter((n) => n.idUsuario === usuario.id)
+
+  if (metodo === 'GET' && caminho === '/notificacoes') {
+    const itens = [...minhas].sort((a, b) => b.criadaEm.localeCompare(a.criadaEm)).map((n) => {
+      const copia: Partial<NotificacaoFalsa> = { ...n }
+      delete copia.idUsuario
+      return copia
+    })
+    return json({ naoLidas: minhas.filter((n) => !n.lida).length, itens })
+  }
+  if (metodo === 'POST' && caminho === '/notificacoes/lidas') {
+    for (const n of minhas) n.lida = true
+    return new Response(null, { status: 204 })
+  }
+  const lida = /^\/notificacoes\/([^/]+)\/lida$/.exec(caminho)
+  if (metodo === 'PATCH' && lida) {
+    const n = minhas.find((x) => x.id === lida[1])
+    if (!n) return erro('Notificação não encontrada.', 404)
+    n.lida = true
+    return new Response(null, { status: 204 })
+  }
+  return null
 }
 
 function rotearClientes(metodo: string, caminho: string, corpo: Record<string, unknown>): Response | null {

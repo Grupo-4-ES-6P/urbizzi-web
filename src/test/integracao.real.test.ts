@@ -11,6 +11,24 @@ import { sincronizarCatalogo, sincronizarComApi } from '../services/sincronizaca
  */
 const API = import.meta.env.VITE_API_URL as string | undefined
 
+function dadosImovel(sufixo: string) {
+  return {
+    codigo: `C${sufixo}`,
+    titulo: 'Terreno E2E',
+    matricula: `M${sufixo}`,
+    tipo: 'Terreno em loteamento',
+    loteamento: `Lot E2E ${sufixo}`,
+    situacao: 'disponivel',
+    endereco: { cep: '85900-010', logradouro: 'Rua A', numero: '1', bairro: 'Centro', cidade: 'Toledo', uf: 'PR', quadra: '01', lote: '1' },
+    geo: { lat: -24.7, lng: -53.7 },
+    dimensoes: { areaTotal: 360, frente: 12, fundo: 30, topografia: 'Plano' },
+    valores: { tabela: 90000, minimo: 80000, prazoReservaHoras: 72 },
+    publicacao: { catalogo: true, reservasOnline: true, destaque: false },
+    fotos: ['data:image/png;base64,iVBORw0KGgo='],
+    status: 'publicado',
+  } as Parameters<typeof salvarImovel>[0]
+}
+
 describe.runIf(API?.startsWith('http'))('Integração com a API real', () => {
   beforeEach(async () => {
     vi.unstubAllGlobals()
@@ -36,21 +54,7 @@ describe.runIf(API?.startsWith('http'))('Integração com a API real', () => {
     const clienteId = cliente?.cliente.id ?? lerDb().clientes[0]?.id ?? (await http<{ data: { id: string }[] }>('/clientes')).data[0].id
     atualizarDb((db) => ({ ...db, clientes: [{ id: clienteId, nome: 'Maria E2E' } as never] }))
 
-    const salvo = await salvarImovel({
-      codigo: `C${sufixo}`,
-      titulo: 'Terreno E2E',
-      matricula: `M${sufixo}`,
-      tipo: 'Terreno em loteamento',
-      loteamento: `Lot E2E ${sufixo}`,
-      situacao: 'disponivel',
-      endereco: { cep: '85900-010', logradouro: 'Rua A', numero: '1', bairro: 'Centro', cidade: 'Toledo', uf: 'PR', quadra: '01', lote: '1' },
-      geo: { lat: -24.7, lng: -53.7 },
-      dimensoes: { areaTotal: 360, frente: 12, fundo: 30, topografia: 'Plano' },
-      valores: { tabela: 90000, minimo: 80000, prazoReservaHoras: 72 },
-      publicacao: { catalogo: true, reservasOnline: true, destaque: false },
-      fotos: ['data:image/png;base64,iVBORw0KGgo='],
-      status: 'publicado',
-    })
+    const salvo = await salvarImovel(dadosImovel(sufixo))
     expect(salvo.id).toMatch(/^\d+$/)
     const lote = await http<{ idQuadra: string; detalhes: { titulo: string } }>(`/lote/${salvo.id}`)
     expect(lote.detalhes.titulo).toBe('Terreno E2E')
@@ -100,9 +104,15 @@ describe.runIf(API?.startsWith('http'))('Integração com a API real', () => {
   })
 
   it('visitante vê o catálogo sem dados internos e envia interesse', async () => {
+    const sufixo = Date.now().toString().slice(-6)
+    await http('/loteamentos', { method: 'POST', body: { nome: `Lot E2E ${sufixo}`, codigo: `E${sufixo}`, situacao: 'em_comercializacao' } })
+    await sincronizarComApi()
+    const publicado = await salvarImovel(dadosImovel(sufixo))
+
     definirToken(null)
     await sincronizarCatalogo()
-    const imovel = lerDb().imoveis.find((i) => i.situacao === 'disponivel') ?? lerDb().imoveis[0]
+    const imovel = lerDb().imoveis.find((i) => i.id === publicado.id)
+    expect(imovel).toBeDefined()
     if (!imovel) return
     expect(imovel.valores.minimo).toBeNull()
     const codigo = await registrarInteresse(imovel.id, { nome: 'Visitante E2E', email: 'v@x.com', telefone: '45999999999', mensagem: 'Oi' })

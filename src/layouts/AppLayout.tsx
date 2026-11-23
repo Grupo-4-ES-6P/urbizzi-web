@@ -1,6 +1,7 @@
 import {
   BadgeDollarSign,
   BarChart3,
+  Bell,
   Building2,
   FileText,
   LandPlot,
@@ -24,11 +25,13 @@ import { useTema } from '../contexts/TemaContext'
 import { useToast } from '../contexts/ToastContext'
 import { restaurarDemo } from '../data/db'
 import { iniciais } from '../lib/format'
+import { useNotificacoes } from '../services/notificacoes'
 import { sincronizarComApi } from '../services/sincronizacao'
 
 
 const MENU: { para: string; rotulo: string; icone: typeof LayoutDashboard; permissao?: string }[] = [
   { para: '/dashboard', rotulo: 'Dashboard', icone: LayoutDashboard },
+  { para: '/notificacoes', rotulo: 'Notificações', icone: Bell },
   { para: '/imoveis', rotulo: 'Imóveis', icone: Building2 },
   { para: '/loteamentos', rotulo: 'Loteamentos', icone: LandPlot },
   { para: '/propostas', rotulo: 'Propostas', icone: FileText },
@@ -48,6 +51,7 @@ export function AppLayout() {
   const [contaAberta, setContaAberta] = useState(false)
   const [confirmarReset, setConfirmarReset] = useState(false)
   const contaRef = useRef<HTMLDivElement>(null)
+  const naoLidas = useNotificacoes().dados?.naoLidas ?? 0
 
   // Fecha o menu lateral (mobile) ao trocar de página.
   useEffect(() => setMenuAberto(false), [pathname])
@@ -89,6 +93,11 @@ export function AppLayout() {
             <NavLink key={para} to={para} className="sidebar__link">
               <Icone size={16} aria-hidden />
               {rotulo}
+              {para === '/notificacoes' && naoLidas > 0 && (
+                <span className="sidebar__contador" aria-label={`${naoLidas} não lidas`}>
+                  {naoLidas > 99 ? '99+' : naoLidas}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -144,8 +153,14 @@ export function AppLayout() {
       </aside>
       <div className="app__fundo" onClick={() => setMenuAberto(false)} aria-hidden />
       <div className="app__principal">
-        <button type="button" className="botao-menu" onClick={() => setMenuAberto(true)} aria-label="Abrir menu">
+        <button
+          type="button"
+          className="botao-menu"
+          onClick={() => setMenuAberto(true)}
+          aria-label={naoLidas > 0 ? `Abrir menu (${naoLidas} notificações não lidas)` : 'Abrir menu'}
+        >
           <Menu size={20} />
+          {naoLidas > 0 && <span className="botao-menu__ponto" aria-hidden />}
         </button>
         <Outlet />
       </div>
